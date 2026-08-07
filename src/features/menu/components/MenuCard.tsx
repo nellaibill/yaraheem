@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DishVisual } from '@/components/common/DishVisual'
 import { useCart } from '@/features/cart/hooks/useCart'
+import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
 import { formatCurrency } from '@/lib/utils'
 import type { MenuItem } from '@/types'
 import { toast } from 'sonner'
@@ -21,9 +22,12 @@ export function MenuCard({ item }: { item: MenuItem }) {
       transition={{ duration: 0.4 }}
     >
       <Card className="group h-full overflow-hidden py-0 transition-shadow hover:shadow-md">
-        <Link to={`/food/${item.id}`} className="block">
-          <DishVisual category={item.category} seed={item.id} className="h-40 w-full" />
-        </Link>
+        <div className="relative">
+          <Link to={`/food/${item.id}`} className="block">
+            <DishVisual category={item.category} seed={item.id} className="h-40 w-full" />
+          </Link>
+          <FavoriteButton itemId={item.id} className="absolute top-3 right-3" />
+        </div>
         <CardContent className="flex flex-1 flex-col gap-3 p-5">
           <div className="flex items-start justify-between gap-2">
             <Link to={`/food/${item.id}`} className="hover:underline">

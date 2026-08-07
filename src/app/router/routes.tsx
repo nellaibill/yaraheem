@@ -17,6 +17,7 @@ const RestaurantInfoPage = lazy(() => import('@/pages/RestaurantInfoPage'))
 const CartPage = lazy(() => import('@/pages/CartPage'))
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
 const OrderTrackingPage = lazy(() => import('@/pages/OrderTrackingPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const CateringPage = lazy(() => import('@/pages/CateringPage'))
 const GalleryPage = lazy(() => import('@/pages/GalleryPage'))
 const AboutPage = lazy(() => import('@/pages/AboutPage'))
@@ -54,6 +55,7 @@ const router = createBrowserRouter(
             { path: 'cart', element: withSuspense(<CartPage />) },
             { path: 'checkout', element: withSuspense(<CheckoutPage />) },
             { path: 'orders/:id', element: withSuspense(<OrderTrackingPage />) },
+            { path: 'profile', element: withSuspense(<ProfilePage />) },
             { path: 'catering', element: withSuspense(<CateringPage />) },
             { path: 'gallery', element: withSuspense(<GalleryPage />) },
             { path: 'about', element: withSuspense(<AboutPage />) },

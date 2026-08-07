@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DishVisual } from '@/components/common/DishVisual'
 import { MenuCard } from '@/features/menu/components/MenuCard'
+import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
 import { menuItems } from '@/features/menu/data/menuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
 import { useCart } from '@/features/cart/hooks/useCart'
@@ -48,8 +49,14 @@ export default function FoodDetailsPage() {
       </button>
 
       <div className="grid gap-10 lg:grid-cols-2">
-        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="relative"
+        >
           <DishVisual category={item.category} seed={item.id} className="aspect-square w-full rounded-2xl" iconClassName="size-16" />
+          <FavoriteButton itemId={item.id} className="absolute top-4 right-4 size-10" />
         </motion.div>
 
         <motion.div
