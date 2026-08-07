@@ -1,0 +1,235 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  /* Yaraheem brand palette — warm biryani-house luxury */
+  --background: oklch(0.985 0.012 80);
+  --foreground: oklch(0.22 0.03 30);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 30);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.03 30);
+
+  /* Deep maroon — primary brand color */
+  --primary: oklch(0.34 0.13 15);
+  --primary-foreground: oklch(0.98 0.01 80);
+
+  /* Saffron gold — accent */
+  --secondary: oklch(0.94 0.04 80);
+  --secondary-foreground: oklch(0.34 0.13 15);
+
+  --muted: oklch(0.95 0.015 70);
+  --muted-foreground: oklch(0.45 0.03 40);
+
+  --accent: oklch(0.74 0.15 75);
+  --accent-foreground: oklch(0.22 0.05 40);
+
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 80);
+
+  --border: oklch(0.9 0.02 70);
+  --input: oklch(0.9 0.02 70);
+  --ring: oklch(0.74 0.15 75);
+
+  --gold: oklch(0.74 0.15 75);
+  --gold-foreground: oklch(0.22 0.05 40);
+  --maroon: oklch(0.34 0.13 15);
+  --maroon-foreground: oklch(0.98 0.01 80);
+
+  --chart-1: oklch(0.6 0.18 40);
+  --chart-2: oklch(0.5 0.15 15);
+  --chart-3: oklch(0.74 0.15 75);
+  --chart-4: oklch(0.65 0.12 60);
+  --chart-5: oklch(0.4 0.1 25);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 30);
+  --foreground: oklch(0.96 0.01 80);
+
+  --card: oklch(0.2 0.025 30);
+  --card-foreground: oklch(0.96 0.01 80);
+
+  --popover: oklch(0.2 0.025 30);
+  --popover-foreground: oklch(0.96 0.01 80);
+
+  --primary: oklch(0.78 0.14 75);
+  --primary-foreground: oklch(0.2 0.04 30);
+
+  --secondary: oklch(0.28 0.05 20);
+  --secondary-foreground: oklch(0.96 0.01 80);
+
+  --muted: oklch(0.26 0.02 30);
+  --muted-foreground: oklch(0.7 0.02 60);
+
+  --accent: oklch(0.74 0.15 75);
+  --accent-foreground: oklch(0.2 0.04 30);
+
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(0.96 0.01 80);
+
+  --border: oklch(0.32 0.02 30);
+  --input: oklch(0.32 0.02 30);
+  --ring: oklch(0.74 0.15 75);
+
+  --gold: oklch(0.78 0.14 75);
+  --gold-foreground: oklch(0.2 0.04 30);
+  --maroon: oklch(0.5 0.13 15);
+  --maroon-foreground: oklch(0.98 0.01 80);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-maroon: var(--maroon);
+  --color-maroon-foreground: var(--maroon-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-sans: 'Poppins', 'ui-sans-serif', 'system-ui', sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 12px);
+
+  /* Warm-tinted shadow system — replaces neutral gray shadows with a maroon undertone */
+  --shadow-color: 350 45% 22%;
+  --shadow-xs: 0 1px 2px hsl(var(--shadow-color) / 0.06);
+  --shadow-sm: 0 1px 3px hsl(var(--shadow-color) / 0.08), 0 1px 2px hsl(var(--shadow-color) / 0.05);
+  --shadow-md:
+    0 4px 8px hsl(var(--shadow-color) / 0.08), 0 2px 4px hsl(var(--shadow-color) / 0.06);
+  --shadow-lg:
+    0 12px 24px hsl(var(--shadow-color) / 0.1), 0 4px 8px hsl(var(--shadow-color) / 0.06);
+  --shadow-xl:
+    0 24px 48px hsl(var(--shadow-color) / 0.14), 0 8px 16px hsl(var(--shadow-color) / 0.08);
+
+  /* Motion tokens — premium, slightly decelerated easing */
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-brand-in: cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-brand-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-fade-in: fade-in 0.6s var(--ease-brand);
+  --animate-fade-up: fade-up 0.5s var(--ease-brand);
+  --animate-scale-in: scale-in 0.3s var(--ease-brand);
+  --animate-marquee: marquee 32s linear infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-pulse-ring: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      transform: scale(0.9);
+      opacity: 0.7;
+    }
+    70% {
+      transform: scale(1.4);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1.4);
+      opacity: 0;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-noise {
+    background-image: radial-gradient(currentColor 0.5px, transparent 0.5px);
+    background-size: 16px 16px;
+  }
+}
