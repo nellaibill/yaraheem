@@ -26,6 +26,10 @@ export const STORAGE_KEYS = {
   addresses: 'yaraheem:addresses',
   orders: 'yaraheem:orders',
   favorites: 'yaraheem:favorites',
+  deliveryPartners: 'yaraheem:delivery-partners',
+  activePartnerId: 'yaraheem:delivery:active-partner-id',
+  restaurantSettings: 'yaraheem:admin:settings',
+  adminSeeded: 'yaraheem:admin:seeded',
 } as const
 
 /** Fake OTP used across the mock auth flow — this is a POC with no real SMS provider. */
@@ -60,6 +64,20 @@ export const ORDER_STATUS_SEQUENCE = [
   'delivered',
 ] as const
 
+export const DELIVERY_PARTNER_STATUS_LABELS = {
+  available: 'Available',
+  busy: 'On Delivery',
+  offline: 'Offline',
+} as const
+
+export const DEFAULT_RESTAURANT_SETTINGS = {
+  acceptingOrders: true,
+  minOrderValue: 199,
+  deliveryRadiusKm: 12,
+  openTime: '11:00',
+  closeTime: '23:00',
+} as const
+
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Menu', to: '/menu' },
@@ -75,4 +93,10 @@ export const FOOTER_LINKS = [
   { label: 'Search', to: '/search' },
   { label: 'Reviews', to: '/reviews' },
   { label: 'Restaurant Info', to: '/restaurant-info' },
+] as const
+
+/** Staff-facing portals — surfaced discreetly in the footer for this POC demo. */
+export const STAFF_LINKS = [
+  { label: 'Admin Dashboard', to: '/admin' },
+  { label: 'Delivery Partner Login', to: '/delivery/login' },
 ] as const

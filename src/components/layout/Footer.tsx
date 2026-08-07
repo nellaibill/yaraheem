@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Facebook, Instagram, Mail, MapPin, Phone, Clock } from 'lucide-react'
 import { Logo } from '@/components/layout/Logo'
 import { Separator } from '@/components/ui/separator'
-import { FOOTER_LINKS, NAV_LINKS, SITE } from '@/lib/constants'
+import { FOOTER_LINKS, NAV_LINKS, SITE, STAFF_LINKS } from '@/lib/constants'
 
 export function Footer() {
   return (
@@ -95,7 +95,13 @@ export function Footer() {
           <p>
             &copy; {new Date().getFullYear()} {SITE.name}. All rights reserved.
           </p>
-          <p>Crafted as a proof-of-concept experience.</p>
+          <div className="flex items-center gap-4">
+            {STAFF_LINKS.map((link) => (
+              <Link key={link.to} to={link.to} className="hover:text-primary-foreground">
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </footer>

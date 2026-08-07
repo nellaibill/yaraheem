@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { AuthLayout } from '@/components/layout/AuthLayout'
+import { AdminLayout } from '@/components/layout/AdminLayout'
 import { PageLoader } from '@/components/common/PageLoader'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { RedirectIfAuthed } from '@/features/auth/components/RedirectIfAuthed'
@@ -24,6 +25,13 @@ const AboutPage = lazy(() => import('@/pages/AboutPage'))
 const ContactPage = lazy(() => import('@/pages/ContactPage'))
 const StyleGuidePage = lazy(() => import('@/pages/StyleGuidePage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
+const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
+const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage'))
+const AdminDeliveryPartnersPage = lazy(() => import('@/pages/admin/AdminDeliveryPartnersPage'))
+const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
+const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
 
 const SplashPage = lazy(() => import('@/pages/auth/SplashPage'))
 const WelcomePage = lazy(() => import('@/pages/auth/WelcomePage'))
@@ -62,6 +70,18 @@ const router = createBrowserRouter(
             { path: 'contact', element: withSuspense(<ContactPage />) },
             { path: 'style-guide', element: withSuspense(<StyleGuidePage />) },
             { path: '*', element: withSuspense(<NotFoundPage />) },
+          ],
+        },
+        {
+          path: '/admin',
+          element: <AdminLayout />,
+          children: [
+            { index: true, element: withSuspense(<AdminDashboardPage />) },
+            { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
+            { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
+            { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },
+            { path: 'reports', element: withSuspense(<AdminReportsPage />) },
+            { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
           ],
         },
       ],

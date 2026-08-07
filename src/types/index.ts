@@ -126,3 +126,25 @@ export interface Order {
   estimatedDeliveryMinutes: number
   deliveryPartnerId?: string
 }
+
+export type DeliveryPartnerStatus = 'available' | 'busy' | 'offline'
+export type VehicleType = 'bike' | 'scooter' | 'bicycle'
+
+export interface DeliveryPartner {
+  id: string
+  name: string
+  mobile: string
+  vehicleType: VehicleType
+  rating: number
+  status: DeliveryPartnerStatus
+  activeOrderId?: string
+  totalDeliveries: number
+}
+
+export interface RestaurantSettings {
+  acceptingOrders: boolean
+  minOrderValue: number
+  deliveryRadiusKm: number
+  openTime: string
+  closeTime: string
+}

@@ -39,3 +39,26 @@ export function removeStorage(key: string): void {
 export function scopedKey(base: string, mobile: string): string {
   return `${base}:${mobile}`
 }
+
+/**
+ * Reads every localStorage entry namespaced under `${baseKey}:*` — used by
+ * the admin dashboard to aggregate per-customer data (e.g. orders) across
+ * every mobile number without a real backend to query.
+ */
+export function readAllScoped<T>(baseKey: string): Array<{ scope: string; value: T }> {
+  if (!isBrowser) return []
+  const prefix = `${baseKey}:`
+  const results: Array<{ scope: string; value: T }> = []
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i)
+    if (!key || !key.startsWith(prefix)) continue
+    try {
+      const raw = window.localStorage.getItem(key)
+      if (!raw) continue
+      results.push({ scope: key.slice(prefix.length), value: JSON.parse(raw) as T })
+    } catch {
+      // skip malformed entries
+    }
+  }
+  return results
+}
