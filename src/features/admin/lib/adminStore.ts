@@ -9,6 +9,10 @@ export function getAllOrders(): Order[] {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }
 
+export function getOrderById(orderId: string): Order | undefined {
+  return getAllOrders().find((o) => o.id === orderId)
+}
+
 export function getAllUsers(): AuthUser[] {
   const users = readStorage<Record<string, AuthUser>>(STORAGE_KEYS.authUsers, {})
   return Object.values(users)

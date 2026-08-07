@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { ChefHat, Receipt } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { OrderStatusBadge } from '@/features/admin/components/OrderStatusBadge'
@@ -59,6 +62,7 @@ export default function AdminOrdersPage() {
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 text-right font-medium">Total</th>
                     <th className="pb-2 pl-4 font-medium">Update</th>
+                    <th className="pb-2 pl-4 font-medium">Print</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -96,6 +100,20 @@ export default function AdminOrdersPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </td>
+                      <td className="py-2.5 pl-4">
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="size-8" aria-label="Print KOT" asChild>
+                            <Link to={`/print/kot/${order.id}`} target="_blank">
+                              <ChefHat className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="icon" className="size-8" aria-label="Print invoice" asChild>
+                            <Link to={`/print/invoice/${order.id}`} target="_blank">
+                              <Receipt className="size-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -149,9 +149,14 @@ export default function OrderTrackingPage() {
         </Card>
       </div>
 
-      <div className="mt-8 flex justify-center gap-3">
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button asChild variant="outline">
           <Link to="/profile">View All Orders</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link to={`/print/invoice/${order.id}`} target="_blank">
+            Print Invoice
+          </Link>
         </Button>
         <Button asChild variant="gold">
           <Link to="/menu">Order Again</Link>

@@ -35,6 +35,9 @@ const AdminDeliveryPartnersPage = lazy(() => import('@/pages/admin/AdminDelivery
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
 
+const KotPage = lazy(() => import('@/pages/print/KotPage'))
+const InvoicePage = lazy(() => import('@/pages/print/InvoicePage'))
+
 const DeliveryLoginPage = lazy(() => import('@/pages/delivery/DeliveryLoginPage'))
 const DeliveryDashboardPage = lazy(() => import('@/pages/delivery/DeliveryDashboardPage'))
 
@@ -89,6 +92,8 @@ const router = createBrowserRouter(
             { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
           ],
         },
+        { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
+        { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
       ],
     },
     {

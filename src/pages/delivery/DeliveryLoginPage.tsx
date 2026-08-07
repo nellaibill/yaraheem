@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Bike, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,8 +15,7 @@ export default function DeliveryLoginPage() {
   const [error, setError] = useState('')
 
   if (isAuthenticated) {
-    navigate('/delivery', { replace: true })
-    return null
+    return <Navigate to="/delivery" replace />
   }
 
   function handleSubmit(event: FormEvent) {
