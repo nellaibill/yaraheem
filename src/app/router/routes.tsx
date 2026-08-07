@@ -3,9 +3,11 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { AdminLayout } from '@/components/layout/AdminLayout'
+import { DeliveryLayout } from '@/components/layout/DeliveryLayout'
 import { PageLoader } from '@/components/common/PageLoader'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { RedirectIfAuthed } from '@/features/auth/components/RedirectIfAuthed'
+import { RequireDeliveryAuth } from '@/features/delivery/components/RequireDeliveryAuth'
 
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const MenuPage = lazy(() => import('@/pages/MenuPage'))
@@ -32,6 +34,9 @@ const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage')
 const AdminDeliveryPartnersPage = lazy(() => import('@/pages/admin/AdminDeliveryPartnersPage'))
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
+
+const DeliveryLoginPage = lazy(() => import('@/pages/delivery/DeliveryLoginPage'))
+const DeliveryDashboardPage = lazy(() => import('@/pages/delivery/DeliveryDashboardPage'))
 
 const SplashPage = lazy(() => import('@/pages/auth/SplashPage'))
 const WelcomePage = lazy(() => import('@/pages/auth/WelcomePage'))
@@ -99,6 +104,17 @@ const router = createBrowserRouter(
         },
         { path: 'otp', element: withSuspense(<OtpPage />) },
         { path: 'auth-success', element: withSuspense(<AuthSuccessPage />) },
+      ],
+    },
+    { path: '/delivery/login', element: withSuspense(<DeliveryLoginPage />) },
+    {
+      element: <RequireDeliveryAuth />,
+      children: [
+        {
+          path: '/delivery',
+          element: <DeliveryLayout />,
+          children: [{ index: true, element: withSuspense(<DeliveryDashboardPage />) }],
+        },
       ],
     },
   ],
