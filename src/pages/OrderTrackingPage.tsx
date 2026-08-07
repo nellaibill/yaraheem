@@ -157,7 +157,7 @@ export default function OrderTrackingPage() {
           <Link to="/profile">View All Orders</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link to={`/print/invoice/${order.id}`} target="_blank">
+          <Link to={`/print/invoice/${order.id}`} target="_blank" rel="noopener noreferrer">
             Print Invoice
           </Link>
         </Button>

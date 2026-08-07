@@ -104,12 +104,12 @@ export default function AdminOrdersPage() {
                       <td className="py-2.5 pl-4">
                         <div className="flex gap-1">
                           <Button variant="ghost" size="icon" className="size-8" aria-label="Print KOT" asChild>
-                            <Link to={`/print/kot/${order.id}`} target="_blank">
+                            <Link to={`/print/kot/${order.id}`} target="_blank" rel="noopener noreferrer">
                               <ChefHat className="size-4" />
                             </Link>
                           </Button>
                           <Button variant="ghost" size="icon" className="size-8" aria-label="Print invoice" asChild>
-                            <Link to={`/print/invoice/${order.id}`} target="_blank">
+                            <Link to={`/print/invoice/${order.id}`} target="_blank" rel="noopener noreferrer">
                               <Receipt className="size-4" />
                             </Link>
                           </Button>
