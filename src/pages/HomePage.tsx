@@ -1,16 +1,20 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, ChefHat, Clock, Sparkles, Users2 } from 'lucide-react'
+import { ArrowRight, ChefHat, Clock, Sparkles, Tag, Users2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { DishVisual } from '@/components/common/DishVisual'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { TestimonialCard } from '@/features/testimonials/components/TestimonialCard'
-import { menuItems } from '@/features/menu/data/menuData'
+import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
+import { offers } from '@/features/offers/data/offersData'
 import { SITE } from '@/lib/constants'
+import type { MenuCategory } from '@/types'
 
 const signatureDishes = menuItems.filter((item) => item.isSignature).slice(0, 4)
+const categoryList = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
+const featuredOffer = offers[0]
 
 const STATS = [
   { label: 'Years of Legacy', value: '15+' },
@@ -108,6 +112,45 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl font-bold sm:text-2xl">Shop by Category</h2>
+          <Link to="/categories" className="text-primary text-sm font-medium hover:underline">
+            View all
+          </Link>
+        </div>
+        <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
+          {categoryList.map((category) => (
+            <Link
+              key={category}
+              to={`/menu?category=${category}`}
+              className="group flex w-24 shrink-0 flex-col items-center gap-2 text-center"
+            >
+              <DishVisual category={category} seed={category} className="size-20 rounded-2xl transition-transform group-hover:scale-105" />
+              <span className="text-xs font-medium">{MENU_CATEGORY_LABELS[category]}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <Link
+          to="/offers"
+          className="from-gold/20 to-gold/5 border-gold/30 flex items-center justify-between gap-4 rounded-2xl border bg-gradient-to-r px-6 py-4 transition-colors hover:bg-gold/10"
+        >
+          <div className="flex items-center gap-3">
+            <span className="bg-gold text-gold-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
+              <Tag className="size-4.5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">{featuredOffer.title} — Code {featuredOffer.code}</p>
+              <p className="text-muted-foreground text-xs">{featuredOffer.description}</p>
+            </div>
+          </div>
+          <ArrowRight className="text-muted-foreground size-4 shrink-0" />
+        </Link>
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Fan Favorites"
@@ -192,9 +235,16 @@ export default function HomePage() {
             description="Real feedback from families, planners, and companies we've had the honor of serving."
           />
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {testimonials.map((testimonial) => (
+            {testimonials.slice(0, 4).map((testimonial) => (
               <TestimonialCard key={testimonial.id} testimonial={testimonial} />
             ))}
+          </div>
+          <div className="mt-10 flex justify-center">
+            <Button asChild variant="outline" size="lg" className="gap-2">
+              <Link to="/reviews">
+                View All Reviews <ArrowRight className="size-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

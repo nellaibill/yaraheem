@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom'
 import { Facebook, Instagram, Mail, MapPin, Phone, Clock } from 'lucide-react'
 import { Logo } from '@/components/layout/Logo'
 import { Separator } from '@/components/ui/separator'
-import { NAV_LINKS, SITE } from '@/lib/constants'
+import { FOOTER_LINKS, NAV_LINKS, SITE } from '@/lib/constants'
 
 export function Footer() {
   return (
     <footer className="bg-primary text-primary-foreground mt-24">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-4">
-          <div className="md:col-span-1">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+          <div className="md:col-span-2 lg:col-span-1">
             <Logo variant="inverted" />
             <p className="text-primary-foreground/70 mt-4 max-w-xs text-sm leading-relaxed">
               {SITE.description}
@@ -40,6 +40,19 @@ export function Footer() {
             <h3 className="font-display mb-4 text-sm font-semibold tracking-wide uppercase">Explore</h3>
             <ul className="space-y-2.5 text-sm">
               {NAV_LINKS.map((link) => (
+                <li key={link.to}>
+                  <Link to={link.to} className="text-primary-foreground/75 hover:text-primary-foreground">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-display mb-4 text-sm font-semibold tracking-wide uppercase">More</h3>
+            <ul className="space-y-2.5 text-sm">
+              {FOOTER_LINKS.map((link) => (
                 <li key={link.to}>
                   <Link to={link.to} className="text-primary-foreground/75 hover:text-primary-foreground">
                     {link.label}

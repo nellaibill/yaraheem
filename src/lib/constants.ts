@@ -31,8 +31,16 @@ export const MOCK_OTP = '1234'
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },
   { label: 'Menu', to: '/menu' },
+  { label: 'Offers', to: '/offers' },
   { label: 'Catering', to: '/catering' },
   { label: 'Gallery', to: '/gallery' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
+] as const
+
+export const FOOTER_LINKS = [
+  { label: 'Categories', to: '/categories' },
+  { label: 'Search', to: '/search' },
+  { label: 'Reviews', to: '/reviews' },
+  { label: 'Restaurant Info', to: '/restaurant-info' },
 ] as const

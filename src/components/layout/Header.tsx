@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Menu as MenuIcon, Phone, ShoppingBag } from 'lucide-react'
+import { Menu as MenuIcon, Phone, Search, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -64,6 +64,11 @@ export function Header() {
               {SITE.phone}
             </Button>
           </a>
+          <Button variant="ghost" size="icon" asChild aria-label="Search">
+            <NavLink to="/search">
+              <Search className="size-4.5" />
+            </NavLink>
+          </Button>
           <ThemeToggle />
           <Button
             variant="ghost"

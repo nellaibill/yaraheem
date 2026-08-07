@@ -8,6 +8,12 @@ import { RedirectIfAuthed } from '@/features/auth/components/RedirectIfAuthed'
 
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const MenuPage = lazy(() => import('@/pages/MenuPage'))
+const CategoriesPage = lazy(() => import('@/pages/CategoriesPage'))
+const FoodDetailsPage = lazy(() => import('@/pages/FoodDetailsPage'))
+const SearchPage = lazy(() => import('@/pages/SearchPage'))
+const OffersPage = lazy(() => import('@/pages/OffersPage'))
+const ReviewsPage = lazy(() => import('@/pages/ReviewsPage'))
+const RestaurantInfoPage = lazy(() => import('@/pages/RestaurantInfoPage'))
 const CateringPage = lazy(() => import('@/pages/CateringPage'))
 const GalleryPage = lazy(() => import('@/pages/GalleryPage'))
 const AboutPage = lazy(() => import('@/pages/AboutPage'))
@@ -36,6 +42,12 @@ const router = createBrowserRouter(
           children: [
             { index: true, element: withSuspense(<HomePage />) },
             { path: 'menu', element: withSuspense(<MenuPage />) },
+            { path: 'categories', element: withSuspense(<CategoriesPage />) },
+            { path: 'food/:id', element: withSuspense(<FoodDetailsPage />) },
+            { path: 'search', element: withSuspense(<SearchPage />) },
+            { path: 'offers', element: withSuspense(<OffersPage />) },
+            { path: 'reviews', element: withSuspense(<ReviewsPage />) },
+            { path: 'restaurant-info', element: withSuspense(<RestaurantInfoPage />) },
             { path: 'catering', element: withSuspense(<CateringPage />) },
             { path: 'gallery', element: withSuspense(<GalleryPage />) },
             { path: 'about', element: withSuspense(<AboutPage />) },

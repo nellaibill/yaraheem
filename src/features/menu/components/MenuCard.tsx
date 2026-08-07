@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Flame, Leaf, Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,10 +21,14 @@ export function MenuCard({ item }: { item: MenuItem }) {
       transition={{ duration: 0.4 }}
     >
       <Card className="group h-full overflow-hidden py-0 transition-shadow hover:shadow-md">
-        <DishVisual category={item.category} seed={item.id} className="h-40 w-full" />
+        <Link to={`/food/${item.id}`} className="block">
+          <DishVisual category={item.category} seed={item.id} className="h-40 w-full" />
+        </Link>
         <CardContent className="flex flex-1 flex-col gap-3 p-5">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-display text-base leading-snug font-semibold">{item.name}</h3>
+            <Link to={`/food/${item.id}`} className="hover:underline">
+              <h3 className="font-display text-base leading-snug font-semibold">{item.name}</h3>
+            </Link>
             {item.isVeg ? (
               <Leaf className="mt-1 size-4 shrink-0 text-green-600" aria-label="Vegetarian" />
             ) : (

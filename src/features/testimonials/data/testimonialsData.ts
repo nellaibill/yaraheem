@@ -33,4 +33,40 @@ export const testimonials: Testimonial[] = [
       'As a planner I work with a lot of caterers — Yaraheem is consistently the most reliable for large-scale events with zero hiccups.',
     rating: 4,
   },
+  {
+    id: 't5',
+    name: 'Sana Mirza',
+    role: 'Regular Customer',
+    quote:
+      'Order the chicken biryani almost every week now. Consistent taste, generous portions, and delivery is always quick.',
+    rating: 5,
+  },
+  {
+    id: 't6',
+    name: 'Arjun Nair',
+    role: 'Office Manager',
+    quote: 'Great for team lunches. The corporate lunch box option is a lifesaver during busy weeks.',
+    rating: 4,
+  },
+  {
+    id: 't7',
+    name: 'Priya Deshmukh',
+    role: 'First-time Customer',
+    quote: 'Was skeptical about ordering biryani online but this exceeded expectations. Will order again!',
+    rating: 5,
+  },
+  {
+    id: 't8',
+    name: 'Mohammed Irfan',
+    role: 'Regular Customer',
+    quote: 'The mirchi ka salan is criminally underrated. Pairs perfectly with the mutton biryani.',
+    rating: 5,
+  },
+  {
+    id: 't9',
+    name: 'Lakshmi Iyer',
+    role: 'Catering Client',
+    quote: 'Delivery was 15 minutes late for our event but the team called ahead and the food quality made up for it.',
+    rating: 3,
+  },
 ]

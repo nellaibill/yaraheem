@@ -1,12 +1,23 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { MenuFilters } from '@/features/menu/components/MenuFilters'
 import { MenuCard } from '@/features/menu/components/MenuCard'
-import { menuItems } from '@/features/menu/data/menuData'
+import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
 import type { MenuCategory } from '@/types'
 
+const VALID_CATEGORIES = new Set(Object.keys(MENU_CATEGORY_LABELS))
+
+function isMenuCategory(value: string | null): value is MenuCategory {
+  return !!value && VALID_CATEGORIES.has(value)
+}
+
 export default function MenuPage() {
-  const [category, setCategory] = useState<MenuCategory | 'all'>('all')
+  const [searchParams] = useSearchParams()
+  const initialCategory = searchParams.get('category')
+  const [category, setCategory] = useState<MenuCategory | 'all'>(
+    isMenuCategory(initialCategory) ? initialCategory : 'all',
+  )
   const [vegOnly, setVegOnly] = useState(false)
 
   const filteredItems = useMemo(() => {
