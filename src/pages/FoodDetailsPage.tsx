@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Flame, Leaf, Minus, Plus, Star } from 'lucide-react'
+import { ChevronLeft, Flame, Leaf, Minus, Plus, Star, UtensilsCrossed } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DishVisual } from '@/components/common/DishVisual'
+import { EmptyState } from '@/components/common/EmptyState'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
 import { menuItems } from '@/features/menu/data/menuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
 import { useCart } from '@/features/cart/hooks/useCart'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency, getMockRating, cn } from '@/lib/utils'
 
 export default function FoodDetailsPage() {
@@ -21,16 +23,18 @@ export default function FoodDetailsPage() {
   const [quantity, setQuantity] = useState(1)
 
   const item = menuItems.find((menuItem) => menuItem.id === id)
+  useDocumentTitle(item?.name ?? 'Dish Not Found')
 
   if (!item) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-        <h1 className="font-display text-2xl font-bold">Dish not found</h1>
-        <p className="text-muted-foreground">This item may no longer be on the menu.</p>
-        <Button asChild variant="gold">
-          <Link to="/menu">Back to Menu</Link>
-        </Button>
-      </div>
+      <EmptyState
+        fullPage
+        icon={UtensilsCrossed}
+        title="Dish not found"
+        description="This item may no longer be on the menu."
+        actionLabel="Back to Menu"
+        actionTo="/menu"
+      />
     )
   }
 

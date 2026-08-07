@@ -3,9 +3,11 @@ import { Search as SearchIcon, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
+  useDocumentTitle('Search')
 
   const results = useMemo(() => {
     const term = query.trim().toLowerCase()

@@ -4,6 +4,7 @@ import { SectionHeading } from '@/components/common/SectionHeading'
 import { MenuFilters } from '@/features/menu/components/MenuFilters'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { MenuCategory } from '@/types'
 
 const VALID_CATEGORIES = new Set(Object.keys(MENU_CATEGORY_LABELS))
@@ -19,6 +20,7 @@ export default function MenuPage() {
     isMenuCategory(initialCategory) ? initialCategory : 'all',
   )
   const [vegOnly, setVegOnly] = useState(false)
+  useDocumentTitle('Menu')
 
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {

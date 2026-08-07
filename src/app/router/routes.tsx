@@ -41,6 +41,8 @@ const InvoicePage = lazy(() => import('@/pages/print/InvoicePage'))
 const DeliveryLoginPage = lazy(() => import('@/pages/delivery/DeliveryLoginPage'))
 const DeliveryDashboardPage = lazy(() => import('@/pages/delivery/DeliveryDashboardPage'))
 
+const ErrorPage = lazy(() => import('@/pages/ErrorPage'))
+
 const SplashPage = lazy(() => import('@/pages/auth/SplashPage'))
 const WelcomePage = lazy(() => import('@/pages/auth/WelcomePage'))
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'))
@@ -54,71 +56,76 @@ function withSuspense(node: ReactNode) {
 const router = createBrowserRouter(
   [
     {
-      element: <RequireAuth />,
+      errorElement: withSuspense(<ErrorPage />),
       children: [
         {
-          path: '/',
-          element: <Layout />,
+          element: <RequireAuth />,
           children: [
-            { index: true, element: withSuspense(<HomePage />) },
-            { path: 'menu', element: withSuspense(<MenuPage />) },
-            { path: 'categories', element: withSuspense(<CategoriesPage />) },
-            { path: 'food/:id', element: withSuspense(<FoodDetailsPage />) },
-            { path: 'search', element: withSuspense(<SearchPage />) },
-            { path: 'offers', element: withSuspense(<OffersPage />) },
-            { path: 'reviews', element: withSuspense(<ReviewsPage />) },
-            { path: 'restaurant-info', element: withSuspense(<RestaurantInfoPage />) },
-            { path: 'cart', element: withSuspense(<CartPage />) },
-            { path: 'checkout', element: withSuspense(<CheckoutPage />) },
-            { path: 'orders/:id', element: withSuspense(<OrderTrackingPage />) },
-            { path: 'profile', element: withSuspense(<ProfilePage />) },
-            { path: 'catering', element: withSuspense(<CateringPage />) },
-            { path: 'gallery', element: withSuspense(<GalleryPage />) },
-            { path: 'about', element: withSuspense(<AboutPage />) },
-            { path: 'contact', element: withSuspense(<ContactPage />) },
-            { path: 'style-guide', element: withSuspense(<StyleGuidePage />) },
-            { path: '*', element: withSuspense(<NotFoundPage />) },
+            {
+              path: '/',
+              element: <Layout />,
+              children: [
+                { index: true, element: withSuspense(<HomePage />) },
+                { path: 'menu', element: withSuspense(<MenuPage />) },
+                { path: 'categories', element: withSuspense(<CategoriesPage />) },
+                { path: 'food/:id', element: withSuspense(<FoodDetailsPage />) },
+                { path: 'search', element: withSuspense(<SearchPage />) },
+                { path: 'offers', element: withSuspense(<OffersPage />) },
+                { path: 'reviews', element: withSuspense(<ReviewsPage />) },
+                { path: 'restaurant-info', element: withSuspense(<RestaurantInfoPage />) },
+                { path: 'cart', element: withSuspense(<CartPage />) },
+                { path: 'checkout', element: withSuspense(<CheckoutPage />) },
+                { path: 'orders/:id', element: withSuspense(<OrderTrackingPage />) },
+                { path: 'profile', element: withSuspense(<ProfilePage />) },
+                { path: 'catering', element: withSuspense(<CateringPage />) },
+                { path: 'gallery', element: withSuspense(<GalleryPage />) },
+                { path: 'about', element: withSuspense(<AboutPage />) },
+                { path: 'contact', element: withSuspense(<ContactPage />) },
+                { path: 'style-guide', element: withSuspense(<StyleGuidePage />) },
+                { path: '*', element: withSuspense(<NotFoundPage />) },
+              ],
+            },
+            {
+              path: '/admin',
+              element: <AdminLayout />,
+              children: [
+                { index: true, element: withSuspense(<AdminDashboardPage />) },
+                { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
+                { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
+                { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },
+                { path: 'reports', element: withSuspense(<AdminReportsPage />) },
+                { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
+              ],
+            },
+            { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
+            { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
           ],
         },
         {
-          path: '/admin',
-          element: <AdminLayout />,
+          element: <AuthLayout />,
           children: [
-            { index: true, element: withSuspense(<AdminDashboardPage />) },
-            { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
-            { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
-            { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },
-            { path: 'reports', element: withSuspense(<AdminReportsPage />) },
-            { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
+            { path: 'splash', element: withSuspense(<SplashPage />) },
+            {
+              element: <RedirectIfAuthed />,
+              children: [
+                { path: 'welcome', element: withSuspense(<WelcomePage />) },
+                { path: 'login', element: withSuspense(<LoginPage />) },
+              ],
+            },
+            { path: 'otp', element: withSuspense(<OtpPage />) },
+            { path: 'auth-success', element: withSuspense(<AuthSuccessPage />) },
           ],
         },
-        { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
-        { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
-      ],
-    },
-    {
-      element: <AuthLayout />,
-      children: [
-        { path: 'splash', element: withSuspense(<SplashPage />) },
+        { path: '/delivery/login', element: withSuspense(<DeliveryLoginPage />) },
         {
-          element: <RedirectIfAuthed />,
+          element: <RequireDeliveryAuth />,
           children: [
-            { path: 'welcome', element: withSuspense(<WelcomePage />) },
-            { path: 'login', element: withSuspense(<LoginPage />) },
+            {
+              path: '/delivery',
+              element: <DeliveryLayout />,
+              children: [{ index: true, element: withSuspense(<DeliveryDashboardPage />) }],
+            },
           ],
-        },
-        { path: 'otp', element: withSuspense(<OtpPage />) },
-        { path: 'auth-success', element: withSuspense(<AuthSuccessPage />) },
-      ],
-    },
-    { path: '/delivery/login', element: withSuspense(<DeliveryLoginPage />) },
-    {
-      element: <RequireDeliveryAuth />,
-      children: [
-        {
-          path: '/delivery',
-          element: <DeliveryLayout />,
-          children: [{ index: true, element: withSuspense(<DeliveryDashboardPage />) }],
         },
       ],
     },

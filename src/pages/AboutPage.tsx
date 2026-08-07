@@ -3,6 +3,7 @@ import { Award, Heart, Leaf, Users } from 'lucide-react'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { DishVisual } from '@/components/common/DishVisual'
 import { Card, CardContent } from '@/components/ui/card'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 const VALUES = [
   {
@@ -35,6 +36,8 @@ const TIMELINE = [
 ]
 
 export default function AboutPage() {
+  useDocumentTitle('About Us')
+
   return (
     <div>
       <section className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-24">

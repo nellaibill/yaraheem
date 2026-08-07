@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { GalleryGrid } from '@/features/gallery/components/GalleryGrid'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { GalleryImage } from '@/types'
 
 const FILTERS: { label: string; value: GalleryImage['category'] | 'all' }[] = [
@@ -13,6 +14,7 @@ const FILTERS: { label: string; value: GalleryImage['category'] | 'all' }[] = [
 
 export default function GalleryPage() {
   const [filter, setFilter] = useState<GalleryImage['category'] | 'all'>('all')
+  useDocumentTitle('Gallery')
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">

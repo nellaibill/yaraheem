@@ -16,6 +16,12 @@ export function AdminLayout() {
 
   return (
     <div className="bg-secondary/30 flex min-h-screen">
+      <a
+        href="#admin-main-content"
+        className="bg-primary text-primary-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:px-4 focus:py-2 sr-only"
+      >
+        Skip to content
+      </a>
       <aside className="bg-card hidden w-64 shrink-0 border-r lg:block">
         <AdminSidebar />
       </aside>
@@ -34,7 +40,7 @@ export function AdminLayout() {
           </Button>
           <p className="font-display text-sm font-bold">Yaraheem Admin</p>
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main id="admin-main-content" className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

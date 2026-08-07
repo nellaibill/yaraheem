@@ -3,11 +3,14 @@ import { motion } from 'framer-motion'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { DishVisual } from '@/components/common/DishVisual'
 import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { MenuCategory } from '@/types'
 
 const CATEGORIES = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
 
 export default function CategoriesPage() {
+  useDocumentTitle('Categories')
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeading

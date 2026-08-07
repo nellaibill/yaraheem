@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { EmptyState } from '@/components/common/EmptyState'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { AddressFormDialog } from '@/features/checkout/components/AddressFormDialog'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -31,6 +32,7 @@ import { useOrders } from '@/features/checkout/hooks/useOrders'
 import { useAddresses } from '@/features/checkout/hooks/useAddresses'
 import { useFavorites } from '@/features/favorites/hooks/useFavorites'
 import { useTheme } from '@/hooks/useTheme'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { menuItems } from '@/features/menu/data/menuData'
 import { formatCurrency } from '@/lib/utils'
 import { ORDER_STATUS_LABELS } from '@/lib/constants'
@@ -52,6 +54,7 @@ export default function ProfilePage() {
   const { favoriteIds } = useFavorites()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
+  useDocumentTitle('Your Profile')
 
   const [editingName, setEditingName] = useState(false)
   const [nameDraft, setNameDraft] = useState(user?.name ?? '')
@@ -300,33 +303,6 @@ export default function ProfilePage() {
       </Tabs>
 
       <AddressFormDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} onSave={handleAddAddress} />
-    </div>
-  )
-}
-
-function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  actionLabel,
-  actionTo,
-}: {
-  icon: typeof ShoppingBag
-  title: string
-  description: string
-  actionLabel?: string
-  actionTo?: string
-}) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-      <Icon className="text-muted-foreground size-10" strokeWidth={1.5} />
-      <p className="font-medium">{title}</p>
-      <p className="text-muted-foreground max-w-xs text-sm">{description}</p>
-      {actionLabel && actionTo && (
-        <Button asChild variant="outline" size="sm" className="mt-2">
-          <Link to={actionTo}>{actionLabel}</Link>
-        </Button>
-      )}
     </div>
   )
 }

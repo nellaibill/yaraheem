@@ -5,27 +5,30 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { DishVisual } from '@/components/common/DishVisual'
+import { EmptyState } from '@/components/common/EmptyState'
 import { useCart } from '@/features/cart/hooks/useCart'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
 import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD } from '@/lib/constants'
 
 export default function CartPage() {
   const { lines, totalItems, totalPrice, setQuantity, removeItem, clear } = useCart()
   const navigate = useNavigate()
+  useDocumentTitle('Your Cart')
 
   const deliveryFee = totalPrice >= FREE_DELIVERY_THRESHOLD || totalPrice === 0 ? 0 : DELIVERY_FEE
   const grandTotal = totalPrice + deliveryFee
 
   if (lines.length === 0) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-        <ShoppingBag className="text-muted-foreground size-14" strokeWidth={1.5} />
-        <h1 className="font-display text-2xl font-bold">Your cart is empty</h1>
-        <p className="text-muted-foreground">Add some biryani to get started.</p>
-        <Button asChild variant="gold" size="lg">
-          <Link to="/menu">Browse Menu</Link>
-        </Button>
-      </div>
+      <EmptyState
+        fullPage
+        icon={ShoppingBag}
+        title="Your cart is empty"
+        description="Add some biryani to get started."
+        actionLabel="Browse Menu"
+        actionTo="/menu"
+      />
     )
   }
 

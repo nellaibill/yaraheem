@@ -6,10 +6,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { offers } from '@/features/offers/data/offersData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
 
 export default function OffersPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  useDocumentTitle('Offers')
 
   function handleCopy(code: string) {
     navigator.clipboard?.writeText(code).catch(() => {})

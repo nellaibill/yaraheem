@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Banknote, CreditCard, Plus, ShoppingBag, Smartphone, Tag, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { SectionHeading } from '@/components/common/SectionHeading'
+import { EmptyState } from '@/components/common/EmptyState'
 import { useCart } from '@/features/cart/hooks/useCart'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useAddresses } from '@/features/checkout/hooks/useAddresses'
@@ -16,6 +17,7 @@ import { useOrders } from '@/features/checkout/hooks/useOrders'
 import { AddressCard } from '@/features/checkout/components/AddressCard'
 import { AddressFormDialog } from '@/features/checkout/components/AddressFormDialog'
 import { findOffer, calculateDiscount } from '@/features/offers/data/offersData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
 import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, PAYMENT_METHOD_LABELS } from '@/lib/constants'
 import type { Address, Order, PaymentMethod } from '@/types'
@@ -32,6 +34,7 @@ export default function CheckoutPage() {
   const { user } = useAuth()
   const { addresses, addAddress } = useAddresses()
   const { placeOrder } = useOrders()
+  useDocumentTitle('Checkout')
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? null,
@@ -49,14 +52,14 @@ export default function CheckoutPage() {
 
   if (lines.length === 0) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-        <ShoppingBag className="text-muted-foreground size-14" strokeWidth={1.5} />
-        <h1 className="font-display text-2xl font-bold">Nothing to check out</h1>
-        <p className="text-muted-foreground">Your cart is empty right now.</p>
-        <Button asChild variant="gold" size="lg">
-          <Link to="/menu">Browse Menu</Link>
-        </Button>
-      </div>
+      <EmptyState
+        fullPage
+        icon={ShoppingBag}
+        title="Nothing to check out"
+        description="Your cart is empty right now."
+        actionLabel="Browse Menu"
+        actionTo="/menu"
+      />
     )
   }
 

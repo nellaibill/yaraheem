@@ -9,6 +9,7 @@ import { TestimonialCard } from '@/features/testimonials/components/TestimonialC
 import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
 import { offers } from '@/features/offers/data/offersData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { SITE } from '@/lib/constants'
 import type { MenuCategory } from '@/types'
 
@@ -47,6 +48,8 @@ const FEATURES = [
 ]
 
 export default function HomePage() {
+  useDocumentTitle('Premium Biryani & Catering')
+
   return (
     <div>
       <section className="relative overflow-hidden">

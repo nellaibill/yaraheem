@@ -5,6 +5,7 @@ import { InquiryDialog } from '@/features/catering/components/InquiryDialog'
 import { cateringPackages } from '@/features/catering/data/cateringData'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { CateringPackage } from '@/types'
 
 const FAQS = [
@@ -33,6 +34,7 @@ const FAQS = [
 export default function CateringPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPackageId, setSelectedPackageId] = useState<string | undefined>(undefined)
+  useDocumentTitle('Catering')
 
   function handleEnquire(pkg: CateringPackage) {
     setSelectedPackageId(pkg.id)

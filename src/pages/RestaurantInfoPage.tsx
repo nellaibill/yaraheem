@@ -2,6 +2,7 @@ import { Clock, MapPin, Phone, Mail, ShieldCheck, Truck, Star } from 'lucide-rea
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { SITE } from '@/lib/constants'
 
 const INFO_ROWS = [
@@ -14,6 +15,8 @@ const INFO_ROWS = [
 ]
 
 export default function RestaurantInfoPage() {
+  useDocumentTitle('Restaurant Info')
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeading

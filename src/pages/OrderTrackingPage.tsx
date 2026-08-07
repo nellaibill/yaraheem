@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { StatusTimeline } from '@/features/tracking/components/StatusTimeline'
+import { EmptyState } from '@/components/common/EmptyState'
 import { useOrders } from '@/features/checkout/hooks/useOrders'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
 import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS, SITE } from '@/lib/constants'
 
@@ -17,6 +19,7 @@ export default function OrderTrackingPage() {
   const { getOrder, advanceStatus } = useOrders()
   const order = id ? getOrder(id) : undefined
   const [now, setNow] = useState(() => Date.now())
+  useDocumentTitle(order ? `Order #${order.id.slice(0, 8).toUpperCase()}` : 'Order Not Found')
 
   const isDelivered = order?.status === 'delivered'
 
@@ -33,14 +36,14 @@ export default function OrderTrackingPage() {
 
   if (!order) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-        <PackageSearch className="text-muted-foreground size-14" strokeWidth={1.5} />
-        <h1 className="font-display text-2xl font-bold">Order not found</h1>
-        <p className="text-muted-foreground">We couldn't find this order in your history.</p>
-        <Button asChild variant="gold">
-          <Link to="/menu">Back to Menu</Link>
-        </Button>
-      </div>
+      <EmptyState
+        fullPage
+        icon={PackageSearch}
+        title="Order not found"
+        description="We couldn't find this order in your history."
+        actionLabel="Back to Menu"
+        actionTo="/menu"
+      />
     )
   }
 

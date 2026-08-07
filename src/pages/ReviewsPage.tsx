@@ -2,9 +2,11 @@ import { Star } from 'lucide-react'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { TestimonialCard } from '@/features/testimonials/components/TestimonialCard'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn } from '@/lib/utils'
 
 export default function ReviewsPage() {
+  useDocumentTitle('Reviews')
   const total = testimonials.length
   const average = testimonials.reduce((sum, t) => sum + t.rating, 0) / total
 

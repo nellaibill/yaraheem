@@ -13,9 +13,11 @@ import {
   getTodayRevenue,
   getTopSellingItems,
 } from '@/features/admin/lib/analytics'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
 
 export default function AdminDashboardPage() {
+  useDocumentTitle('Admin Dashboard')
   const { orders, customers } = useAdminData()
 
   const todayOrders = getTodayOrders(orders)

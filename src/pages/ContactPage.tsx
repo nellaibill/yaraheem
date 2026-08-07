@@ -2,6 +2,7 @@ import { Mail, MapPin, Phone, Clock } from 'lucide-react'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { Card, CardContent } from '@/components/ui/card'
 import { ContactForm } from '@/features/contact/components/ContactForm'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { SITE } from '@/lib/constants'
 
 const CONTACT_DETAILS = [
@@ -12,6 +13,8 @@ const CONTACT_DETAILS = [
 ]
 
 export default function ContactPage() {
+  useDocumentTitle('Contact')
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeading

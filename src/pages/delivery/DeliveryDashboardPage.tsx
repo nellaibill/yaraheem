@@ -1,13 +1,16 @@
 import { PackageSearch } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { EmptyState } from '@/components/common/EmptyState'
 import { DeliveryOrderCard } from '@/features/delivery/components/DeliveryOrderCard'
 import { useDeliveryAuth } from '@/features/delivery/hooks/useDeliveryAuth'
 import { useDeliveryOrders } from '@/features/delivery/hooks/useDeliveryOrders'
 import { useDeliveryPartners } from '@/features/delivery/hooks/useDeliveryPartners'
 import { acceptOrder, updateDeliveryOrderStatus } from '@/features/delivery/lib/deliveryStore'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { Order, OrderStatus } from '@/types'
 
 export default function DeliveryDashboardPage() {
+  useDocumentTitle('Delivery Dashboard')
   const { partner } = useDeliveryAuth()
   const { assignOrder } = useDeliveryPartners()
   const { assigned, available, completed, refresh } = useDeliveryOrders(partner?.id)
@@ -44,7 +47,11 @@ export default function DeliveryDashboardPage() {
 
         <TabsContent value="assigned" className="mt-4 flex flex-col gap-4">
           {assigned.length === 0 ? (
-            <EmptyState message="No active deliveries. Check the Available tab for new orders." />
+            <EmptyState
+              icon={PackageSearch}
+              title="No active deliveries"
+              description="Check the Available tab for new orders."
+            />
           ) : (
             assigned.map((order) => (
               <DeliveryOrderCard key={order.id} order={order} mode="assigned" onAdvance={handleAdvance} />
@@ -54,7 +61,7 @@ export default function DeliveryDashboardPage() {
 
         <TabsContent value="available" className="mt-4 flex flex-col gap-4">
           {available.length === 0 ? (
-            <EmptyState message="No orders ready for pickup right now." />
+            <EmptyState icon={PackageSearch} title="No orders ready" description="Nothing available for pickup right now." />
           ) : (
             available.map((order) => (
               <DeliveryOrderCard key={order.id} order={order} mode="available" onAccept={handleAccept} />
@@ -64,21 +71,12 @@ export default function DeliveryDashboardPage() {
 
         <TabsContent value="completed" className="mt-4 flex flex-col gap-4">
           {completed.length === 0 ? (
-            <EmptyState message="No completed deliveries yet." />
+            <EmptyState icon={PackageSearch} title="No completed deliveries" description="Your delivery history will show up here." />
           ) : (
             completed.slice(0, 20).map((order) => <DeliveryOrderCard key={order.id} order={order} mode="completed" />)
           )}
         </TabsContent>
       </Tabs>
-    </div>
-  )
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">
-      <PackageSearch className="text-muted-foreground size-10" strokeWidth={1.5} />
-      <p className="text-muted-foreground max-w-xs text-sm">{message}</p>
     </div>
   )
 }
