@@ -14,6 +14,9 @@ const SearchPage = lazy(() => import('@/pages/SearchPage'))
 const OffersPage = lazy(() => import('@/pages/OffersPage'))
 const ReviewsPage = lazy(() => import('@/pages/ReviewsPage'))
 const RestaurantInfoPage = lazy(() => import('@/pages/RestaurantInfoPage'))
+const CartPage = lazy(() => import('@/pages/CartPage'))
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
+const OrderTrackingPage = lazy(() => import('@/pages/OrderTrackingPage'))
 const CateringPage = lazy(() => import('@/pages/CateringPage'))
 const GalleryPage = lazy(() => import('@/pages/GalleryPage'))
 const AboutPage = lazy(() => import('@/pages/AboutPage'))
@@ -48,6 +51,9 @@ const router = createBrowserRouter(
             { path: 'offers', element: withSuspense(<OffersPage />) },
             { path: 'reviews', element: withSuspense(<ReviewsPage />) },
             { path: 'restaurant-info', element: withSuspense(<RestaurantInfoPage />) },
+            { path: 'cart', element: withSuspense(<CartPage />) },
+            { path: 'checkout', element: withSuspense(<CheckoutPage />) },
+            { path: 'orders/:id', element: withSuspense(<OrderTrackingPage />) },
             { path: 'catering', element: withSuspense(<CateringPage />) },
             { path: 'gallery', element: withSuspense(<GalleryPage />) },
             { path: 'about', element: withSuspense(<AboutPage />) },

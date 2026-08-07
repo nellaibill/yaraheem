@@ -23,10 +23,42 @@ export const STORAGE_KEYS = {
   authUsers: 'yaraheem:auth:users',
   authActiveMobile: 'yaraheem:auth:active-mobile',
   authSeenWelcome: 'yaraheem:auth:seen-welcome',
+  addresses: 'yaraheem:addresses',
+  orders: 'yaraheem:orders',
+  favorites: 'yaraheem:favorites',
 } as const
 
 /** Fake OTP used across the mock auth flow — this is a POC with no real SMS provider. */
 export const MOCK_OTP = '1234'
+
+export const DELIVERY_FEE = 40
+export const FREE_DELIVERY_THRESHOLD = 799
+
+export const PAYMENT_METHOD_LABELS = {
+  cash: 'Cash on Delivery',
+  upi: 'UPI',
+  card: 'Credit / Debit Card',
+} as const
+
+export const ORDER_STATUS_LABELS = {
+  placed: 'Order Placed',
+  accepted: 'Accepted',
+  preparing: 'Preparing',
+  ready: 'Ready',
+  picked_up: 'Picked Up',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+} as const
+
+export const ORDER_STATUS_SEQUENCE = [
+  'placed',
+  'accepted',
+  'preparing',
+  'ready',
+  'picked_up',
+  'out_for_delivery',
+  'delivered',
+] as const
 
 export const NAV_LINKS = [
   { label: 'Home', to: '/' },

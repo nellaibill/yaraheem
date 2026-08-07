@@ -1,5 +1,5 @@
+import { useNavigate } from 'react-router-dom'
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 import {
   Sheet,
   SheetContent,
@@ -16,15 +16,20 @@ import { SITE } from '@/lib/constants'
 
 export function CartDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { lines, totalItems, totalPrice, setQuantity, removeItem, clear } = useCart()
+  const navigate = useNavigate()
 
-  function handleRequestQuote() {
+  function handleCheckout() {
+    onOpenChange(false)
+    navigate('/checkout')
+  }
+
+  function handleWhatsAppOrder() {
     if (lines.length === 0) return
     const summary = lines.map((line) => `${line.quantity}x ${line.item.name}`).join(', ')
     const message = encodeURIComponent(
       `Hello Yaraheem Catering, I'd like to place an order: ${summary}. Estimated total ${formatCurrency(totalPrice)}.`,
     )
     window.open(`https://wa.me/${SITE.whatsapp}?text=${message}`, '_blank', 'noopener,noreferrer')
-    toast.success('Order summary ready — continue on WhatsApp to confirm.')
   }
 
   return (
@@ -95,8 +100,11 @@ export function CartDrawer({ open, onOpenChange }: { open: boolean; onOpenChange
               <span>Total</span>
               <span>{formatCurrency(totalPrice)}</span>
             </div>
-            <Button variant="gold" size="lg" className="w-full" onClick={handleRequestQuote}>
-              Order via WhatsApp
+            <Button variant="gold" size="lg" className="w-full" onClick={handleCheckout}>
+              Proceed to Checkout
+            </Button>
+            <Button variant="outline" className="w-full" onClick={handleWhatsAppOrder}>
+              Order via WhatsApp instead
             </Button>
             <Button variant="ghost" className="w-full" onClick={clear}>
               Clear order

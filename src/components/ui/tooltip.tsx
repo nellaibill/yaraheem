@@ -34,7 +34,7 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          'bg-foreground text-background z-50 w-fit rounded-md px-2.5 py-1.5 text-xs shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+          'bg-foreground text-background z-50 w-fit rounded-md px-2.5 py-1.5 text-xs shadow-md data-[state=open]:animate-fade-in',
           className,
         )}
         {...props}

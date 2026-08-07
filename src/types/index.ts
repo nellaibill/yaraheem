@@ -77,3 +77,52 @@ export interface AuthUser {
   createdAt: string
   lastLoginAt: string
 }
+
+export type AddressLabel = 'Home' | 'Work' | 'Other'
+
+export interface Address {
+  id: string
+  label: AddressLabel
+  line1: string
+  line2?: string
+  city: string
+  state: string
+  pincode: string
+  isDefault?: boolean
+}
+
+export type PaymentMethod = 'cash' | 'upi' | 'card'
+
+export type OrderStatus =
+  | 'placed'
+  | 'accepted'
+  | 'preparing'
+  | 'ready'
+  | 'picked_up'
+  | 'out_for_delivery'
+  | 'delivered'
+
+export interface OrderLine {
+  itemId: string
+  name: string
+  price: number
+  quantity: number
+}
+
+export interface Order {
+  id: string
+  mobile: string
+  lines: OrderLine[]
+  itemsTotal: number
+  discount: number
+  deliveryFee: number
+  total: number
+  couponCode?: string
+  address: Address
+  paymentMethod: PaymentMethod
+  status: OrderStatus
+  statusUpdatedAt: string
+  createdAt: string
+  estimatedDeliveryMinutes: number
+  deliveryPartnerId?: string
+}
