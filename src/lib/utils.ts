@@ -12,6 +12,18 @@ export function formatCurrency(amount: number): string {
   return `Rs. ${formatted}`
 }
 
+/** Compact "x min ago" style label for activity feeds. */
+export function getRelativeTimeLabel(isoDate: string): string {
+  const diffMs = Date.now() - new Date(isoDate).getTime()
+  const diffMinutes = Math.floor(diffMs / 60000)
+  if (diffMinutes < 1) return 'just now'
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays}d ago`
+}
+
 export function slugify(value: string): string {
   return value
     .toLowerCase()

@@ -12,9 +12,9 @@ export function DeliveryAuthProvider({ children }: { children: ReactNode }) {
   )
 
   const login = useCallback(
-    (mobile: string) => {
+    (mobile: string, password: string) => {
       const digits = mobile.replace(/\D/g, '')
-      const match = partners.find((p) => p.mobile === digits)
+      const match = partners.find((p) => p.mobile === digits && p.password === password)
       if (!match) return false
       setActivePartnerId(match.id)
       if (match.status === 'offline') updateStatus(match.id, 'available')

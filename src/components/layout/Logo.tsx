@@ -17,7 +17,7 @@ export function Logo({ className, variant = 'default' }: { className?: string; v
       </span>
       <span className="flex flex-col leading-none">
         <span className={cn('font-display text-lg font-bold tracking-tight', inverted && 'text-primary-foreground')}>
-          Yaraheem
+          Ya Raheem
         </span>
         <span
           className={cn(

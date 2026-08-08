@@ -6,8 +6,8 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { DEFAULT_RESTAURANT_SETTINGS, MENU_SECTION_LABELS, STORAGE_KEYS } from '@/lib/constants'
-import type { MenuSectionKey, RestaurantSettings } from '@/types'
+import { DEFAULT_PROMO_BANNER, DEFAULT_RESTAURANT_SETTINGS, MENU_SECTION_LABELS, STORAGE_KEYS } from '@/lib/constants'
+import type { MenuSectionKey, PromoBanner, RestaurantSettings } from '@/types'
 
 const SECTION_OPTIONS = Object.keys(MENU_SECTION_LABELS) as MenuSectionKey[]
 
@@ -16,9 +16,14 @@ export default function AdminSettingsPage() {
     STORAGE_KEYS.restaurantSettings,
     DEFAULT_RESTAURANT_SETTINGS,
   )
+  const [banner, setBanner] = useLocalStorage<PromoBanner>(STORAGE_KEYS.promoBanner, DEFAULT_PROMO_BANNER)
 
   function update<K extends keyof RestaurantSettings>(key: K, value: RestaurantSettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function updateBanner<K extends keyof PromoBanner>(key: K, value: PromoBanner[K]) {
+    setBanner((prev) => ({ ...prev, [key]: value }))
   }
 
   return (
@@ -72,6 +77,39 @@ export default function AdminSettingsPage() {
               ))}
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="grid gap-4 p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Promotional Banner</p>
+              <p className="text-muted-foreground text-xs">Shown as the highlighted strip on the homepage</p>
+            </div>
+            <Switch checked={banner.enabled} onCheckedChange={(v) => updateBanner('enabled', v)} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="banner-title">Title</Label>
+            <Input id="banner-title" value={banner.title} onChange={(e) => updateBanner('title', e.target.value)} />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="banner-description">Description</Label>
+            <Input
+              id="banner-description"
+              value={banner.description}
+              onChange={(e) => updateBanner('description', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="banner-code">Coupon Code (optional)</Label>
+            <Input
+              id="banner-code"
+              value={banner.code ?? ''}
+              onChange={(e) => updateBanner('code', e.target.value.toUpperCase())}
+              placeholder="e.g. WEEKEND15"
+            />
+          </div>
         </CardContent>
       </Card>
 

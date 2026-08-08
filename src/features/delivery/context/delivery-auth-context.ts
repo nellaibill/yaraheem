@@ -4,7 +4,7 @@ import type { DeliveryPartner } from '@/types'
 export interface DeliveryAuthContextValue {
   partner: DeliveryPartner | null
   isAuthenticated: boolean
-  login: (mobile: string) => boolean
+  login: (mobile: string, password: string) => boolean
   logout: () => void
 }
 

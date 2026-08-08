@@ -1,5 +1,5 @@
 import { readAllScoped, readStorage, writeStorage } from '@/lib/storage'
-import { STORAGE_KEYS, ORDER_STATUS_SEQUENCE } from '@/lib/constants'
+import { STORAGE_KEYS, ORDER_STATUS_SEQUENCE, SERVICE_AREA } from '@/lib/constants'
 import { getMenuItems } from '@/features/menu/lib/menuStore'
 import type { Address, AuthUser, Order, OrderStatus } from '@/types'
 
@@ -50,7 +50,7 @@ export function updateOrderStatusGlobal(mobile: string, orderId: string, status:
   writeStorage(key, next)
 }
 
-export function assignDeliveryPartnerGlobal(mobile: string, orderId: string, partnerId: string) {
+export function assignDeliveryPartnerGlobal(mobile: string, orderId: string, partnerId: string | undefined) {
   const key = `${STORAGE_KEYS.orders}:${mobile}`
   const orders = readStorage<Order[]>(key, [])
   const next = orders.map((o) => (o.id === orderId ? { ...o, deliveryPartnerId: partnerId } : o))
@@ -75,6 +75,9 @@ function randomInt(min: number, max: number) {
 }
 
 function randomSeedAddress(): Address {
+  // Random offset up to ~18km from the service center — mostly inside the 15km radius, occasionally just outside.
+  const offsetLat = (Math.random() - 0.5) * 0.32
+  const offsetLng = (Math.random() - 0.5) * 0.32
   return {
     id: crypto.randomUUID(),
     label: 'Home',
@@ -83,6 +86,8 @@ function randomSeedAddress(): Address {
     city: 'Tirunelveli',
     state: 'Tamil Nadu',
     pincode: `6270${randomInt(10, 99)}`,
+    lat: SERVICE_AREA.centerLat + offsetLat,
+    lng: SERVICE_AREA.centerLng + offsetLng,
   }
 }
 

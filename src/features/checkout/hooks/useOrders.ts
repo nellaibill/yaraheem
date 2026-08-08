@@ -17,8 +17,8 @@ export function useOrders() {
     (orderId: string) => {
       setOrders((prev) =>
         prev.map((order) => {
-          if (order.id !== orderId) return order
-          const currentIndex = ORDER_STATUS_SEQUENCE.indexOf(order.status)
+          if (order.id !== orderId || order.status === 'cancelled') return order
+          const currentIndex = ORDER_STATUS_SEQUENCE.findIndex((s) => s === order.status)
           const nextStatus = ORDER_STATUS_SEQUENCE[currentIndex + 1] as OrderStatus | undefined
           if (!nextStatus) return order
           return { ...order, status: nextStatus, statusUpdatedAt: new Date().toISOString() }

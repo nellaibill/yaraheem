@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,17 +14,34 @@ import { MenuItemFormDialog } from '@/features/admin/components/MenuItemFormDial
 import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { upsertMenuItem, deleteMenuItem, upsertMenuSection } from '@/features/menu/lib/menuStore'
 import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { MENU_SECTION_LABELS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
-import type { MenuItem, MenuSection } from '@/types'
+import type { MenuItem, MenuSection, MenuSectionKey } from '@/types'
+
+const VALID_SECTIONS = new Set(Object.keys(MENU_SECTION_LABELS))
 
 export default function AdminMenuPage() {
   const { items, sections, refresh } = useMenuData()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [formOpen, setFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null)
+  const [defaultSections, setDefaultSections] = useState<MenuSectionKey[]>([])
+
+  useEffect(() => {
+    const sectionParam = searchParams.get('section')
+    if (searchParams.get('new') === '1' && sectionParam && VALID_SECTIONS.has(sectionParam)) {
+      setEditingItem(null)
+      setDefaultSections([sectionParam as MenuSectionKey])
+      setFormOpen(true)
+      setSearchParams({}, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount to consume the quick-action query params
+  }, [])
 
   function openAddForm() {
     setEditingItem(null)
+    setDefaultSections([])
     setFormOpen(true)
   }
 
@@ -179,6 +197,7 @@ export default function AdminMenuPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         item={editingItem}
+        defaultSections={defaultSections}
         existingIds={items.map((i) => i.id)}
         onSave={handleSaveItem}
       />

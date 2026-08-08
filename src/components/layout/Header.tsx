@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Menu as MenuIcon, Phone, Search, ShoppingBag } from 'lucide-react'
+import { LayoutGrid, Menu as MenuIcon, MapPin, Phone, Search, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -9,7 +9,7 @@ import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { UserMenu } from '@/components/layout/UserMenu'
 import { CartDrawer } from '@/features/cart/components/CartDrawer'
 import { useCart } from '@/features/cart/hooks/useCart'
-import { NAV_LINKS, SITE } from '@/lib/constants'
+import { NAV_LINKS, PORTAL_LOGIN_LINK, SERVICE_AREA, SITE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 export function Header() {
@@ -34,6 +34,12 @@ export function Header() {
         scrolled ? 'bg-background/90 border-border backdrop-blur-md' : 'bg-background/60 border-transparent',
       )}
     >
+      <div className="bg-primary text-primary-foreground/90 hidden text-center text-xs font-medium sm:block">
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-1.5 px-4 py-1.5">
+          <MapPin className="size-3" />
+          {SERVICE_AREA.message}
+        </div>
+      </div>
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Logo />
 
@@ -88,6 +94,12 @@ export function Header() {
             )}
           </Button>
           <UserMenu />
+          <Button variant="outline" size="sm" className="hidden gap-1.5 md:flex" asChild>
+            <NavLink to={PORTAL_LOGIN_LINK.to}>
+              <LayoutGrid className="size-3.5" />
+              {PORTAL_LOGIN_LINK.label}
+            </NavLink>
+          </Button>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -118,6 +130,14 @@ export function Header() {
                     {link.label}
                   </NavLink>
                 ))}
+                <NavLink
+                  to={PORTAL_LOGIN_LINK.to}
+                  onClick={() => setMobileOpen(false)}
+                  className="text-foreground/80 hover:bg-secondary/60 mt-2 flex items-center gap-2 rounded-md border px-3.5 py-3 text-base font-medium transition-colors"
+                >
+                  <LayoutGrid className="size-4" />
+                  {PORTAL_LOGIN_LINK.label}
+                </NavLink>
               </nav>
             </SheetContent>
           </Sheet>

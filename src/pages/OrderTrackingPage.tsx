@@ -22,6 +22,8 @@ export default function OrderTrackingPage() {
   useDocumentTitle(order ? `Order #${order.id.slice(0, 8).toUpperCase()}` : 'Order Not Found')
 
   const isDelivered = order?.status === 'delivered'
+  const isCancelled = order?.status === 'cancelled'
+  const isFinal = isDelivered || isCancelled
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -29,10 +31,10 @@ export default function OrderTrackingPage() {
   }, [])
 
   useEffect(() => {
-    if (!order || isDelivered) return
+    if (!order || isFinal) return
     const timer = setInterval(() => advanceStatus(order.id), AUTO_ADVANCE_MS)
     return () => clearInterval(timer)
-  }, [order, isDelivered, advanceStatus])
+  }, [order, isFinal, advanceStatus])
 
   if (!order) {
     return (
@@ -63,6 +65,8 @@ export default function OrderTrackingPage() {
         >
           {isDelivered ? (
             <p className="text-3xl">🎉</p>
+          ) : isCancelled ? (
+            <p className="text-3xl">⚠️</p>
           ) : (
             <span className="bg-secondary text-muted-foreground inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium">
               <Clock className="size-3.5" />
@@ -71,7 +75,11 @@ export default function OrderTrackingPage() {
           )}
         </motion.div>
         <h1 className="font-display mt-4 text-2xl font-bold sm:text-3xl">
-          {isDelivered ? 'Delivered! Enjoy your meal.' : ORDER_STATUS_LABELS[order.status]}
+          {isDelivered
+            ? 'Delivered! Enjoy your meal.'
+            : isCancelled
+              ? 'Order Cancelled'
+              : ORDER_STATUS_LABELS[order.status]}
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">Order #{order.id.slice(0, 8).toUpperCase()}</p>
       </div>
@@ -79,7 +87,7 @@ export default function OrderTrackingPage() {
       <Card className="mb-6">
         <CardContent className="p-6">
           <StatusTimeline status={order.status} />
-          {!isDelivered && (
+          {!isFinal && (
             <Button
               variant="ghost"
               size="sm"

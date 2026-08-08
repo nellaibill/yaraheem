@@ -51,12 +51,15 @@ export function MenuItemFormDialog({
   open,
   onOpenChange,
   item,
+  defaultSections,
   existingIds,
   onSave,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   item: MenuItem | null
+  /** Pre-checked sections for a brand-new item (e.g. from a dashboard Quick Action) — ignored when editing. */
+  defaultSections?: MenuSectionKey[]
   existingIds: string[]
   onSave: (item: MenuItem) => void
 }) {
@@ -65,9 +68,10 @@ export function MenuItemFormDialog({
 
   useEffect(() => {
     if (open) {
-      setForm(item ?? emptyItem())
+      setForm(item ?? { ...emptyItem(), sections: defaultSections?.length ? [...defaultSections] : [] })
       setComboSlotsText(item?.comboSlots?.join('\n') ?? '')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- defaultSections is only read at open-time by design
   }, [open, item])
 
   function update<K extends keyof MenuItem>(key: K, value: MenuItem[K]) {

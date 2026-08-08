@@ -11,18 +11,16 @@ import { CateringPackageCard } from '@/features/catering/components/CateringPack
 import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
 import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
-import { offers } from '@/features/offers/data/offersData'
 import { cateringPackages } from '@/features/catering/data/cateringData'
 import { galleryImages } from '@/features/gallery/data/galleryData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { HERO_BANNER_IMAGE } from '@/lib/foodImages'
-import { DEFAULT_RESTAURANT_SETTINGS, SITE, STORAGE_KEYS } from '@/lib/constants'
+import { DEFAULT_PROMO_BANNER, DEFAULT_RESTAURANT_SETTINGS, SITE, STORAGE_KEYS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
-import type { MenuCategory, MenuSectionKey, RestaurantSettings } from '@/types'
+import type { MenuCategory, MenuSectionKey, PromoBanner, RestaurantSettings } from '@/types'
 
 const categoryList = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
-const featuredOffer = offers[0]
 const galleryPreview = galleryImages.slice(0, 6)
 
 const STATS = [
@@ -60,6 +58,7 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { items, sections } = useMenuData()
   const [settings] = useLocalStorage<RestaurantSettings>(STORAGE_KEYS.restaurantSettings, DEFAULT_RESTAURANT_SETTINGS)
+  const [banner] = useLocalStorage<PromoBanner>(STORAGE_KEYS.promoBanner, DEFAULT_PROMO_BANNER)
 
   const availableItems = items.filter((item) => item.isAvailable !== false)
   const bySection = (key: MenuSectionKey) => availableItems.filter((item) => item.sections?.includes(key))
@@ -102,7 +101,7 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="max-w-xl text-balance text-white/75 sm:text-lg"
           >
-            {SITE.tagline} From Daily Specials to Midnight Fuel, Yaraheem brings restaurant-grade
+            {SITE.tagline} From Daily Specials to Midnight Fuel, Ya Raheem brings restaurant-grade
             South Tamil Nadu biryani and chicken specials to your table.
           </motion.p>
           <motion.div
@@ -160,7 +159,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {settings.offersEnabled && featuredOffer && (
+      {settings.offersEnabled && banner.enabled && (
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             to="/offers"
@@ -171,8 +170,11 @@ export default function HomePage() {
                 <Tag className="size-4.5" />
               </span>
               <div>
-                <p className="text-sm font-semibold">{featuredOffer.title} — Code {featuredOffer.code}</p>
-                <p className="text-muted-foreground text-xs">{featuredOffer.description}</p>
+                <p className="text-sm font-semibold">
+                  {banner.title}
+                  {banner.code ? ` — Code ${banner.code}` : ''}
+                </p>
+                <p className="text-muted-foreground text-xs">{banner.description}</p>
               </div>
             </div>
             <ArrowRight className="text-muted-foreground size-4 shrink-0" />
@@ -352,7 +354,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <SectionHeading
-          eyebrow="Why Yaraheem"
+          eyebrow="Why Ya Raheem"
           title="Catering Built for Peace of Mind"
           description="We handle the kitchen, the counters, and the crew — you host the moment."
         />

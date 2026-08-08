@@ -12,8 +12,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { MockMapPicker } from '@/features/checkout/components/MockMapPicker'
 import { detectCurrentLocation } from '@/features/checkout/data/mockLocation'
 import type { Address, AddressLabel } from '@/types'
+
+const EMPTY_FIELDS = {
+  line1: '',
+  line2: '',
+  city: '',
+  state: '',
+  pincode: '',
+  lat: null as number | null,
+  lng: null as number | null,
+}
 
 export function AddressFormDialog({
   open,
@@ -26,7 +37,7 @@ export function AddressFormDialog({
 }) {
   const [label, setLabel] = useState<AddressLabel>('Home')
   const [locating, setLocating] = useState(false)
-  const [fields, setFields] = useState({ line1: '', line2: '', city: '', state: '', pincode: '' })
+  const [fields, setFields] = useState(EMPTY_FIELDS)
 
   async function handleUseCurrentLocation() {
     setLocating(true)
@@ -37,9 +48,14 @@ export function AddressFormDialog({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    onSave({ label, ...fields })
+    onSave({
+      label,
+      ...fields,
+      lat: fields.lat ?? undefined,
+      lng: fields.lng ?? undefined,
+    })
     onOpenChange(false)
-    setFields({ line1: '', line2: '', city: '', state: '', pincode: '' })
+    setFields(EMPTY_FIELDS)
     setLabel('Home')
   }
 
@@ -61,6 +77,15 @@ export function AddressFormDialog({
           {locating ? <Loader2 className="size-4 animate-spin" /> : <LocateFixed className="size-4" />}
           {locating ? 'Detecting location...' : 'Use Current Location'}
         </Button>
+
+        <div className="grid gap-1.5">
+          <Label>Pin your delivery location</Label>
+          <MockMapPicker
+            lat={fields.lat}
+            lng={fields.lng}
+            onPick={(lat, lng) => setFields((f) => ({ ...f, lat, lng }))}
+          />
+        </div>
 
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-1.5">

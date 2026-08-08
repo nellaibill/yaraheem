@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   CookingPot,
   PackageCheck,
+  XCircle,
   type LucideIcon,
 } from 'lucide-react'
 import { ORDER_STATUS_LABELS, ORDER_STATUS_SEQUENCE } from '@/lib/constants'
@@ -20,10 +21,30 @@ const STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
   picked_up: Bike,
   out_for_delivery: Bike,
   delivered: CheckCircle2,
+  cancelled: XCircle,
 }
 
 export function StatusTimeline({ status }: { status: OrderStatus }) {
-  const currentIndex = ORDER_STATUS_SEQUENCE.indexOf(status)
+  const currentIndex = ORDER_STATUS_SEQUENCE.findIndex((s) => s === status)
+
+  if (status === 'cancelled') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="border-destructive/30 bg-destructive/5 flex items-center gap-3 rounded-xl border p-4"
+      >
+        <span className="bg-destructive text-destructive-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
+          <XCircle className="size-4.5" />
+        </span>
+        <div>
+          <p className="text-destructive text-sm font-semibold">Order Cancelled</p>
+          <p className="text-muted-foreground text-xs">This order was cancelled and will not be delivered.</p>
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
     <ol className="relative flex flex-col gap-0">
