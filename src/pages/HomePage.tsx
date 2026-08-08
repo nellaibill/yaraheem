@@ -18,6 +18,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { HERO_BANNER_IMAGE } from '@/lib/foodImages'
 import { DEFAULT_RESTAURANT_SETTINGS, SITE, STORAGE_KEYS } from '@/lib/constants'
+import { formatCurrency } from '@/lib/utils'
 import type { MenuCategory, MenuSectionKey, RestaurantSettings } from '@/types'
 
 const categoryList = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
@@ -223,7 +224,7 @@ export default function HomePage() {
                 <div key={item.id} className="flex flex-col gap-3 rounded-2xl border p-5">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-display text-lg font-semibold">{item.name}</h3>
-                    <span className="font-display text-lg font-bold">₹{item.price}</span>
+                    <span className="font-display text-lg font-bold">{formatCurrency(item.price)}</span>
                   </div>
                   <p className="text-muted-foreground text-sm">{item.description}</p>
                   {item.comboSlots && (

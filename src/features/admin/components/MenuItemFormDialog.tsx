@@ -136,7 +136,7 @@ export function MenuItemFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="item-price">Price (₹)</Label>
+              <Label htmlFor="item-price">Price (Rs.)</Label>
               <Input
                 id="item-price"
                 type="number"

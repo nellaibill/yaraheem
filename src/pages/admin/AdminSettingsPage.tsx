@@ -78,7 +78,7 @@ export default function AdminSettingsPage() {
       <Card>
         <CardContent className="grid gap-5 p-5">
           <div className="grid gap-1.5">
-            <Label htmlFor="min-order">Minimum Order Value (₹)</Label>
+            <Label htmlFor="min-order">Minimum Order Value (Rs.)</Label>
             <Input
               id="min-order"
               type="number"
