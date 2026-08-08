@@ -1,13 +1,20 @@
-import { PackageSearch } from 'lucide-react'
+import { Bike, IndianRupee, PackageCheck, PackageSearch } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EmptyState } from '@/components/common/EmptyState'
+import { StatCard } from '@/features/admin/components/StatCard'
 import { DeliveryOrderCard } from '@/features/delivery/components/DeliveryOrderCard'
 import { useDeliveryAuth } from '@/features/delivery/hooks/useDeliveryAuth'
 import { useDeliveryOrders } from '@/features/delivery/hooks/useDeliveryOrders'
 import { useDeliveryPartners } from '@/features/delivery/hooks/useDeliveryPartners'
 import { acceptOrder, updateDeliveryOrderStatus } from '@/features/delivery/lib/deliveryStore'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { formatCurrency } from '@/lib/utils'
+import { DELIVERY_FEE } from '@/lib/constants'
 import type { Order, OrderStatus } from '@/types'
+
+function isToday(dateString: string) {
+  return new Date(dateString).toDateString() === new Date().toDateString()
+}
 
 export default function DeliveryDashboardPage() {
   useDocumentTitle('Delivery Dashboard')
@@ -16,6 +23,9 @@ export default function DeliveryDashboardPage() {
   const { assigned, available, completed, refresh } = useDeliveryOrders(partner?.id)
 
   if (!partner) return null
+
+  const deliveredToday = completed.filter((o) => isToday(o.statusUpdatedAt)).length
+  const mockEarnings = completed.length * DELIVERY_FEE
 
   function handleAccept(order: Order) {
     acceptOrder(order, partner!.id)
@@ -36,6 +46,13 @@ export default function DeliveryDashboardPage() {
         <p className="text-muted-foreground text-sm">
           {assigned.length} active · {available.length} available nearby
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon={PackageCheck} label="Today's Deliveries" value={String(deliveredToday)} />
+        <StatCard icon={Bike} label="Pending Deliveries" value={String(assigned.length)} accent="gold" />
+        <StatCard icon={PackageSearch} label="Completed Deliveries" value={String(completed.length)} />
+        <StatCard icon={IndianRupee} label="Mock Earnings" value={formatCurrency(mockEarnings)} accent="gold" />
       </div>
 
       <Tabs defaultValue="assigned">

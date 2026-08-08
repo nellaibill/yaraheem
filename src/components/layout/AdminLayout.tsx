@@ -38,7 +38,7 @@ export function AdminLayout() {
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open admin menu">
             <MenuIcon className="size-5" />
           </Button>
-          <p className="font-display text-sm font-bold">Yaraheem Admin</p>
+          <p className="font-display text-sm font-bold">Ya Raheem Admin</p>
         </header>
         <main id="admin-main-content" className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />

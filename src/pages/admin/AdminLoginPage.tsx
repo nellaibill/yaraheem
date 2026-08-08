@@ -1,36 +1,37 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Bike, ChevronLeft, Lock, Phone } from 'lucide-react'
+import { ChevronLeft, LayoutDashboard, Lock, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useDeliveryAuth } from '@/features/delivery/hooks/useDeliveryAuth'
-import { defaultDeliveryPartners } from '@/features/delivery/data/deliveryPartners'
+import { useAdminAuth } from '@/features/admin/hooks/useAdminAuth'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
-export default function DeliveryLoginPage() {
-  const { login, isAuthenticated } = useDeliveryAuth()
+export default function AdminLoginPage() {
+  useDocumentTitle('Admin Login')
+  const { login, isAuthenticated } = useAdminAuth()
   const navigate = useNavigate()
-  const [mobile, setMobile] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
   if (isAuthenticated) {
-    return <Navigate to="/delivery" replace />
+    return <Navigate to="/admin" replace />
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!mobile.trim() || !password.trim()) {
-      setError('Please enter both your mobile number and password')
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter both username/email and password')
       return
     }
-    if (!login(mobile, password)) {
-      setError('Mobile number or password is incorrect')
+    if (!login(username, password)) {
+      setError('Invalid username or password')
       return
     }
     setError('')
-    navigate('/delivery', { replace: true })
+    navigate('/admin', { replace: true })
   }
 
   return (
@@ -51,39 +52,33 @@ export default function DeliveryLoginPage() {
       >
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <span className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-full">
-            <Bike className="size-5.5" />
+            <LayoutDashboard className="size-5.5" />
           </span>
-          <h1 className="font-display text-2xl font-bold">Delivery Partner Login</h1>
-          <p className="text-muted-foreground text-sm">Enter your registered mobile number</p>
+          <h1 className="font-display text-2xl font-bold">Admin Login</h1>
+          <p className="text-muted-foreground text-sm">Sign in to manage the restaurant</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="dp-mobile">Mobile number</Label>
+            <Label htmlFor="admin-username">Username / Email</Label>
             <div className="relative">
-              <span className="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm">
-                +91
-              </span>
+              <User className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
-                id="dp-mobile"
-                type="tel"
-                inputMode="numeric"
+                id="admin-username"
                 autoFocus
-                placeholder="9123456701"
-                value={mobile}
-                maxLength={10}
-                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
-                className="pl-11"
+                placeholder="admin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="pl-9"
               />
             </div>
           </div>
-
           <div className="grid gap-1.5">
-            <Label htmlFor="dp-password">Password</Label>
+            <Label htmlFor="admin-password">Password</Label>
             <div className="relative">
               <Lock className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
-                id="dp-password"
+                id="admin-password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
@@ -95,20 +90,14 @@ export default function DeliveryLoginPage() {
           {error && <p className="text-destructive text-xs">{error}</p>}
 
           <Button type="submit" variant="gold" size="lg" className="mt-2 gap-2">
-            <Phone className="size-4" />
-            Login
+            <LayoutDashboard className="size-4" />
+            Login to Dashboard
           </Button>
         </form>
 
         <div className="mt-6 rounded-lg border border-dashed p-3">
-          <p className="text-muted-foreground mb-1.5 text-xs font-medium">Demo accounts (password: delivery123)</p>
-          <ul className="text-muted-foreground space-y-0.5 text-xs">
-            {defaultDeliveryPartners.slice(0, 3).map((p) => (
-              <li key={p.id}>
-                {p.name} — {p.mobile}
-              </li>
-            ))}
-          </ul>
+          <p className="text-muted-foreground mb-1.5 text-xs font-medium">Demo credentials</p>
+          <p className="text-muted-foreground text-xs">Username: admin · Password: admin123</p>
         </div>
       </motion.div>
     </div>

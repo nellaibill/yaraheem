@@ -36,7 +36,7 @@ export default function LoginPage() {
         <span className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-full">
           <UtensilsCrossed className="size-5.5" />
         </span>
-        <h1 className="font-display text-2xl font-bold">Welcome to Yaraheem</h1>
+        <h1 className="font-display text-2xl font-bold">Welcome to Ya Raheem</h1>
         <p className="text-muted-foreground text-sm">Enter your mobile number to continue</p>
       </div>
 

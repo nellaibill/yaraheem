@@ -117,6 +117,9 @@ export interface Address {
   state: string
   pincode: string
   isDefault?: boolean
+  /** Mock coordinates picked on the mock map — used only for the service-area distance check. */
+  lat?: number
+  lng?: number
 }
 
 export type PaymentMethod = 'cash' | 'upi' | 'card'
@@ -129,6 +132,7 @@ export type OrderStatus =
   | 'picked_up'
   | 'out_for_delivery'
   | 'delivered'
+  | 'cancelled'
 
 export interface OrderLine {
   itemId: string
@@ -153,6 +157,7 @@ export interface Order {
   createdAt: string
   estimatedDeliveryMinutes: number
   deliveryPartnerId?: string
+  cancellationReason?: string
 }
 
 export type DeliveryPartnerStatus = 'available' | 'busy' | 'offline'
@@ -162,11 +167,27 @@ export interface DeliveryPartner {
   id: string
   name: string
   mobile: string
+  /** Mock password for the delivery portal login — plaintext is fine, this is a POC with no real auth. */
+  password: string
   vehicleType: VehicleType
   rating: number
   status: DeliveryPartnerStatus
   activeOrderId?: string
   totalDeliveries: number
+}
+
+/** Mock admin account for the gated Admin Portal login — plaintext is fine, this is a POC with no real auth. */
+export interface AdminUser {
+  username: string
+  password: string
+  name: string
+}
+
+export interface PromoBanner {
+  title: string
+  description: string
+  code?: string
+  enabled: boolean
 }
 
 export interface RestaurantSettings {

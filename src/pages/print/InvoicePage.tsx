@@ -5,7 +5,7 @@ import { PrintHeader } from '@/features/print/components/PrintHeader'
 import { getOrderById } from '@/features/admin/lib/adminStore'
 import { getCustomerName } from '@/features/delivery/lib/deliveryStore'
 import { formatCurrency } from '@/lib/utils'
-import { PAYMENT_METHOD_LABELS } from '@/lib/constants'
+import { PAYMENT_METHOD_LABELS, SITE } from '@/lib/constants'
 
 export default function InvoicePage() {
   const { id } = useParams()
@@ -110,7 +110,7 @@ export default function InvoicePage() {
         </div>
 
         <div className="mt-10 border-t border-dashed border-gray-400 pt-4 text-center text-xs text-gray-500">
-          <p>Thank you for ordering from {`Yaraheem Catering Services`}!</p>
+          <p>Thank you for ordering from {SITE.name}!</p>
           <p>This is a system-generated invoice for a proof-of-concept demo.</p>
         </div>
       </div>

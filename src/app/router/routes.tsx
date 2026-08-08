@@ -7,6 +7,7 @@ import { DeliveryLayout } from '@/components/layout/DeliveryLayout'
 import { PageLoader } from '@/components/common/PageLoader'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { RedirectIfAuthed } from '@/features/auth/components/RedirectIfAuthed'
+import { RequireAdminAuth } from '@/features/admin/components/RequireAdminAuth'
 import { RequireDeliveryAuth } from '@/features/delivery/components/RequireDeliveryAuth'
 
 const HomePage = lazy(() => import('@/pages/HomePage'))
@@ -27,7 +28,9 @@ const AboutPage = lazy(() => import('@/pages/AboutPage'))
 const ContactPage = lazy(() => import('@/pages/ContactPage'))
 const StyleGuidePage = lazy(() => import('@/pages/StyleGuidePage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+const PortalSelectionPage = lazy(() => import('@/pages/PortalSelectionPage'))
 
+const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'))
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminMenuPage = lazy(() => import('@/pages/admin/AdminMenuPage'))
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
@@ -86,23 +89,10 @@ const router = createBrowserRouter(
                 { path: '*', element: withSuspense(<NotFoundPage />) },
               ],
             },
-            {
-              path: '/admin',
-              element: <AdminLayout />,
-              children: [
-                { index: true, element: withSuspense(<AdminDashboardPage />) },
-                { path: 'menu', element: withSuspense(<AdminMenuPage />) },
-                { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
-                { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
-                { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },
-                { path: 'reports', element: withSuspense(<AdminReportsPage />) },
-                { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
-              ],
-            },
-            { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
-            { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
           ],
         },
+        { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
+        { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
         {
           element: <AuthLayout />,
           children: [
@@ -116,6 +106,26 @@ const router = createBrowserRouter(
             },
             { path: 'otp', element: withSuspense(<OtpPage />) },
             { path: 'auth-success', element: withSuspense(<AuthSuccessPage />) },
+          ],
+        },
+        { path: '/portal', element: withSuspense(<PortalSelectionPage />) },
+        { path: '/admin/login', element: withSuspense(<AdminLoginPage />) },
+        {
+          element: <RequireAdminAuth />,
+          children: [
+            {
+              path: '/admin',
+              element: <AdminLayout />,
+              children: [
+                { index: true, element: withSuspense(<AdminDashboardPage />) },
+                { path: 'menu', element: withSuspense(<AdminMenuPage />) },
+                { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
+                { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
+                { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },
+                { path: 'reports', element: withSuspense(<AdminReportsPage />) },
+                { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
+              ],
+            },
           ],
         },
         { path: '/delivery/login', element: withSuspense(<DeliveryLoginPage />) },

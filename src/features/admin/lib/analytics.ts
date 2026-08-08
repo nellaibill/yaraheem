@@ -1,4 +1,4 @@
-import type { Order } from '@/types'
+import type { MenuItem, Order, OrderStatus } from '@/types'
 
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString()
@@ -81,4 +81,34 @@ export function getStatusBreakdown(orders: Order[]) {
   const counts: Record<string, number> = {}
   for (const order of orders) counts[order.status] = (counts[order.status] ?? 0) + 1
   return counts
+}
+
+const PENDING_STATUSES: OrderStatus[] = ['placed', 'accepted', 'preparing', 'ready', 'picked_up', 'out_for_delivery']
+
+export function getOrderCountByStatus(orders: Order[], statuses: OrderStatus[]): number {
+  return orders.filter((o) => statuses.includes(o.status)).length
+}
+
+export function getPendingOrdersCount(orders: Order[]): number {
+  return getOrderCountByStatus(orders, PENDING_STATUSES)
+}
+
+export function getCompletedOrdersCount(orders: Order[]): number {
+  return getOrderCountByStatus(orders, ['delivered'])
+}
+
+export function getCancelledOrdersCount(orders: Order[]): number {
+  return getOrderCountByStatus(orders, ['cancelled'])
+}
+
+/** Kitchen-facing view: orders actively being cooked right now. */
+export function getKitchenQueue(orders: Order[]): Order[] {
+  return orders.filter((o) => o.status === 'accepted' || o.status === 'preparing')
+}
+
+export function getPopularCombos(orders: Order[], menuItems: MenuItem[], limit = 4): TopSellingItem[] {
+  const comboIds = new Set(menuItems.filter((item) => item.category === 'combos').map((item) => item.id))
+  return getTopSellingItems(orders, Number.MAX_SAFE_INTEGER)
+    .filter((item) => comboIds.has(item.itemId))
+    .slice(0, limit)
 }

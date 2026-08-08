@@ -1,20 +1,28 @@
 import type { MenuSectionKey } from '@/types'
 
 export const SITE = {
-  name: 'Yaraheem Catering Services',
-  shortName: 'Yaraheem',
+  name: 'Ya Raheem Catering Services',
+  shortName: 'Ya Raheem',
   tagline: 'Premium Biryani. Rooted in Tamil Tradition.',
   description:
-    'Yaraheem Catering Services brings authentic South Tamil Nadu biryani, chicken specials, and festive catering spreads to your table — from Tirunelveli to Madurai.',
-  phone: '+91 98765 43210',
-  whatsapp: '919876543210',
-  email: 'hello@yaraheem.com',
-  address: '142, Trivandrum Road, Tirunelveli, Tamil Nadu 627001',
+    'Ya Raheem Catering Services brings authentic South Tamil Nadu biryani, chicken specials, and festive catering spreads to your table — serving Melapalayam and nearby Tirunelveli.',
+  phone: '+91 90801 39363',
+  whatsapp: '919080139363',
+  email: 'shahulhameed6643@gmail.com',
+  address: 'Rahimaniya Puram North North Street, Melapalayam, Tirunelveli, Tamil Nadu – 627005',
   hours: 'Everyday · 11:00 AM – 11:00 PM · Midnight Fuel till 2:00 AM',
   social: {
     instagram: 'https://instagram.com/yaraheemcatering',
     facebook: 'https://facebook.com/yaraheemcatering',
   },
+} as const
+
+/** Approximate coordinates for Melapalayam, Tirunelveli — used only for the mock service-area check. */
+export const SERVICE_AREA = {
+  centerLat: 8.7278,
+  centerLng: 77.6857,
+  radiusKm: 15,
+  message: 'Serving Melapalayam & Nearby Tirunelveli',
 } as const
 
 export const STORAGE_KEYS = {
@@ -30,10 +38,20 @@ export const STORAGE_KEYS = {
   favorites: 'yaraheem:favorites',
   deliveryPartners: 'yaraheem:delivery-partners',
   activePartnerId: 'yaraheem:delivery:active-partner-id',
+  adminUsers: 'yaraheem:admin:users',
+  adminSession: 'yaraheem:admin:session',
   restaurantSettings: 'yaraheem:admin:settings',
   adminSeeded: 'yaraheem:admin:seeded',
   menuItemsOverride: 'yaraheem:menu:items',
   menuSectionsOverride: 'yaraheem:menu:sections',
+  promoBanner: 'yaraheem:promo-banner',
+} as const
+
+export const DEFAULT_PROMO_BANNER = {
+  title: 'Weekend Treat',
+  description: '15% off every Saturday and Sunday. Use code WEEKEND15 at checkout.',
+  code: 'WEEKEND15',
+  enabled: true,
 } as const
 
 /** Fake OTP used across the mock auth flow — this is a POC with no real SMS provider. */
@@ -56,6 +74,7 @@ export const ORDER_STATUS_LABELS = {
   picked_up: 'Picked Up',
   out_for_delivery: 'Out for Delivery',
   delivered: 'Delivered',
+  cancelled: 'Cancelled',
 } as const
 
 export const ORDER_STATUS_SEQUENCE = [
@@ -112,8 +131,5 @@ export const FOOTER_LINKS = [
   { label: 'Restaurant Info', to: '/restaurant-info' },
 ] as const
 
-/** Staff-facing portals — surfaced discreetly in the footer for this POC demo. */
-export const STAFF_LINKS = [
-  { label: 'Admin Dashboard', to: '/admin' },
-  { label: 'Delivery Partner Login', to: '/delivery/login' },
-] as const
+/** Staff-facing entry point — a single gated link, never a direct link to /admin or /delivery. */
+export const PORTAL_LOGIN_LINK = { label: 'Portal Login', to: '/portal' } as const

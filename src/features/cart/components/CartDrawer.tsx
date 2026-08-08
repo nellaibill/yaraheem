@@ -27,7 +27,7 @@ export function CartDrawer({ open, onOpenChange }: { open: boolean; onOpenChange
     if (lines.length === 0) return
     const summary = lines.map((line) => `${line.quantity}x ${line.item.name}`).join(', ')
     const message = encodeURIComponent(
-      `Hello Yaraheem Catering, I'd like to place an order: ${summary}. Estimated total ${formatCurrency(totalPrice)}.`,
+      `Hello Ya Raheem Catering, I'd like to place an order: ${summary}. Estimated total ${formatCurrency(totalPrice)}.`,
     )
     window.open(`https://wa.me/${SITE.whatsapp}?text=${message}`, '_blank', 'noopener,noreferrer')
   }

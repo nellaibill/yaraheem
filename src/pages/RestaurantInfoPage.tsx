@@ -21,7 +21,7 @@ export default function RestaurantInfoPage() {
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeading
         eyebrow="Restaurant Info"
-        title="Everything About Yaraheem"
+        title="Everything About Ya Raheem"
         description="Operational details, licensing, and how to reach us."
       />
 

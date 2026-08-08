@@ -52,7 +52,7 @@ export default function StyleGuidePage() {
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeading
         eyebrow="Internal Reference"
-        title="Yaraheem Design System"
+        title="Ya Raheem Design System"
         description="Live tokens and components. See docs/DESIGN_SYSTEM.md for the full written spec."
         align="left"
       />

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Facebook, Instagram, Mail, MapPin, Phone, Clock } from 'lucide-react'
 import { Logo } from '@/components/layout/Logo'
 import { Separator } from '@/components/ui/separator'
-import { FOOTER_LINKS, NAV_LINKS, SITE, STAFF_LINKS } from '@/lib/constants'
+import { FOOTER_LINKS, NAV_LINKS, PORTAL_LOGIN_LINK, SERVICE_AREA, SITE } from '@/lib/constants'
 
 export function Footer() {
   return (
@@ -69,6 +69,10 @@ export function Footer() {
                 <MapPin className="size-4 shrink-0 translate-y-0.5" />
                 <span>{SITE.address}</span>
               </li>
+              <li className="text-gold flex gap-2 text-xs font-medium">
+                <MapPin className="size-4 shrink-0 translate-y-0.5" />
+                <span>{SERVICE_AREA.message}</span>
+              </li>
               <li className="flex gap-2">
                 <Phone className="size-4 shrink-0 translate-y-0.5" />
                 <a href={`tel:${SITE.phone}`}>{SITE.phone}</a>
@@ -96,11 +100,9 @@ export function Footer() {
             &copy; {new Date().getFullYear()} {SITE.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            {STAFF_LINKS.map((link) => (
-              <Link key={link.to} to={link.to} className="hover:text-primary-foreground">
-                {link.label}
-              </Link>
-            ))}
+            <Link to={PORTAL_LOGIN_LINK.to} className="hover:text-primary-foreground">
+              {PORTAL_LOGIN_LINK.label}
+            </Link>
           </div>
         </div>
       </div>
