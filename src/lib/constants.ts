@@ -1,14 +1,16 @@
+import type { MenuSectionKey } from '@/types'
+
 export const SITE = {
   name: 'Yaraheem Catering Services',
   shortName: 'Yaraheem',
-  tagline: 'Premium Biryani. Crafted with Tradition.',
+  tagline: 'Premium Biryani. Rooted in Tamil Tradition.',
   description:
-    'Yaraheem Catering Services brings restaurant-grade biryani and royal Hyderabadi cuisine to your table — from intimate dinners to grand celebrations.',
+    'Yaraheem Catering Services brings authentic South Tamil Nadu biryani, chicken specials, and festive catering spreads to your table — from Tirunelveli to Madurai.',
   phone: '+91 98765 43210',
   whatsapp: '919876543210',
   email: 'hello@yaraheem.com',
-  address: '14, Masab Tank Road, Hyderabad, Telangana 500028',
-  hours: 'Everyday · 11:00 AM – 11:00 PM',
+  address: '142, Trivandrum Road, Tirunelveli, Tamil Nadu 627001',
+  hours: 'Everyday · 11:00 AM – 11:00 PM · Midnight Fuel till 2:00 AM',
   social: {
     instagram: 'https://instagram.com/yaraheemcatering',
     facebook: 'https://facebook.com/yaraheemcatering',
@@ -30,6 +32,8 @@ export const STORAGE_KEYS = {
   activePartnerId: 'yaraheem:delivery:active-partner-id',
   restaurantSettings: 'yaraheem:admin:settings',
   adminSeeded: 'yaraheem:admin:seeded',
+  menuItemsOverride: 'yaraheem:menu:items',
+  menuSectionsOverride: 'yaraheem:menu:sections',
 } as const
 
 /** Fake OTP used across the mock auth flow — this is a POC with no real SMS provider. */
@@ -76,6 +80,19 @@ export const DEFAULT_RESTAURANT_SETTINGS = {
   deliveryRadiusKm: 12,
   openTime: '11:00',
   closeTime: '23:00',
+  offersEnabled: true,
+  todaysSpecialKey: 'daily',
+} as const
+
+export const MENU_SECTION_LABELS: Record<MenuSectionKey, string> = {
+  daily: "Today's Special",
+  friday: 'Friday Special',
+  sunday: 'Sunday Special',
+  weekend: 'Weekend Special',
+  midnight: 'Midnight Fuel',
+  lunch: 'Lunch Menu',
+  dinner: 'Dinner Menu',
+  catering: 'Catering Packages',
 } as const
 
 export const NAV_LINKS = [

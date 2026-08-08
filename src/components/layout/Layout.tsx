@@ -3,10 +3,14 @@ import { useEffect } from 'react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { WhatsAppButton } from '@/components/common/WhatsAppButton'
+import { StickyCartBar } from '@/features/cart/components/StickyCartBar'
 import { Toaster } from '@/components/ui/sonner'
+
+const HIDE_STICKY_CART_ON = new Set(['/cart', '/checkout'])
 
 export function Layout() {
   const { pathname } = useLocation()
+  const hideStickyCart = HIDE_STICKY_CART_ON.has(pathname)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -21,11 +25,12 @@ export function Layout() {
         Skip to content
       </a>
       <Header />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className={hideStickyCart ? 'flex-1' : 'flex-1 pb-20 lg:pb-0'}>
         <Outlet />
       </main>
       <Footer />
       <WhatsAppButton />
+      <StickyCartBar hidden={hideStickyCart} />
       <Toaster position="top-center" />
     </div>
   )

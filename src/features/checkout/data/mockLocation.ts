@@ -11,11 +11,11 @@ export function detectCurrentLocation(): Promise<DetectedLocation> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
-        line1: 'Road No. 12, Banjara Hills',
-        line2: 'Near City Central Mall',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        pincode: '500034',
+        line1: 'Trivandrum Road, near Nellai Bus Stand',
+        line2: 'Near Nellai Fort',
+        city: 'Tirunelveli',
+        state: 'Tamil Nadu',
+        pincode: '627001',
       })
     }, 1100)
   })

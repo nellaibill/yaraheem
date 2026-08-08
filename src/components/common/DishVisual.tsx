@@ -1,15 +1,26 @@
-import { type LucideIcon, Soup, Flame, Drumstick, Wheat, IceCreamCone, CupSoda, ChefHat } from 'lucide-react'
+import {
+  type LucideIcon,
+  Soup,
+  Drumstick,
+  Wheat,
+  IceCreamCone,
+  CupSoda,
+  ChefHat,
+  Sandwich,
+  Package,
+} from 'lucide-react'
 import type { MenuCategory } from '@/types'
 import { cn } from '@/lib/utils'
 
 const CATEGORY_ICON: Record<MenuCategory, LucideIcon> = {
   biryani: Soup,
-  starters: Flame,
-  kebabs: Drumstick,
-  curries: Soup,
-  breads: Wheat,
-  desserts: IceCreamCone,
+  'rice-noodles': Soup,
+  'chicken-specials': Drumstick,
+  'burgers-wraps': Sandwich,
+  'sides-breads': Wheat,
   beverages: CupSoda,
+  combos: Package,
+  desserts: IceCreamCone,
 }
 
 const GRADIENTS = [

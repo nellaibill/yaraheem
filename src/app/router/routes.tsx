@@ -29,6 +29,7 @@ const StyleGuidePage = lazy(() => import('@/pages/StyleGuidePage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
+const AdminMenuPage = lazy(() => import('@/pages/admin/AdminMenuPage'))
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
 const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage'))
 const AdminDeliveryPartnersPage = lazy(() => import('@/pages/admin/AdminDeliveryPartnersPage'))
@@ -90,6 +91,7 @@ const router = createBrowserRouter(
               element: <AdminLayout />,
               children: [
                 { index: true, element: withSuspense(<AdminDashboardPage />) },
+                { path: 'menu', element: withSuspense(<AdminMenuPage />) },
                 { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
                 { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
                 { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },

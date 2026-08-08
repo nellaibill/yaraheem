@@ -3,10 +3,10 @@ import { DishVisual } from '@/components/common/DishVisual'
 import { galleryImages } from '@/features/gallery/data/galleryData'
 import type { GalleryImage } from '@/types'
 
-const CATEGORY_TO_MENU_MAP: Record<GalleryImage['category'], 'biryani' | 'kebabs' | 'starters'> = {
+const CATEGORY_TO_MENU_MAP: Record<GalleryImage['category'], 'biryani' | 'combos' | 'chicken-specials'> = {
   dishes: 'biryani',
-  events: 'kebabs',
-  kitchen: 'starters',
+  events: 'combos',
+  kitchen: 'chicken-specials',
 }
 
 export function GalleryGrid({ filter }: { filter: GalleryImage['category'] | 'all' }) {

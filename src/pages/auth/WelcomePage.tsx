@@ -9,7 +9,7 @@ import { STORAGE_KEYS } from '@/lib/constants'
 const SLIDES = [
   {
     icon: ChefHat,
-    title: 'Authentic Nizami Biryani',
+    title: 'Authentic South Tamil Nadu Biryani',
     description: 'Dum-cooked recipes passed down for 15 years, made fresh for every order.',
   },
   {

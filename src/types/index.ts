@@ -5,20 +5,48 @@ export interface MenuItem {
   name: string
   description: string
   price: number
+  originalPrice?: number
   category: MenuCategory
   spiceLevel: SpiceLevel
   isVeg: boolean
   isSignature?: boolean
+  isBestSeller?: boolean
+  isAvailable?: boolean
+  imageUrl?: string
+  sections?: MenuSectionKey[]
+  comboSlots?: string[]
 }
 
 export type MenuCategory =
   | 'biryani'
-  | 'starters'
-  | 'kebabs'
-  | 'curries'
-  | 'breads'
-  | 'desserts'
+  | 'rice-noodles'
+  | 'chicken-specials'
+  | 'burgers-wraps'
+  | 'sides-breads'
   | 'beverages'
+  | 'combos'
+  | 'desserts'
+
+export type MenuSectionKey =
+  | 'daily'
+  | 'friday'
+  | 'sunday'
+  | 'weekend'
+  | 'midnight'
+  | 'lunch'
+  | 'dinner'
+  | 'catering'
+
+export interface MenuSection {
+  key: MenuSectionKey
+  name: string
+  tagline: string
+  bannerImageUrl: string
+  availableTime: string
+  description: string
+  isAvailableToday: boolean
+  itemIds: string[]
+}
 
 export interface CartLine {
   itemId: string
@@ -147,4 +175,6 @@ export interface RestaurantSettings {
   deliveryRadiusKm: number
   openTime: string
   closeTime: string
+  offersEnabled: boolean
+  todaysSpecialKey: MenuSectionKey
 }

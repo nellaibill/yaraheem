@@ -33,7 +33,7 @@ import { useAddresses } from '@/features/checkout/hooks/useAddresses'
 import { useFavorites } from '@/features/favorites/hooks/useFavorites'
 import { useTheme } from '@/hooks/useTheme'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { menuItems } from '@/features/menu/data/menuData'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { formatCurrency } from '@/lib/utils'
 import { ORDER_STATUS_LABELS } from '@/lib/constants'
 import type { Address } from '@/types'
@@ -53,6 +53,7 @@ export default function ProfilePage() {
   const { addresses, addAddress, removeAddress, setDefaultAddress } = useAddresses()
   const { favoriteIds } = useFavorites()
   const { theme, setTheme } = useTheme()
+  const { items: menuItems } = useMenuData()
   const navigate = useNavigate()
   useDocumentTitle('Your Profile')
 

@@ -10,7 +10,7 @@ const INFO_ROWS = [
   { icon: Clock, label: 'Operating Hours', value: SITE.hours },
   { icon: Phone, label: 'Phone', value: SITE.phone },
   { icon: Mail, label: 'Email', value: SITE.email },
-  { icon: Truck, label: 'Delivery Radius', value: 'Up to 12 km from Masab Tank, Hyderabad' },
+  { icon: Truck, label: 'Delivery Radius', value: 'Up to 12 km from our Tirunelveli kitchen' },
   { icon: ShieldCheck, label: 'FSSAI License', value: '12345678901234 (mock, for demo purposes)' },
 ]
 

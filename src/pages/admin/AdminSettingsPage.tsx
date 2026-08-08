@@ -4,9 +4,12 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { DEFAULT_RESTAURANT_SETTINGS, STORAGE_KEYS } from '@/lib/constants'
-import type { RestaurantSettings } from '@/types'
+import { DEFAULT_RESTAURANT_SETTINGS, MENU_SECTION_LABELS, STORAGE_KEYS } from '@/lib/constants'
+import type { MenuSectionKey, RestaurantSettings } from '@/types'
+
+const SECTION_OPTIONS = Object.keys(MENU_SECTION_LABELS) as MenuSectionKey[]
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useLocalStorage<RestaurantSettings>(
@@ -35,6 +38,40 @@ export default function AdminSettingsPage() {
             checked={settings.acceptingOrders}
             onCheckedChange={(v) => update('acceptingOrders', v)}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex items-center justify-between p-5">
+          <div>
+            <p className="text-sm font-medium">Offers &amp; Coupons</p>
+            <p className="text-muted-foreground text-xs">Turn off to hide the Offers page and coupon field at checkout</p>
+          </div>
+          <Switch checked={settings.offersEnabled} onCheckedChange={(v) => update('offersEnabled', v)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 p-5">
+          <div>
+            <p className="text-sm font-medium">Today&rsquo;s Special</p>
+            <p className="text-muted-foreground text-xs">Which menu section is featured as today&rsquo;s special on the homepage</p>
+          </div>
+          <Select
+            value={settings.todaysSpecialKey}
+            onValueChange={(v) => update('todaysSpecialKey', v as MenuSectionKey)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SECTION_OPTIONS.map((key) => (
+                <SelectItem key={key} value={key}>
+                  {MENU_SECTION_LABELS[key]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 

@@ -2,23 +2,25 @@ import { useMemo, useState } from 'react'
 import { Search as SearchIcon, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { MenuCard } from '@/features/menu/components/MenuCard'
-import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export default function SearchPage() {
   const [query, setQuery] = useState('')
+  const { items } = useMenuData()
   useDocumentTitle('Search')
 
   const results = useMemo(() => {
     const term = query.trim().toLowerCase()
     if (!term) return []
-    return menuItems.filter(
+    return items.filter(
       (item) =>
         item.name.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term) ||
         MENU_CATEGORY_LABELS[item.category].toLowerCase().includes(term),
     )
-  }, [query])
+  }, [query, items])
 
   const popularSearches = ['Biryani', 'Kebab', 'Haleem', 'Dessert', 'Chai']
 

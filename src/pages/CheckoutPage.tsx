@@ -18,9 +18,16 @@ import { AddressCard } from '@/features/checkout/components/AddressCard'
 import { AddressFormDialog } from '@/features/checkout/components/AddressFormDialog'
 import { findOffer, calculateDiscount } from '@/features/offers/data/offersData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { formatCurrency } from '@/lib/utils'
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, PAYMENT_METHOD_LABELS } from '@/lib/constants'
-import type { Address, Order, PaymentMethod } from '@/types'
+import {
+  DEFAULT_RESTAURANT_SETTINGS,
+  DELIVERY_FEE,
+  FREE_DELIVERY_THRESHOLD,
+  PAYMENT_METHOD_LABELS,
+  STORAGE_KEYS,
+} from '@/lib/constants'
+import type { Address, Order, PaymentMethod, RestaurantSettings } from '@/types'
 
 const PAYMENT_ICONS: Record<PaymentMethod, typeof Banknote> = {
   cash: Banknote,
@@ -34,6 +41,7 @@ export default function CheckoutPage() {
   const { user } = useAuth()
   const { addresses, addAddress } = useAddresses()
   const { placeOrder } = useOrders()
+  const [settings] = useLocalStorage<RestaurantSettings>(STORAGE_KEYS.restaurantSettings, DEFAULT_RESTAURANT_SETTINGS)
   useDocumentTitle('Checkout')
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
@@ -122,7 +130,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-12 pb-28 sm:px-6 lg:px-8 lg:pb-12">
       <SectionHeading eyebrow="Almost There" title="Checkout" align="left" />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -201,7 +209,7 @@ export default function CheckoutPage() {
                   <X className="size-3.5" />
                 </button>
               </div>
-            ) : (
+            ) : settings.offersEnabled ? (
               <div className="flex gap-2">
                 <Input
                   value={couponInput}
@@ -213,7 +221,7 @@ export default function CheckoutPage() {
                   Apply
                 </Button>
               </div>
-            )}
+            ) : null}
 
             <div className="text-muted-foreground flex justify-between text-sm">
               <span>Subtotal</span>
@@ -243,6 +251,12 @@ export default function CheckoutPage() {
       </div>
 
       <AddressFormDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} onSave={handleSaveAddress} />
+
+      <div className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur-md lg:hidden">
+        <Button variant="gold" size="lg" className="w-full" onClick={handlePlaceOrder} disabled={placing}>
+          {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(grandTotal)}`}
+        </Button>
+      </div>
     </div>
   )
 }

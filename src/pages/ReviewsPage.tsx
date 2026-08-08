@@ -20,7 +20,7 @@ export default function ReviewsPage() {
       <SectionHeading
         eyebrow="Reviews"
         title="What Our Guests Say"
-        description="Honest feedback from customers and event hosts across Hyderabad."
+        description="Honest feedback from customers and event hosts across South Tamil Nadu."
       />
 
       <div className="mt-12 grid gap-10 lg:grid-cols-[280px_1fr]">

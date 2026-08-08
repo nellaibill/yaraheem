@@ -20,9 +20,9 @@ const FAQS = [
       'Absolutely. Every package is a starting point — swap dishes, add live counters, or scale portions. Mention your preferences in the inquiry form.',
   },
   {
-    question: 'Do you cater outside Hyderabad?',
+    question: 'Do you cater outside Tirunelveli?',
     answer:
-      'Yes, we service the greater Hyderabad metro area and select nearby cities for larger events. Share your location in the inquiry and we will confirm feasibility.',
+      'Yes, we service Tirunelveli, Thoothukudi, Tenkasi, Madurai, Kanyakumari, Ramanathapuram, Virudhunagar, and nearby districts for larger events. Share your location in the inquiry and we will confirm feasibility.',
   },
   {
     question: 'Is a deposit required?',
