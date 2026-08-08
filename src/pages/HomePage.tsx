@@ -1,21 +1,29 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, ChefHat, Clock, Sparkles, Tag, Users2 } from 'lucide-react'
+import { ArrowRight, ChefHat, Clock, ImageIcon, Sparkles, Tag, Users2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { DishVisual } from '@/components/common/DishVisual'
+import { MenuSectionStrip } from '@/features/menu/components/MenuSectionStrip'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { TestimonialCard } from '@/features/testimonials/components/TestimonialCard'
-import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { CateringPackageCard } from '@/features/catering/components/CateringPackageCard'
+import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
 import { offers } from '@/features/offers/data/offersData'
+import { cateringPackages } from '@/features/catering/data/cateringData'
+import { galleryImages } from '@/features/gallery/data/galleryData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { SITE } from '@/lib/constants'
-import type { MenuCategory } from '@/types'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { HERO_BANNER_IMAGE } from '@/lib/foodImages'
+import { DEFAULT_RESTAURANT_SETTINGS, SITE, STORAGE_KEYS } from '@/lib/constants'
+import { formatCurrency } from '@/lib/utils'
+import type { MenuCategory, MenuSectionKey, RestaurantSettings } from '@/types'
 
-const signatureDishes = menuItems.filter((item) => item.isSignature).slice(0, 4)
 const categoryList = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
 const featuredOffer = offers[0]
+const galleryPreview = galleryImages.slice(0, 6)
 
 const STATS = [
   { label: 'Years of Legacy', value: '15+' },
@@ -28,7 +36,7 @@ const FEATURES = [
   {
     icon: ChefHat,
     title: 'Authentic Dum Recipes',
-    description: 'Traditional Hyderabadi Nizami recipes passed down through generations of master chefs.',
+    description: 'Traditional South Tamil Nadu recipes passed down through generations of master chefs.',
   },
   {
     icon: Clock,
@@ -43,17 +51,33 @@ const FEATURES = [
   {
     icon: Sparkles,
     title: 'Premium Ingredients',
-    description: 'Aged basmati, hand-ground spices, and free-range meats sourced fresh, every order.',
+    description: 'Seeraga samba rice, hand-ground spices, and fresh chicken sourced daily, every order.',
   },
 ]
 
 export default function HomePage() {
   useDocumentTitle('Premium Biryani & Catering')
+  const navigate = useNavigate()
+  const { items, sections } = useMenuData()
+  const [settings] = useLocalStorage<RestaurantSettings>(STORAGE_KEYS.restaurantSettings, DEFAULT_RESTAURANT_SETTINGS)
+
+  const availableItems = items.filter((item) => item.isAvailable !== false)
+  const bySection = (key: MenuSectionKey) => availableItems.filter((item) => item.sections?.includes(key))
+  const sectionByKey = (key: MenuSectionKey) => sections.find((s) => s.key === key)
+  const todaysSpecialKey = settings.todaysSpecialKey
+  const bestSellers = availableItems.filter((item) => item.isBestSeller)
+  const combos = availableItems.filter((item) => item.category === 'combos')
 
   return (
     <div>
       <section className="relative overflow-hidden">
-        <div className="from-primary via-primary to-[#26060f] absolute inset-0 bg-gradient-to-br" />
+        <img
+          src={HERO_BANNER_IMAGE}
+          alt="A South Tamil Nadu biryani feast"
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+        />
+        <div className="from-primary/95 via-primary/90 to-[#26060f]/95 absolute inset-0 bg-gradient-to-br" />
         <div className="bg-noise absolute inset-0 text-white/[0.04]" />
         <div className="relative mx-auto flex max-w-7xl flex-col items-center gap-8 px-4 py-24 text-center sm:px-6 sm:py-32 lg:px-8">
           <motion.span
@@ -62,7 +86,7 @@ export default function HomePage() {
             transition={{ duration: 0.5 }}
             className="bg-gold/15 text-gold w-fit rounded-full px-4 py-1.5 text-xs font-semibold tracking-[0.2em] uppercase"
           >
-            Hyderabad&rsquo;s Signature Biryani House
+            South Tamil Nadu&rsquo;s Signature Biryani House
           </motion.span>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
@@ -70,7 +94,7 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="max-w-3xl text-balance font-display text-4xl font-bold text-white sm:text-6xl"
           >
-            Royal Biryani, Crafted for Every Celebration
+            Authentic Biryani, Crafted for Every Celebration
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -78,8 +102,8 @@ export default function HomePage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="max-w-xl text-balance text-white/75 sm:text-lg"
           >
-            {SITE.tagline} From weddings to corporate lunches, Yaraheem brings restaurant-grade
-            Hyderabadi biryani and Nizami cuisine to your table.
+            {SITE.tagline} From Daily Specials to Midnight Fuel, Yaraheem brings restaurant-grade
+            South Tamil Nadu biryani and chicken specials to your table.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -103,7 +127,7 @@ export default function HomePage() {
           </motion.div>
         </div>
 
-        <div className="relative border-t border-white/10 bg-black/10">
+        <div className="relative border-t border-white/10 bg-black/20">
           <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-4 py-10 sm:px-6 lg:grid-cols-4 lg:px-8">
             {STATS.map((stat) => (
               <div key={stat.label} className="text-center text-white">
@@ -136,67 +160,103 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <Link
-          to="/offers"
-          className="from-gold/20 to-gold/5 border-gold/30 flex items-center justify-between gap-4 rounded-2xl border bg-gradient-to-r px-6 py-4 transition-colors hover:bg-gold/10"
-        >
-          <div className="flex items-center gap-3">
-            <span className="bg-gold text-gold-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
-              <Tag className="size-4.5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold">{featuredOffer.title} — Code {featuredOffer.code}</p>
-              <p className="text-muted-foreground text-xs">{featuredOffer.description}</p>
+      {settings.offersEnabled && featuredOffer && (
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Link
+            to="/offers"
+            className="from-gold/20 to-gold/5 border-gold/30 flex items-center justify-between gap-4 rounded-2xl border bg-gradient-to-r px-6 py-4 transition-colors hover:bg-gold/10"
+          >
+            <div className="flex items-center gap-3">
+              <span className="bg-gold text-gold-foreground flex size-10 shrink-0 items-center justify-center rounded-full">
+                <Tag className="size-4.5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{featuredOffer.title} — Code {featuredOffer.code}</p>
+                <p className="text-muted-foreground text-xs">{featuredOffer.description}</p>
+              </div>
+            </div>
+            <ArrowRight className="text-muted-foreground size-4 shrink-0" />
+          </Link>
+        </section>
+      )}
+
+      {sectionByKey(todaysSpecialKey) && (
+        <MenuSectionStrip section={sectionByKey(todaysSpecialKey)!} items={bySection(todaysSpecialKey)} />
+      )}
+
+      {bestSellers.length > 0 && (
+        <section className="bg-secondary/40 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              eyebrow="Fan Favorites"
+              title="Best Sellers"
+              description="The dishes our guests reorder every single week."
+            />
+            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {bestSellers.slice(0, 4).map((item) => (
+                <MenuCard key={item.id} item={item} />
+              ))}
             </div>
           </div>
-          <ArrowRight className="text-muted-foreground size-4 shrink-0" />
-        </Link>
-      </section>
+        </section>
+      )}
 
-      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-        <SectionHeading
-          eyebrow="Fan Favorites"
-          title="Our Signature Dishes"
-          description="The recipes our guests request again and again — dum-cooked to order, every time."
-        />
-        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {signatureDishes.map((item) => (
-            <MenuCard key={item.id} item={item} />
-          ))}
-        </div>
-        <div className="mt-10 flex justify-center">
-          <Button asChild variant="outline" size="lg" className="gap-2">
-            <Link to="/menu">
-              View Full Menu <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </div>
-      </section>
+      {todaysSpecialKey !== 'friday' && sectionByKey('friday') && (
+        <MenuSectionStrip section={sectionByKey('friday')!} items={bySection('friday')} />
+      )}
+      {todaysSpecialKey !== 'sunday' && sectionByKey('sunday') && (
+        <MenuSectionStrip section={sectionByKey('sunday')!} items={bySection('sunday')} />
+      )}
+      {todaysSpecialKey !== 'midnight' && sectionByKey('midnight') && (
+        <MenuSectionStrip section={sectionByKey('midnight')!} items={bySection('midnight')} dark />
+      )}
+
+      {combos.length > 0 && (
+        <section className="py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <SectionHeading
+              eyebrow="Feed the Whole Table"
+              title="Combos & Family Packs"
+              description="Pre-built spreads for every group size — from a family dinner to a full-blown celebration."
+            />
+            <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {combos.map((item) => (
+                <div key={item.id} className="flex flex-col gap-3 rounded-2xl border p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-display text-lg font-semibold">{item.name}</h3>
+                    <span className="font-display text-lg font-bold">{formatCurrency(item.price)}</span>
+                  </div>
+                  <p className="text-muted-foreground text-sm">{item.description}</p>
+                  {item.comboSlots && (
+                    <ul className="text-muted-foreground mt-1 flex flex-col gap-1 text-xs">
+                      {item.comboSlots.map((slot) => (
+                        <li key={slot} className="flex items-start gap-1.5">
+                          <span className="bg-gold mt-1.5 size-1 shrink-0 rounded-full" />
+                          {slot}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <Button asChild variant="outline" className="mt-2">
+                    <Link to={`/food/${item.id}`}>View Combo</Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="bg-secondary/40 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SectionHeading
-            eyebrow="Why Yaraheem"
-            title="Catering Built for Peace of Mind"
-            description="We handle the kitchen, the counters, and the crew — you host the moment."
+            eyebrow="Catering"
+            title="Packages for Every Occasion"
+            description="From 20-guest gatherings to 500-guest weddings — fully staffed, fully catered."
           />
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {FEATURES.map((feature) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.4 }}
-                className="bg-card flex flex-col gap-3 rounded-xl border p-6"
-              >
-                <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-full">
-                  <feature.icon className="size-5" />
-                </span>
-                <h3 className="font-display text-lg font-semibold">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
-              </motion.div>
+            {cateringPackages.slice(0, 4).map((pkg) => (
+              <CateringPackageCard key={pkg.id} pkg={pkg} onEnquire={() => navigate('/catering')} />
             ))}
           </div>
         </div>
@@ -230,11 +290,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-secondary/40 py-20">
+      <section className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SectionHeading
             eyebrow="Testimonials"
-            title="Loved by Hosts Across Hyderabad"
+            title="Loved by Hosts Across South Tamil Nadu"
             description="Real feedback from families, planners, and companies we've had the honor of serving."
           />
           <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -249,6 +309,70 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="bg-secondary/40 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <SectionHeading eyebrow="Gallery" title="Moments We've Catered" align="left" className="mb-0" />
+            <Link to="/gallery" className="text-primary hidden shrink-0 items-center gap-1 text-sm font-medium hover:underline sm:flex">
+              View gallery <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {galleryPreview.map((image, index) => (
+              <motion.div
+                key={image.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.3, delay: (index % 6) * 0.04 }}
+              >
+                <Link to="/gallery" className="group block overflow-hidden rounded-xl">
+                  <DishVisual
+                    seed={image.id}
+                    category="biryani"
+                    className="aspect-square w-full transition-transform duration-500 group-hover:scale-105"
+                    iconClassName="size-8"
+                  />
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+          <div className="mt-6 flex justify-center sm:hidden">
+            <Button asChild variant="outline" className="gap-1.5">
+              <Link to="/gallery">
+                <ImageIcon className="size-4" /> View Gallery
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <SectionHeading
+          eyebrow="Why Yaraheem"
+          title="Catering Built for Peace of Mind"
+          description="We handle the kitchen, the counters, and the crew — you host the moment."
+        />
+        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((feature) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.4 }}
+              className="bg-card flex flex-col gap-3 rounded-xl border p-6"
+            >
+              <span className="bg-primary text-primary-foreground flex size-11 items-center justify-center rounded-full">
+                <feature.icon className="size-5" />
+              </span>
+              <h3 className="font-display text-lg font-semibold">{feature.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
     </div>

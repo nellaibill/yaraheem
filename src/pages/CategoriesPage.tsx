@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { DishVisual } from '@/components/common/DishVisual'
-import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import type { MenuCategory } from '@/types'
 
@@ -10,6 +11,7 @@ const CATEGORIES = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
 
 export default function CategoriesPage() {
   useDocumentTitle('Categories')
+  const { items } = useMenuData()
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -21,7 +23,7 @@ export default function CategoriesPage() {
 
       <div className="mt-12 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
         {CATEGORIES.map((category, index) => {
-          const count = menuItems.filter((item) => item.category === category).length
+          const count = items.filter((item) => item.category === category).length
           return (
             <motion.div
               key={category}

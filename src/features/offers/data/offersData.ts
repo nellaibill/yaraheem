@@ -21,7 +21,7 @@ export const offers: Offer[] = [
   {
     code: 'BIRYANI20',
     title: 'Biryani Special',
-    description: '20% off on all biryani orders above ₹500.',
+    description: '20% off on all biryani orders above Rs. 500.',
     discountPercent: 20,
     maxDiscount: 200,
     minOrder: 500,
@@ -30,7 +30,7 @@ export const offers: Offer[] = [
   {
     code: 'FAMILY100',
     title: 'Family Feast',
-    description: 'Flat ₹100 off on orders above ₹999 — perfect for family orders.',
+    description: 'Flat Rs. 100 off on orders above Rs. 999 — perfect for family orders.',
     discountPercent: 10,
     maxDiscount: 100,
     minOrder: 999,

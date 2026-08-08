@@ -34,14 +34,23 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
         const isLast = index === ORDER_STATUS_SEQUENCE.length - 1
 
         return (
-          <li key={step} className="relative flex gap-4 pb-8 last:pb-0">
+          <motion.li
+            key={step}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.06, ease: 'easeOut' }}
+            className="relative flex gap-4 pb-8 last:pb-0"
+          >
             {!isLast && (
-              <span
-                className={cn(
-                  'absolute top-9 left-[19px] h-full w-0.5 -translate-x-1/2',
-                  isComplete ? 'bg-primary' : 'bg-border',
-                )}
-              />
+              <span className="absolute top-9 left-[19px] h-full w-0.5 -translate-x-1/2 overflow-hidden bg-border">
+                <motion.span
+                  className="bg-primary block w-full origin-top"
+                  initial={false}
+                  animate={{ scaleY: isComplete ? 1 : 0 }}
+                  transition={{ duration: 0.5, ease: 'easeOut' }}
+                  style={{ height: '100%' }}
+                />
+              </span>
             )}
             <span className="relative shrink-0">
               {isCurrent && step !== 'delivered' && (
@@ -51,7 +60,11 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
                   transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
                 />
               )}
-              <span
+              <motion.span
+                key={`${step}-${isComplete}-${isCurrent}`}
+                initial={{ scale: 0.7, opacity: 0.6 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 22 }}
                 className={cn(
                   'relative flex size-10 items-center justify-center rounded-full border-2 transition-colors',
                   isComplete && 'bg-primary border-primary text-primary-foreground',
@@ -60,7 +73,7 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
                 )}
               >
                 <Icon className="size-4.5" />
-              </span>
+              </motion.span>
             </span>
             <div className={cn('pt-1.5', !isComplete && !isCurrent && 'opacity-50')}>
               <p className={cn('text-sm font-semibold', isCurrent && 'text-gold-foreground')}>
@@ -73,7 +86,7 @@ export function StatusTimeline({ status }: { status: OrderStatus }) {
               )}
               {isComplete && <p className="text-muted-foreground text-xs">Completed</p>}
             </div>
-          </li>
+          </motion.li>
         )
       })}
     </ol>

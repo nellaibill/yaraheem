@@ -1,18 +1,16 @@
 import { Link } from 'react-router-dom'
-import { Flame, Leaf, Plus } from 'lucide-react'
+import { Flame, Leaf } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { DishVisual } from '@/components/common/DishVisual'
-import { useCart } from '@/features/cart/hooks/useCart'
+import { FoodImage } from '@/components/common/FoodImage'
+import { AddToCartButton } from '@/features/cart/components/AddToCartButton'
 import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
 import { formatCurrency } from '@/lib/utils'
 import type { MenuItem } from '@/types'
-import { toast } from 'sonner'
 
 export function MenuCard({ item }: { item: MenuItem }) {
-  const { addItem } = useCart()
+  const isAvailable = item.isAvailable !== false
 
   return (
     <motion.div
@@ -24,8 +22,18 @@ export function MenuCard({ item }: { item: MenuItem }) {
       <Card className="group h-full overflow-hidden py-0 transition-shadow hover:shadow-md">
         <div className="relative">
           <Link to={`/food/${item.id}`} className="block">
-            <DishVisual category={item.category} seed={item.id} className="h-40 w-full" />
+            <FoodImage
+              itemId={item.id}
+              category={item.category}
+              alt={item.name}
+              className="h-40 w-full"
+            />
           </Link>
+          {!isAvailable && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <Badge variant="secondary">Sold Out</Badge>
+            </div>
+          )}
           <FavoriteButton itemId={item.id} className="absolute top-3 right-3" />
         </div>
         <CardContent className="flex flex-1 flex-col gap-3 p-5">
@@ -42,28 +50,25 @@ export function MenuCard({ item }: { item: MenuItem }) {
             )}
           </div>
           <p className="text-muted-foreground line-clamp-2 text-sm">{item.description}</p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {item.isSignature && <Badge variant="gold">Signature</Badge>}
+            {item.isBestSeller && <Badge variant="default">Bestseller</Badge>}
             {item.spiceLevel === 'spicy' && (
               <Badge variant="outline" className="gap-1">
                 <Flame className="size-3" /> Spicy
               </Badge>
             )}
           </div>
-          <div className="mt-auto flex items-center justify-between pt-2">
-            <span className="font-display text-lg font-semibold">{formatCurrency(item.price)}</span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1"
-              onClick={() => {
-                addItem(item.id)
-                toast.success(`${item.name} added to your order`)
-              }}
-            >
-              <Plus className="size-3.5" />
-              Add
-            </Button>
+          <div className="mt-auto flex flex-col gap-2.5 pt-2">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-lg font-semibold">{formatCurrency(item.price)}</span>
+              {item.originalPrice && item.originalPrice > item.price && (
+                <span className="text-muted-foreground text-xs line-through">
+                  {formatCurrency(item.originalPrice)}
+                </span>
+              )}
+            </div>
+            {isAvailable && <AddToCartButton itemId={item.id} itemName={item.name} className="w-full" />}
           </div>
         </CardContent>
       </Card>

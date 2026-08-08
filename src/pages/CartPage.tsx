@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { SectionHeading } from '@/components/common/SectionHeading'
-import { DishVisual } from '@/components/common/DishVisual'
+import { FoodImage } from '@/components/common/FoodImage'
 import { EmptyState } from '@/components/common/EmptyState'
 import { useCart } from '@/features/cart/hooks/useCart'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -33,7 +33,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-12 pb-28 sm:px-6 lg:px-8 lg:pb-12">
       <SectionHeading eyebrow="Your Order" title="Cart" align="left" />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -41,7 +41,13 @@ export default function CartPage() {
           {lines.map((line) => (
             <Card key={line.itemId} className="overflow-hidden py-0">
               <CardContent className="flex items-center gap-4 p-4">
-                <DishVisual category={line.item.category} seed={line.itemId} className="size-16 shrink-0 rounded-lg" iconClassName="size-6" />
+                <FoodImage
+                  itemId={line.itemId}
+                  category={line.item.category}
+                  alt={line.item.name}
+                  className="size-16 shrink-0 rounded-lg"
+                  iconClassName="size-6"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{line.item.name}</p>
                   <p className="text-muted-foreground text-xs">{formatCurrency(line.item.price)} each</p>
@@ -114,6 +120,12 @@ export default function CartPage() {
             </Button>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur-md lg:hidden">
+        <Button variant="gold" size="lg" className="w-full gap-2" onClick={() => navigate('/checkout')}>
+          Proceed to Checkout — {formatCurrency(grandTotal)}
+        </Button>
       </div>
     </div>
   )

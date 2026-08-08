@@ -24,13 +24,13 @@ const VALUES = [
   {
     icon: Award,
     title: 'Award-Winning Taste',
-    description: 'Recognized among Hyderabad\'s top catering services for consistency and flavor.',
+    description: 'Recognized among South Tamil Nadu\'s top catering services for consistency and flavor.',
   },
 ]
 
 const TIMELINE = [
   { year: '2010', text: 'Yaraheem began as a small family kitchen serving biryani to neighbors.' },
-  { year: '2014', text: 'Opened our first dine-in restaurant in Masab Tank, Hyderabad.' },
+  { year: '2014', text: 'Opened our first dine-in restaurant on Trivandrum Road, Tirunelveli.' },
   { year: '2018', text: 'Launched full-scale catering services for weddings and corporate events.' },
   { year: '2024', text: 'Crossed 2,400 events catered with a team of 40+ culinary professionals.' },
 ]
@@ -52,13 +52,14 @@ export default function AboutPage() {
             Our Story
           </span>
           <h1 className="font-display text-3xl font-bold sm:text-4xl">
-            Fifteen Years of Royal Hyderabadi Flavor
+            Fifteen Years of Authentic Tamil Flavor
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Yaraheem Catering Services began in a modest family kitchen with one goal: to bring the
-            authentic taste of Nizami Hyderabad to every table. What started with a single handi of
-            biryani has grown into a full-service catering house trusted for weddings, corporate
-            events, and everyday celebrations across the city.
+            Yaraheem Catering Services began in a modest Tirunelveli kitchen with one goal: to bring the
+            authentic taste of South Tamil Nadu — seeraga samba biryani, fiery chicken 65, and midnight
+            snack combos — to every table. What started with a single pot of biryani has grown into a
+            full-service catering house trusted for weddings, corporate events, and everyday
+            celebrations across Tirunelveli, Madurai, and the districts around them.
           </p>
           <p className="text-muted-foreground leading-relaxed">
             Today, our kitchen is led by chefs trained in traditional dum techniques, using recipes

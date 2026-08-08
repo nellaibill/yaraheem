@@ -6,11 +6,11 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { DishVisual } from '@/components/common/DishVisual'
+import { FoodImage } from '@/components/common/FoodImage'
 import { EmptyState } from '@/components/common/EmptyState'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { FavoriteButton } from '@/features/favorites/components/FavoriteButton'
-import { menuItems } from '@/features/menu/data/menuData'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { testimonials } from '@/features/testimonials/data/testimonialsData'
 import { useCart } from '@/features/cart/hooks/useCart'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
@@ -21,6 +21,7 @@ export default function FoodDetailsPage() {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
+  const { items: menuItems } = useMenuData()
 
   const item = menuItems.find((menuItem) => menuItem.id === id)
   useDocumentTitle(item?.name ?? 'Dish Not Found')
@@ -59,7 +60,14 @@ export default function FoodDetailsPage() {
           transition={{ duration: 0.4 }}
           className="relative"
         >
-          <DishVisual category={item.category} seed={item.id} className="aspect-square w-full rounded-2xl" iconClassName="size-16" />
+          <FoodImage
+            itemId={item.id}
+            category={item.category}
+            alt={item.name}
+            className="aspect-square w-full rounded-2xl"
+            iconClassName="size-16"
+            loading="eager"
+          />
           <FavoriteButton itemId={item.id} className="absolute top-4 right-4 size-10" />
         </motion.div>
 

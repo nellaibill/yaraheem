@@ -1,6 +1,6 @@
 import { readAllScoped, readStorage, writeStorage } from '@/lib/storage'
 import { STORAGE_KEYS, ORDER_STATUS_SEQUENCE } from '@/lib/constants'
-import { menuItems } from '@/features/menu/data/menuData'
+import { getMenuItems } from '@/features/menu/lib/menuStore'
 import type { Address, AuthUser, Order, OrderStatus } from '@/types'
 
 export function getAllOrders(): Order[] {
@@ -79,16 +79,16 @@ function randomSeedAddress(): Address {
     id: crypto.randomUUID(),
     label: 'Home',
     line1: `${randomInt(1, 300)}, Road No. ${randomInt(1, 20)}`,
-    line2: 'Near Metro Station',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    pincode: `5000${randomInt(10, 99)}`,
+    line2: 'Near Bus Stand',
+    city: 'Tirunelveli',
+    state: 'Tamil Nadu',
+    pincode: `6270${randomInt(10, 99)}`,
   }
 }
 
 function buildSeedOrder(mobile: string, daysAgo: number): Order {
   const itemCount = randomInt(1, 3)
-  const shuffled = [...menuItems].sort(() => Math.random() - 0.5).slice(0, itemCount)
+  const shuffled = [...getMenuItems()].sort(() => Math.random() - 0.5).slice(0, itemCount)
   const lines = shuffled.map((item) => ({
     itemId: item.id,
     name: item.name,

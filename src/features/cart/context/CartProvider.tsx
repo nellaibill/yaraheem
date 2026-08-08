@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { readStorage, writeStorage, scopedKey } from '@/lib/storage'
 import { STORAGE_KEYS } from '@/lib/constants'
-import { menuItems } from '@/features/menu/data/menuData'
+import { getMenuItems } from '@/features/menu/lib/menuStore'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import type { CartLine } from '@/types'
 import { CartContext, type CartLineWithItem } from '@/features/cart/context/cart-context'
@@ -74,6 +74,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clear = useCallback(() => persist([]), [persist])
 
   const enrichedLines = useMemo<CartLineWithItem[]>(() => {
+    const menuItems = getMenuItems()
     return lines
       .map((line) => {
         const item = menuItems.find((menuItem) => menuItem.id === line.itemId)

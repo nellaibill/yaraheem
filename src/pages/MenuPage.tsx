@@ -3,39 +3,51 @@ import { useSearchParams } from 'react-router-dom'
 import { SectionHeading } from '@/components/common/SectionHeading'
 import { MenuFilters } from '@/features/menu/components/MenuFilters'
 import { MenuCard } from '@/features/menu/components/MenuCard'
-import { menuItems, MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import type { MenuCategory } from '@/types'
+import { MENU_SECTION_LABELS } from '@/lib/constants'
+import type { MenuCategory, MenuSectionKey } from '@/types'
 
 const VALID_CATEGORIES = new Set(Object.keys(MENU_CATEGORY_LABELS))
+const VALID_SECTIONS = new Set(Object.keys(MENU_SECTION_LABELS))
 
 function isMenuCategory(value: string | null): value is MenuCategory {
   return !!value && VALID_CATEGORIES.has(value)
 }
 
+function isMenuSectionKey(value: string | null): value is MenuSectionKey {
+  return !!value && VALID_SECTIONS.has(value)
+}
+
 export default function MenuPage() {
   const [searchParams] = useSearchParams()
   const initialCategory = searchParams.get('category')
+  const sectionParam = searchParams.get('section')
   const [category, setCategory] = useState<MenuCategory | 'all'>(
     isMenuCategory(initialCategory) ? initialCategory : 'all',
   )
   const [vegOnly, setVegOnly] = useState(false)
-  useDocumentTitle('Menu')
+  const { items } = useMenuData()
+  const activeSection = isMenuSectionKey(sectionParam) ? sectionParam : null
+  useDocumentTitle(activeSection ? MENU_SECTION_LABELS[activeSection] : 'Menu')
 
   const filteredItems = useMemo(() => {
-    return menuItems.filter((item) => {
+    return items.filter((item) => {
+      if (item.isAvailable === false) return false
+      if (activeSection && !item.sections?.includes(activeSection)) return false
       if (category !== 'all' && item.category !== category) return false
       if (vegOnly && !item.isVeg) return false
       return true
     })
-  }, [category, vegOnly])
+  }, [items, category, vegOnly, activeSection])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <SectionHeading
         eyebrow="Our Menu"
-        title="A Feast of Hyderabadi Flavors"
-        description="From dum biryani to royal desserts — every dish is prepared fresh to order. Add items to build your own order."
+        title={activeSection ? MENU_SECTION_LABELS[activeSection] : 'A Feast of South Tamil Nadu Flavors'}
+        description="From dum biryani to Midnight Fuel — every dish is prepared fresh to order. Add items to build your own order."
       />
 
       <div className="mt-10">

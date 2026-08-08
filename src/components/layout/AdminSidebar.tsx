@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 
 const ADMIN_NAV = [
   { label: 'Dashboard', to: '/admin', end: true, icon: LayoutDashboard },
+  { label: 'Menu', to: '/admin/menu', icon: UtensilsCrossed },
   { label: 'Orders', to: '/admin/orders', icon: Receipt },
   { label: 'Customers', to: '/admin/customers', icon: Users },
   { label: 'Delivery Partners', to: '/admin/delivery-partners', icon: Bike },
