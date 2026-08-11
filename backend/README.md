@@ -42,9 +42,13 @@ Each module owns its own `DbContext` and PostgreSQL schema (`identity`, `catalog
 
 **Cart** — `GET /api/cart`, `POST /api/cart/items`, `PUT/DELETE /api/cart/items/{itemId}`, `DELETE /api/cart/clear` (authenticated user; one cart per user, auto-created on first add)
 
-**Orders** — `POST /api/orders/checkout` (creates order from cart, validates + deducts stock, clears cart), `GET /api/orders/my-orders`, `GET /api/orders/{id}`, `PUT /api/orders/{id}/status` (`Admin` only)
+**Orders** — `POST /api/orders/checkout` (creates order from cart, processes payment, validates + deducts stock, clears cart), `GET /api/orders/my-orders`, `GET /api/orders/{id}`, `GET /api/orders/{id}/tracking` (status timeline; owner or `Admin`)
+
+**Admin / Orders** — `GET /api/admin/orders` (filter by `status`, `orderNumber`, `customerEmail`, `fromDate`, `toDate`), `GET /api/admin/orders/{id}`, `PUT /api/admin/orders/{id}/status` (enforces `Pending→Confirmed→Processing→Shipped→Delivered`, cancellable from `Pending`/`Confirmed`/`Processing`; all `Admin` only)
 
 **Inventory** — `POST /api/inventory/adjust` (`Admin` only; records a `Purchase`/`Sale`/`Adjustment` transaction, rejects changes that would go negative)
+
+**Payments** — `POST /api/payments/orders/{orderId}/pay` (process/retry payment for a pending order; blocks duplicate successful payments), `GET /api/payments/orders/{orderId}`, `POST /api/payments/webhook` (provider callback; always 200 OK)
 
 **Ops** — `GET /health` (Postgres health check)
 

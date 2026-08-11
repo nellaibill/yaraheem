@@ -1,3 +1,4 @@
+using Ecommerce.Api.Endpoints;
 using Ecommerce.Modules.Cart;
 using Ecommerce.Modules.Cart.Endpoints;
 using Ecommerce.Modules.Cart.Infrastructure;
@@ -13,6 +14,9 @@ using Ecommerce.Modules.Inventory.Infrastructure;
 using Ecommerce.Modules.Orders;
 using Ecommerce.Modules.Orders.Endpoints;
 using Ecommerce.Modules.Orders.Infrastructure;
+using Ecommerce.Modules.Payments;
+using Ecommerce.Modules.Payments.Endpoints;
+using Ecommerce.Modules.Payments.Infrastructure;
 using Ecommerce.Shared.Infrastructure.Extensions;
 using Ecommerce.Shared.Infrastructure.Options;
 using Ecommerce.Shared.Infrastructure.Security;
@@ -46,6 +50,7 @@ try
     builder.Services.AddCatalogModule(builder.Configuration);
     builder.Services.AddInventoryModule(builder.Configuration);
     builder.Services.AddCartModule(builder.Configuration);
+    builder.Services.AddPaymentsModule(builder.Configuration);
     builder.Services.AddOrdersModule(builder.Configuration);
 
     var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
@@ -96,7 +101,10 @@ try
     app.MapProductEndpoints();
     app.MapCartEndpoints();
     app.MapOrderEndpoints();
+    app.MapAdminOrderEndpoints();
     app.MapInventoryEndpoints();
+    app.MapPaymentEndpoints();
+    app.MapPaymentOrderEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -108,6 +116,7 @@ try
         await services.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<CartDbContext>().Database.MigrateAsync();
+        await services.GetRequiredService<PaymentsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
 
         await IdentitySeeder.SeedAsync(
@@ -118,6 +127,12 @@ try
         await CatalogSeeder.SeedAsync(
             services.GetRequiredService<CatalogDbContext>(),
             services.GetRequiredService<InventoryDbContext>());
+
+        await OrdersSeeder.SeedAsync(
+            services.GetRequiredService<OrdersDbContext>(),
+            services.GetRequiredService<IdentityDbContext>(),
+            services.GetRequiredService<CatalogDbContext>(),
+            services.GetRequiredService<PaymentsDbContext>());
     }
 
     app.Run();

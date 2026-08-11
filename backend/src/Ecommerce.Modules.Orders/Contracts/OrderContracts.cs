@@ -1,4 +1,5 @@
 using Ecommerce.Modules.Orders.Domain;
+using Ecommerce.Modules.Payments.Domain;
 
 namespace Ecommerce.Modules.Orders.Contracts;
 
@@ -24,7 +25,7 @@ public sealed record AddressDto(
 
 public sealed record OrderItemDto(Guid Id, Guid ProductId, Guid? ProductVariantId, string ProductName, int Quantity, decimal UnitPrice, decimal LineTotal);
 
-public sealed record OrderStatusHistoryDto(OrderStatus Status, string? Note, DateTimeOffset ChangedAt);
+public sealed record OrderStatusHistoryDto(OrderStatus? PreviousStatus, OrderStatus NewStatus, string? Notes, DateTimeOffset ChangedAt);
 
 public sealed record OrderDto(
     Guid Id,
@@ -38,6 +39,21 @@ public sealed record OrderDto(
     IReadOnlyList<OrderStatusHistoryDto> StatusHistory,
     DateTimeOffset CreatedAt);
 
-public sealed record CheckoutRequest(ShippingAddressRequest ShippingAddress);
+public sealed record CheckoutRequest(string PaymentMethod, ShippingAddressRequest ShippingAddress);
 
-public sealed record UpdateOrderStatusRequest(OrderStatus Status, string? Note);
+public sealed record CheckoutResponse(Guid OrderId, string OrderNumber, PaymentStatus PaymentStatus, string TransactionReference);
+
+public sealed record UpdateOrderStatusRequest(OrderStatus Status, string? Notes);
+
+public sealed record AdminOrderQuery(
+    OrderStatus? Status,
+    string? OrderNumber,
+    string? CustomerEmail,
+    DateTimeOffset? FromDate,
+    DateTimeOffset? ToDate,
+    int Page = 1,
+    int PageSize = 20);
+
+public sealed record OrderTrackingEventDto(OrderStatus Status, DateTimeOffset Timestamp);
+
+public sealed record OrderTrackingResponse(string OrderNumber, OrderStatus Status, DateTimeOffset UpdatedAt, IReadOnlyList<OrderTrackingEventDto> Timeline);

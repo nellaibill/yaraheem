@@ -42,5 +42,35 @@ public static class IdentitySeeder
             db.Users.Add(admin);
             await db.SaveChangesAsync(cancellationToken);
         }
+
+        var customerRole = await db.Roles.FirstAsync(r => r.NormalizedName == Role.WellKnown.Customer.ToUpperInvariant(), cancellationToken);
+
+        var demoCustomers = new[]
+        {
+            ("customer1@ecommerce.local", "Demo", "Customer1"),
+            ("customer2@ecommerce.local", "Demo", "Customer2"),
+        };
+
+        foreach (var (email, firstName, lastName) in demoCustomers)
+        {
+            var exists = await db.Users.AnyAsync(u => u.Email == email, cancellationToken);
+            if (exists)
+            {
+                continue;
+            }
+
+            var customer = new User
+            {
+                Email = email,
+                PasswordHash = passwordHasher.Hash("Admin@123"),
+                FirstName = firstName,
+                LastName = lastName,
+            };
+            customer.UserRoles.Add(new UserRole { UserId = customer.Id, RoleId = customerRole.Id });
+
+            db.Users.Add(customer);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

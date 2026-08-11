@@ -7,11 +7,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Ecommerce.Shared.Kernel\Ecommerce.Shared.Kernel.csproj" />
     <ProjectReference Include="..\Ecommerce.Shared.Infrastructure\Ecommerce.Shared.Infrastructure.csproj" />
-    <ProjectReference Include="..\Ecommerce.Modules.Cart\Ecommerce.Modules.Cart.csproj" />
-    <ProjectReference Include="..\Ecommerce.Modules.Catalog\Ecommerce.Modules.Catalog.csproj" />
-    <ProjectReference Include="..\Ecommerce.Modules.Inventory\Ecommerce.Modules.Inventory.csproj" />
-    <ProjectReference Include="..\Ecommerce.Modules.Payments\Ecommerce.Modules.Payments.csproj" />
-    <ProjectReference Include="..\Ecommerce.Modules.Identity\Ecommerce.Modules.Identity.csproj" />
   </ItemGroup>
 
   <ItemGroup>

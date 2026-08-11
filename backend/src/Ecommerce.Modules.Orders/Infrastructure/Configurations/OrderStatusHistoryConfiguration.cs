@@ -11,8 +11,9 @@ public sealed class OrderStatusHistoryConfiguration : IEntityTypeConfiguration<O
         builder.ToTable("order_status_history");
         builder.HasKey(h => h.Id);
 
-        builder.Property(h => h.Status).HasConversion<string>().HasMaxLength(30);
-        builder.Property(h => h.Note).HasMaxLength(500);
+        builder.Property(h => h.PreviousStatus).HasConversion<string>().HasMaxLength(30);
+        builder.Property(h => h.NewStatus).HasConversion<string>().HasMaxLength(30).IsRequired();
+        builder.Property(h => h.Notes).HasColumnType("text");
 
         builder.HasOne(h => h.Order)
             .WithMany(o => o.StatusHistory)
