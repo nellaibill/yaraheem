@@ -19,6 +19,7 @@ public static class OrdersModule
                 .MigrationsAssembly("Ecommerce.Database.Migrations")));
 
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IOrderStatusTransitionService, OrderStatusTransitionService>();
         services.AddValidatorsFromAssemblyContaining(typeof(OrdersModule));
 
         return services;

@@ -22,6 +22,9 @@ public sealed class CheckoutRequestValidator : AbstractValidator<CheckoutRequest
 {
     public CheckoutRequestValidator()
     {
+        RuleFor(x => x.PaymentMethod).NotEmpty()
+            .Must(m => m is "COD" or "ONLINE")
+            .WithMessage("PaymentMethod must be 'COD' or 'ONLINE'.");
         RuleFor(x => x.ShippingAddress).NotNull().SetValidator(new ShippingAddressRequestValidator());
     }
 }
@@ -31,6 +34,16 @@ public sealed class UpdateOrderStatusRequestValidator : AbstractValidator<Update
     public UpdateOrderStatusRequestValidator()
     {
         RuleFor(x => x.Status).IsInEnum();
-        RuleFor(x => x.Note).MaximumLength(500);
+        RuleFor(x => x.Notes).MaximumLength(500);
+    }
+}
+
+public sealed class AdminOrderQueryValidator : AbstractValidator<AdminOrderQuery>
+{
+    public AdminOrderQueryValidator()
+    {
+        RuleFor(x => x.Page).GreaterThanOrEqualTo(1);
+        RuleFor(x => x.PageSize).InclusiveBetween(1, 100);
+        RuleFor(x => x.Status).IsInEnum().When(x => x.Status.HasValue);
     }
 }

@@ -23,8 +23,9 @@ public static class OrderEndpoints
         {
             await validator.ValidateAndThrowAsync(request, cancellationToken);
             var result = await service.CheckoutAsync(currentUser.UserId!.Value, request, cancellationToken);
-            return Results.Created($"/api/orders/{result.Id}", ApiResponse<OrderDto>.SuccessResponse(result, "Order placed."));
-        }).WithSummary("Create an order from the current cart, deduct stock, and clear the cart.");
+            return Results.Created($"/api/orders/{result.OrderId}", ApiResponse<CheckoutResponse>.SuccessResponse(result, "Order placed."));
+        }).WithSummary("Create an order from the current cart, process payment, deduct stock, and clear the cart.")
+          .WithDescription("Example: { \"paymentMethod\": \"COD\", \"shippingAddress\": { \"fullName\": \"John Doe\", \"phoneNumber\": \"9876543210\", \"addressLine1\": \"123 Main Street\", \"city\": \"Chennai\", \"state\": \"Tamil Nadu\", \"postalCode\": \"600001\", \"country\": \"India\" } }");
 
         group.MapGet("/my-orders", async (
             int page,
@@ -47,17 +48,15 @@ public static class OrderEndpoints
             return Results.Ok(ApiResponse<OrderDto>.SuccessResponse(result));
         });
 
-        group.MapPut("/{id:guid}/status", async (
+        group.MapGet("/{id:guid}/tracking", async (
             Guid id,
-            UpdateOrderStatusRequest request,
-            IValidator<UpdateOrderStatusRequest> validator,
+            ICurrentUser currentUser,
             IOrderService service,
             CancellationToken cancellationToken) =>
         {
-            await validator.ValidateAndThrowAsync(request, cancellationToken);
-            var result = await service.UpdateStatusAsync(id, request, cancellationToken);
-            return Results.Ok(ApiResponse<OrderDto>.SuccessResponse(result, "Order status updated."));
-        }).RequireAuthorization("AdminOnly");
+            var result = await service.GetTrackingAsync(currentUser.UserId!.Value, currentUser.IsInRole("Admin"), id, cancellationToken);
+            return Results.Ok(ApiResponse<OrderTrackingResponse>.SuccessResponse(result));
+        }).WithSummary("Get the order status timeline. Customers may only view their own orders.");
 
         return app;
     }
