@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.1" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ecommerce.Shared.Kernel\Ecommerce.Shared.Kernel.csproj" />
+    <ProjectReference Include="..\Ecommerce.Shared.Infrastructure\Ecommerce.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Identity\Ecommerce.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Catalog\Ecommerce.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Cart\Ecommerce.Modules.Cart.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Orders\Ecommerce.Modules.Orders.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Inventory\Ecommerce.Modules.Inventory.csproj" />
+    <ProjectReference Include="..\Ecommerce.Database.Migrations\Ecommerce.Database.Migrations.csproj" />
+  </ItemGroup>
+
+</Project>

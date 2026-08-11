@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ecommerce.Modules.Identity\Ecommerce.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Catalog\Ecommerce.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Cart\Ecommerce.Modules.Cart.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Orders\Ecommerce.Modules.Orders.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Inventory\Ecommerce.Modules.Inventory.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
