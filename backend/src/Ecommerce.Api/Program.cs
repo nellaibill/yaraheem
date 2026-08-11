@@ -8,6 +8,7 @@ using Ecommerce.Modules.Identity;
 using Ecommerce.Modules.Identity.Endpoints;
 using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory;
+using Ecommerce.Modules.Inventory.Endpoints;
 using Ecommerce.Modules.Inventory.Infrastructure;
 using Ecommerce.Modules.Orders;
 using Ecommerce.Modules.Orders.Endpoints;
@@ -95,6 +96,7 @@ try
     app.MapProductEndpoints();
     app.MapCartEndpoints();
     app.MapOrderEndpoints();
+    app.MapInventoryEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -112,6 +114,10 @@ try
             services.GetRequiredService<IdentityDbContext>(),
             services.GetRequiredService<IPasswordHasher>(),
             services.GetRequiredService<IOptions<AdminSeedOptions>>());
+
+        await CatalogSeeder.SeedAsync(
+            services.GetRequiredService<CatalogDbContext>(),
+            services.GetRequiredService<InventoryDbContext>());
     }
 
     app.Run();

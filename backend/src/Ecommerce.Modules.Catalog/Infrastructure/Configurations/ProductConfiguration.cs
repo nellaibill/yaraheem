@@ -18,6 +18,8 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Sku).IsRequired().HasMaxLength(100);
         builder.HasIndex(p => p.Sku).IsUnique();
         builder.Property(p => p.Price).HasColumnType("numeric(12,2)");
+        builder.Property(p => p.ComparePrice).HasColumnType("numeric(12,2)");
+        builder.Property(p => p.ThumbnailUrl).HasMaxLength(1000);
 
         builder.HasOne(p => p.Category)
             .WithMany(c => c.Products)
@@ -26,6 +28,8 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasIndex(p => p.CategoryId);
         builder.HasIndex(p => p.Name);
+        builder.HasIndex(p => p.IsFeatured);
+        builder.HasIndex(p => p.IsPublished);
 
         builder.HasQueryFilter(p => !p.IsDeleted);
     }

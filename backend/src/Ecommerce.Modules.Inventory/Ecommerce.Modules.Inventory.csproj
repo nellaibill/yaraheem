@@ -7,11 +7,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Ecommerce.Shared.Kernel\Ecommerce.Shared.Kernel.csproj" />
     <ProjectReference Include="..\Ecommerce.Shared.Infrastructure\Ecommerce.Shared.Infrastructure.csproj" />
-    <ProjectReference Include="..\Ecommerce.Modules.Catalog\Ecommerce.Modules.Catalog.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>

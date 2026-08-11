@@ -36,17 +36,19 @@ Each module owns its own `DbContext` and PostgreSQL schema (`identity`, `catalog
 
 **Auth** — `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/auth/me`
 
-**Categories** — `GET/POST /api/categories`, `GET/PUT/DELETE /api/categories/{id}` (write ops require `Admin` role)
+**Catalog / Categories** — `GET/POST /api/categories`, `GET /api/categories/tree` (nested, for nav menus), `GET/PUT/DELETE /api/categories/{id}` (write ops require `Admin`)
 
-**Products** — `GET /api/products` (pagination, `search`, `categoryId`, `isActive` filters), `GET/POST/PUT/DELETE /api/products/{id}` (write ops require `Admin`)
+**Catalog / Products** — `GET /api/products` (pagination, `search`, `categoryId`, `isActive`, `sortBy` in `price|name|created_at`, `sortDescending`), `GET /api/products/featured`, `GET /api/products/slug/{slug}`, `GET/POST/PUT/DELETE /api/products/{id}` (write ops require `Admin`)
 
-**Cart** — `GET /api/cart`, `POST /api/cart/items`, `PUT/DELETE /api/cart/items/{itemId}` (authenticated user)
+**Cart** — `GET /api/cart`, `POST /api/cart/items`, `PUT/DELETE /api/cart/items/{itemId}`, `DELETE /api/cart/clear` (authenticated user; one cart per user, auto-created on first add)
 
-**Orders** — `POST /api/orders` (create from current cart), `GET /api/orders/mine`, `GET /api/orders/{id}`, `PUT /api/orders/{id}/status` (`Admin` only)
+**Orders** — `POST /api/orders/checkout` (creates order from cart, validates + deducts stock, clears cart), `GET /api/orders/my-orders`, `GET /api/orders/{id}`, `PUT /api/orders/{id}/status` (`Admin` only)
+
+**Inventory** — `POST /api/inventory/adjust` (`Admin` only; records a `Purchase`/`Sale`/`Adjustment` transaction, rejects changes that would go negative)
 
 **Ops** — `GET /health` (Postgres health check)
 
-All errors are returned as RFC 7807 `ProblemDetails` via a global `IExceptionHandler`. Swagger UI is available at `/swagger` in the `Development` environment, with JWT bearer auth wired into the UI.
+All errors are returned as RFC 7807 `ProblemDetails` via a global `IExceptionHandler`. All successful responses are wrapped as `{ success, message, data }` (`Ecommerce.Shared.Kernel.ApiResponse<T>`); paginated list endpoints nest a `{ items, page, pageSize, totalCount, totalPages }` shape inside `data`. Swagger UI is available at `/swagger` in the `Development` environment, grouped by module tag (Auth/Catalog/Cart/Orders/Inventory), with JWT bearer auth wired into the UI.
 
 ## Security
 
@@ -87,7 +89,7 @@ dotnet ef database update --project src/Ecommerce.Database.Migrations --startup-
 dotnet run --project src/Ecommerce.Api
 ```
 
-Swagger UI: `https://localhost:<port>/swagger`. Seeded admin login: `admin@ecommerce.local` / `Admin@12345` (override via the `AdminSeed` config section before first run in a real environment).
+Swagger UI: `https://localhost:<port>/swagger`. Seeded admin login: `admin@ecommerce.local` / `Admin@12345` (override via the `AdminSeed` config section before first run in a real environment). On first run, 3 demo categories (Electronics, Fashion, Home & Kitchen) and 6 demo products with stock are also seeded.
 
 ### Generating new migrations after model changes
 

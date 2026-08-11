@@ -11,6 +11,9 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.ToTable("orders");
         builder.HasKey(o => o.Id);
 
+        builder.Property(o => o.OrderNumber).IsRequired().HasMaxLength(30);
+        builder.HasIndex(o => o.OrderNumber).IsUnique();
+
         builder.Property(o => o.Status).HasConversion<string>().HasMaxLength(30);
         builder.Property(o => o.Subtotal).HasColumnType("numeric(12,2)");
         builder.Property(o => o.Total).HasColumnType("numeric(12,2)");

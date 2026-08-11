@@ -9,6 +9,7 @@
     <ProjectReference Include="..\Ecommerce.Shared.Infrastructure\Ecommerce.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Cart\Ecommerce.Modules.Cart.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Catalog\Ecommerce.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Inventory\Ecommerce.Modules.Inventory.csproj" />
   </ItemGroup>
 
   <ItemGroup>

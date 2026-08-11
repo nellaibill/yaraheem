@@ -1,4 +1,5 @@
 using Ecommerce.Modules.Cart.Application;
+using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Orders.Contracts;
 using Ecommerce.Modules.Orders.Domain;
 using Ecommerce.Modules.Orders.Infrastructure;
@@ -8,32 +9,41 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Modules.Orders.Application;
 
-public sealed class OrderService(OrdersDbContext db, ICartService cartService) : IOrderService
+public sealed class OrderService(OrdersDbContext db, ICartService cartService, IInventoryService inventoryService) : IOrderService
 {
-    public async Task<OrderDto> CreateFromCartAsync(Guid userId, CreateOrderRequest request, CancellationToken cancellationToken)
+    private const int MaxOrderNumberAttempts = 3;
+
+    public async Task<OrderDto> CheckoutAsync(Guid userId, CheckoutRequest request, CancellationToken cancellationToken)
     {
         var cart = await cartService.GetCurrentCartAsync(userId, cancellationToken);
         if (cart.Items.Count == 0)
         {
-            throw new ConflictException("Cannot create an order from an empty cart.");
+            throw new ConflictException("Cannot check out an empty cart.");
         }
+
+        var productQuantities = cart.Items
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        await inventoryService.ValidateAndDeductForSaleAsync(productQuantities, reference: $"checkout:{userId}", cancellationToken);
 
         var order = new Order
         {
             UserId = userId,
+            OrderNumber = string.Empty,
             Status = OrderStatus.Pending,
-            Subtotal = cart.Total,
-            Total = cart.Total,
+            Subtotal = cart.Subtotal,
+            Total = cart.Subtotal,
             ShippingAddress = new Address
             {
                 FullName = request.ShippingAddress.FullName,
-                Line1 = request.ShippingAddress.Line1,
-                Line2 = request.ShippingAddress.Line2,
+                PhoneNumber = request.ShippingAddress.PhoneNumber,
+                AddressLine1 = request.ShippingAddress.AddressLine1,
+                AddressLine2 = request.ShippingAddress.AddressLine2,
                 City = request.ShippingAddress.City,
                 State = request.ShippingAddress.State,
                 PostalCode = request.ShippingAddress.PostalCode,
                 Country = request.ShippingAddress.Country,
-                Phone = request.ShippingAddress.Phone,
             },
         };
 
@@ -52,8 +62,7 @@ public sealed class OrderService(OrdersDbContext db, ICartService cartService) :
 
         order.StatusHistory.Add(new OrderStatusHistory { Status = OrderStatus.Pending, Note = "Order created" });
 
-        db.Orders.Add(order);
-        await db.SaveChangesAsync(cancellationToken);
+        await SaveWithOrderNumberAsync(order, cancellationToken);
 
         await cartService.ClearCartAsync(userId, cancellationToken);
 
@@ -102,6 +111,33 @@ public sealed class OrderService(OrdersDbContext db, ICartService cartService) :
         return ToDto(order);
     }
 
+    private async Task SaveWithOrderNumberAsync(Order order, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; attempt <= MaxOrderNumberAttempts; attempt++)
+        {
+            order.OrderNumber = await GenerateOrderNumberAsync(cancellationToken);
+            db.Orders.Add(order);
+
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateException) when (attempt < MaxOrderNumberAttempts)
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+    }
+
+    private async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken)
+    {
+        var datePrefix = DateTimeOffset.UtcNow.ToString("yyyyMMdd");
+        var prefix = $"ORD-{datePrefix}-";
+        var todayCount = await db.Orders.CountAsync(o => o.OrderNumber.StartsWith(prefix), cancellationToken);
+        return $"{prefix}{todayCount + 1:D4}";
+    }
+
     private IQueryable<Order> LoadOrderQuery() =>
         db.Orders.AsNoTracking()
             .Include(o => o.ShippingAddress)
@@ -110,11 +146,12 @@ public sealed class OrderService(OrdersDbContext db, ICartService cartService) :
 
     private static OrderDto ToDto(Order o) => new(
         o.Id,
+        o.OrderNumber,
         o.UserId,
         o.Status,
         o.Subtotal,
         o.Total,
-        new AddressDto(o.ShippingAddress.FullName, o.ShippingAddress.Line1, o.ShippingAddress.Line2, o.ShippingAddress.City, o.ShippingAddress.State, o.ShippingAddress.PostalCode, o.ShippingAddress.Country, o.ShippingAddress.Phone),
+        new AddressDto(o.ShippingAddress.FullName, o.ShippingAddress.PhoneNumber, o.ShippingAddress.AddressLine1, o.ShippingAddress.AddressLine2, o.ShippingAddress.City, o.ShippingAddress.State, o.ShippingAddress.PostalCode, o.ShippingAddress.Country),
         o.Items.Select(i => new OrderItemDto(i.Id, i.ProductId, i.ProductVariantId, i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList(),
         o.StatusHistory.OrderBy(h => h.ChangedAt).Select(h => new OrderStatusHistoryDto(h.Status, h.Note, h.ChangedAt)).ToList(),
         o.CreatedAt);
