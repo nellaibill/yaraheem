@@ -1,4 +1,6 @@
+using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Inventory.Infrastructure;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,9 @@ public static class InventoryModule
             options.UseNpgsql(connectionString, npgsql => npgsql
                 .MigrationsHistoryTable("__ef_migrations_history", InventoryDbContext.Schema)
                 .MigrationsAssembly("Ecommerce.Database.Migrations")));
+
+        services.AddScoped<IInventoryService, InventoryService>();
+        services.AddValidatorsFromAssemblyContaining(typeof(InventoryModule));
 
         return services;
     }

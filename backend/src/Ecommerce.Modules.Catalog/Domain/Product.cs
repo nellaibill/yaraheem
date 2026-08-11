@@ -12,6 +12,10 @@ public class Product : BaseEntity, ISoftDeletable
     public string? Description { get; set; }
     public required string Sku { get; set; }
     public decimal Price { get; set; }
+    public decimal? ComparePrice { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public bool IsFeatured { get; set; }
+    public bool IsPublished { get; set; } = true;
     public bool IsActive { get; set; } = true;
 
     public ICollection<ProductImage> Images { get; set; } = [];

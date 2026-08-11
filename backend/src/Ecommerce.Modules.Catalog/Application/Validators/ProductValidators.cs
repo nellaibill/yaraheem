@@ -12,6 +12,8 @@ public sealed class CreateProductRequestValidator : AbstractValidator<CreateProd
         RuleFor(x => x.Description).MaximumLength(4000);
         RuleFor(x => x.Sku).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.ComparePrice).GreaterThanOrEqualTo(0).When(x => x.ComparePrice.HasValue);
+        RuleFor(x => x.ThumbnailUrl).MaximumLength(1000);
         RuleFor(x => x.CategoryId).NotEmpty();
     }
 }
@@ -24,15 +26,22 @@ public sealed class UpdateProductRequestValidator : AbstractValidator<UpdateProd
         RuleFor(x => x.Slug).NotEmpty().MaximumLength(200).Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
         RuleFor(x => x.Description).MaximumLength(4000);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.ComparePrice).GreaterThanOrEqualTo(0).When(x => x.ComparePrice.HasValue);
+        RuleFor(x => x.ThumbnailUrl).MaximumLength(1000);
         RuleFor(x => x.CategoryId).NotEmpty();
     }
 }
 
 public sealed class ProductQueryValidator : AbstractValidator<ProductQuery>
 {
+    private static readonly string[] AllowedSortFields = ["price", "name", "created_at"];
+
     public ProductQueryValidator()
     {
         RuleFor(x => x.Page).GreaterThanOrEqualTo(1);
         RuleFor(x => x.PageSize).InclusiveBetween(1, 100);
+        RuleFor(x => x.SortBy)
+            .Must(sortBy => sortBy is null || AllowedSortFields.Contains(sortBy.ToLowerInvariant()))
+            .WithMessage("SortBy must be one of: price, name, created_at.");
     }
 }

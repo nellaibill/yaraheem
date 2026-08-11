@@ -1,21 +1,18 @@
 using Ecommerce.Modules.Catalog.Contracts;
 using Ecommerce.Modules.Catalog.Domain;
 using Ecommerce.Modules.Catalog.Infrastructure;
+using Ecommerce.Modules.Inventory.Infrastructure;
 using Ecommerce.Shared.Kernel;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Modules.Catalog.Application;
 
-public sealed class ProductService(CatalogDbContext db) : IProductService
+public sealed class ProductService(CatalogDbContext db, InventoryDbContext inventoryDb) : IProductService
 {
-    public async Task<PagedResult<ProductDto>> SearchAsync(ProductQuery query, CancellationToken cancellationToken)
+    public async Task<PagedResult<ProductListResponse>> SearchAsync(ProductQuery query, CancellationToken cancellationToken)
     {
-        var productsQuery = db.Products.AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.Images)
-            .Include(p => p.Variants)
-            .AsQueryable();
+        var productsQuery = db.Products.AsNoTracking().Include(p => p.Category).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -33,36 +30,63 @@ public sealed class ProductService(CatalogDbContext db) : IProductService
             productsQuery = productsQuery.Where(p => p.IsActive == query.IsActive.Value);
         }
 
+        productsQuery = query.SortBy?.ToLowerInvariant() switch
+        {
+            "price" => query.SortDescending ? productsQuery.OrderByDescending(p => p.Price) : productsQuery.OrderBy(p => p.Price),
+            "created_at" => query.SortDescending ? productsQuery.OrderByDescending(p => p.CreatedAt) : productsQuery.OrderBy(p => p.CreatedAt),
+            _ => query.SortDescending ? productsQuery.OrderByDescending(p => p.Name) : productsQuery.OrderBy(p => p.Name),
+        };
+
         var totalCount = await productsQuery.CountAsync(cancellationToken);
 
         var products = await productsQuery
-            .OrderBy(p => p.Name)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<ProductDto>
+        var stock = await GetStockAsync(products.Select(p => p.Id), cancellationToken);
+
+        return new PagedResult<ProductListResponse>
         {
-            Items = products.Select(ToDto).ToList(),
+            Items = products.Select(p => ToListResponse(p, stock)).ToList(),
             Page = query.Page,
             PageSize = query.PageSize,
             TotalCount = totalCount,
         };
     }
 
-    public async Task<ProductDto> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<ProductDetailsResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var product = await db.Products.AsNoTracking()
-            .Include(p => p.Category)
-            .Include(p => p.Images)
-            .Include(p => p.Variants)
-            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
-            ?? throw new NotFoundException("Product", id);
+        var product = await LoadDetailsQuery().FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
+                      ?? throw new NotFoundException("Product", id);
 
-        return ToDto(product);
+        var stock = await GetStockAsync([product.Id], cancellationToken);
+        return ToDetailsResponse(product, stock);
     }
 
-    public async Task<ProductDto> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken)
+    public async Task<ProductDetailsResponse> GetBySlugAsync(string slug, CancellationToken cancellationToken)
+    {
+        var product = await LoadDetailsQuery().FirstOrDefaultAsync(p => p.Slug == slug, cancellationToken)
+                      ?? throw new NotFoundException("Product", slug);
+
+        var stock = await GetStockAsync([product.Id], cancellationToken);
+        return ToDetailsResponse(product, stock);
+    }
+
+    public async Task<IReadOnlyList<ProductListResponse>> GetFeaturedAsync(int take, CancellationToken cancellationToken)
+    {
+        var products = await db.Products.AsNoTracking()
+            .Include(p => p.Category)
+            .Where(p => p.IsFeatured && p.IsPublished && p.IsActive)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        var stock = await GetStockAsync(products.Select(p => p.Id), cancellationToken);
+        return products.Select(p => ToListResponse(p, stock)).ToList();
+    }
+
+    public async Task<ProductDetailsResponse> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken)
     {
         await EnsureSkuIsUniqueAsync(request.Sku, null, cancellationToken);
         await EnsureSlugIsUniqueAsync(request.Slug, null, cancellationToken);
@@ -80,7 +104,11 @@ public sealed class ProductService(CatalogDbContext db) : IProductService
             Description = request.Description,
             Sku = request.Sku,
             Price = request.Price,
+            ComparePrice = request.ComparePrice,
+            ThumbnailUrl = request.ThumbnailUrl,
             CategoryId = request.CategoryId,
+            IsFeatured = request.IsFeatured,
+            IsPublished = request.IsPublished,
         };
 
         db.Products.Add(product);
@@ -89,7 +117,7 @@ public sealed class ProductService(CatalogDbContext db) : IProductService
         return await GetByIdAsync(product.Id, cancellationToken);
     }
 
-    public async Task<ProductDto> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken)
+    public async Task<ProductDetailsResponse> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken)
     {
         var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
                       ?? throw new NotFoundException("Product", id);
@@ -106,7 +134,11 @@ public sealed class ProductService(CatalogDbContext db) : IProductService
         product.Slug = request.Slug;
         product.Description = request.Description;
         product.Price = request.Price;
+        product.ComparePrice = request.ComparePrice;
+        product.ThumbnailUrl = request.ThumbnailUrl;
         product.CategoryId = request.CategoryId;
+        product.IsFeatured = request.IsFeatured;
+        product.IsPublished = request.IsPublished;
         product.IsActive = request.IsActive;
 
         await db.SaveChangesAsync(cancellationToken);
@@ -121,6 +153,19 @@ public sealed class ProductService(CatalogDbContext db) : IProductService
 
         db.Products.Remove(product);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private IQueryable<Product> LoadDetailsQuery() =>
+        db.Products.AsNoTracking().Include(p => p.Category).Include(p => p.Images).Include(p => p.Variants);
+
+    private async Task<Dictionary<Guid, int>> GetStockAsync(IEnumerable<Guid> productIds, CancellationToken cancellationToken)
+    {
+        var ids = productIds.Distinct().ToList();
+        var items = await inventoryDb.InventoryItems.AsNoTracking()
+            .Where(i => ids.Contains(i.ProductId))
+            .ToListAsync(cancellationToken);
+
+        return items.ToDictionary(i => i.ProductId, i => i.QuantityAvailable);
     }
 
     private async Task EnsureSkuIsUniqueAsync(string sku, Guid? excludingId, CancellationToken cancellationToken)
@@ -141,8 +186,13 @@ public sealed class ProductService(CatalogDbContext db) : IProductService
         }
     }
 
-    private static ProductDto ToDto(Product p) => new(
-        p.Id, p.Name, p.Slug, p.Description, p.Sku, p.Price, p.IsActive, p.CategoryId, p.Category.Name,
+    private static ProductListResponse ToListResponse(Product p, IReadOnlyDictionary<Guid, int> stock) => new(
+        p.Id, p.Name, p.Slug, p.Sku, p.Price, p.ComparePrice, p.ThumbnailUrl, p.IsFeatured, p.IsPublished,
+        stock.GetValueOrDefault(p.Id), p.CategoryId, p.Category.Name);
+
+    private static ProductDetailsResponse ToDetailsResponse(Product p, IReadOnlyDictionary<Guid, int> stock) => new(
+        p.Id, p.Name, p.Slug, p.Description, p.Sku, p.Price, p.ComparePrice, p.ThumbnailUrl, p.IsFeatured, p.IsPublished, p.IsActive,
+        stock.GetValueOrDefault(p.Id), p.CategoryId, p.Category.Name,
         p.Images.OrderBy(i => i.SortOrder).Select(i => new ProductImageDto(i.Id, i.Url, i.AltText, i.SortOrder)).ToList(),
         p.Variants.Select(v => new ProductVariantDto(v.Id, v.Sku, v.Name, v.PriceAdjustment, v.IsActive)).ToList());
 }

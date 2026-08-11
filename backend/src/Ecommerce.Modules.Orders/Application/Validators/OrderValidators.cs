@@ -8,19 +8,19 @@ public sealed class ShippingAddressRequestValidator : AbstractValidator<Shipping
     public ShippingAddressRequestValidator()
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Line1).NotEmpty().MaximumLength(300);
-        RuleFor(x => x.Line2).MaximumLength(300);
+        RuleFor(x => x.PhoneNumber).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.AddressLine1).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.AddressLine2).MaximumLength(300);
         RuleFor(x => x.City).NotEmpty().MaximumLength(150);
         RuleFor(x => x.State).NotEmpty().MaximumLength(150);
         RuleFor(x => x.PostalCode).NotEmpty().MaximumLength(20);
         RuleFor(x => x.Country).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Phone).MaximumLength(30);
     }
 }
 
-public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderRequest>
+public sealed class CheckoutRequestValidator : AbstractValidator<CheckoutRequest>
 {
-    public CreateOrderRequestValidator()
+    public CheckoutRequestValidator()
     {
         RuleFor(x => x.ShippingAddress).NotNull().SetValidator(new ShippingAddressRequestValidator());
     }

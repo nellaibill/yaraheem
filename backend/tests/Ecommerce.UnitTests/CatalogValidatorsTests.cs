@@ -9,7 +9,7 @@ public class CatalogValidatorsTests
     public void CreateProductRequestValidator_RejectsNegativePrice()
     {
         var validator = new CreateProductRequestValidator();
-        var request = new CreateProductRequest("Name", "slug", null, "SKU-1", -5m, Guid.NewGuid());
+        var request = new CreateProductRequest("Name", "slug", null, "SKU-1", -5m, null, null, Guid.NewGuid());
 
         var result = validator.Validate(request);
 
@@ -21,7 +21,7 @@ public class CatalogValidatorsTests
     public void CreateProductRequestValidator_RejectsInvalidSlug()
     {
         var validator = new CreateProductRequestValidator();
-        var request = new CreateProductRequest("Name", "Not A Valid Slug!", null, "SKU-1", 10m, Guid.NewGuid());
+        var request = new CreateProductRequest("Name", "Not A Valid Slug!", null, "SKU-1", 10m, null, null, Guid.NewGuid());
 
         var result = validator.Validate(request);
 
@@ -33,7 +33,7 @@ public class CatalogValidatorsTests
     public void CreateProductRequestValidator_AcceptsValidRequest()
     {
         var validator = new CreateProductRequestValidator();
-        var request = new CreateProductRequest("Name", "valid-slug", "desc", "SKU-1", 10m, Guid.NewGuid());
+        var request = new CreateProductRequest("Name", "valid-slug", "desc", "SKU-1", 10m, null, null, Guid.NewGuid());
 
         var result = validator.Validate(request);
 

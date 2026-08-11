@@ -32,6 +32,7 @@ public sealed class CategoryService(CatalogDbContext db) : ICategoryService
             Slug = request.Slug,
             Description = request.Description,
             ParentCategoryId = request.ParentCategoryId,
+            DisplayOrder = request.DisplayOrder,
         };
 
         db.Categories.Add(category);
@@ -52,6 +53,7 @@ public sealed class CategoryService(CatalogDbContext db) : ICategoryService
         category.Slug = request.Slug;
         category.Description = request.Description;
         category.ParentCategoryId = request.ParentCategoryId;
+        category.DisplayOrder = request.DisplayOrder;
         category.IsActive = request.IsActive;
 
         await db.SaveChangesAsync(cancellationToken);
@@ -87,5 +89,20 @@ public sealed class CategoryService(CatalogDbContext db) : ICategoryService
         }
     }
 
-    private static CategoryDto ToDto(Category c) => new(c.Id, c.Name, c.Slug, c.Description, c.ParentCategoryId, c.IsActive);
+    public async Task<IReadOnlyList<CategoryTreeNode>> GetTreeAsync(CancellationToken cancellationToken)
+    {
+        var categories = await db.Categories.AsNoTracking()
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name)
+            .ToListAsync(cancellationToken);
+
+        var byParent = categories.ToLookup(c => c.ParentCategoryId);
+
+        IReadOnlyList<CategoryTreeNode> BuildChildren(Guid? parentId) =>
+            byParent[parentId].Select(c => new CategoryTreeNode(c.Id, c.Name, c.Slug, c.DisplayOrder, BuildChildren(c.Id))).ToList();
+
+        return BuildChildren(null);
+    }
+
+    private static CategoryDto ToDto(Category c) => new(c.Id, c.Name, c.Slug, c.Description, c.ParentCategoryId, c.DisplayOrder, c.IsActive);
 }

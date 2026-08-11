@@ -5,6 +5,7 @@ namespace Ecommerce.Modules.Orders.Domain;
 public class Order : BaseEntity
 {
     public Guid UserId { get; set; }
+    public required string OrderNumber { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
     public decimal Subtotal { get; set; }
     public decimal Total { get; set; }

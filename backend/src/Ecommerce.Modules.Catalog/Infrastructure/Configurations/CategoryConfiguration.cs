@@ -21,6 +21,8 @@ public sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
             .HasForeignKey(c => c.ParentCategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasIndex(c => new { c.ParentCategoryId, c.DisplayOrder });
+
         builder.HasQueryFilter(c => !c.IsDeleted);
     }
 }

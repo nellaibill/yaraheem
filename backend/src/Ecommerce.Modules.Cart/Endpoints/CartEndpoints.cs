@@ -15,7 +15,7 @@ public static class CartEndpoints
         var group = app.MapGroup("/api/cart").WithTags("Cart").RequireAuthorization();
 
         group.MapGet("/", async (ICurrentUser currentUser, ICartService service, CancellationToken cancellationToken) =>
-            Results.Ok(await service.GetCurrentCartAsync(currentUser.UserId!.Value, cancellationToken)));
+            Results.Ok(ApiResponse<CartDto>.SuccessResponse(await service.GetCurrentCartAsync(currentUser.UserId!.Value, cancellationToken))));
 
         group.MapPost("/items", async (
             AddCartItemRequest request,
@@ -25,7 +25,8 @@ public static class CartEndpoints
             CancellationToken cancellationToken) =>
         {
             await validator.ValidateAndThrowAsync(request, cancellationToken);
-            return Results.Ok(await service.AddItemAsync(currentUser.UserId!.Value, request, cancellationToken));
+            var result = await service.AddItemAsync(currentUser.UserId!.Value, request, cancellationToken);
+            return Results.Ok(ApiResponse<CartDto>.SuccessResponse(result, "Item added to cart."));
         });
 
         group.MapPut("/items/{itemId:guid}", async (
@@ -37,7 +38,8 @@ public static class CartEndpoints
             CancellationToken cancellationToken) =>
         {
             await validator.ValidateAndThrowAsync(request, cancellationToken);
-            return Results.Ok(await service.UpdateItemQuantityAsync(currentUser.UserId!.Value, itemId, request, cancellationToken));
+            var result = await service.UpdateItemQuantityAsync(currentUser.UserId!.Value, itemId, request, cancellationToken);
+            return Results.Ok(ApiResponse<CartDto>.SuccessResponse(result, "Cart item updated."));
         });
 
         group.MapDelete("/items/{itemId:guid}", async (
@@ -45,7 +47,17 @@ public static class CartEndpoints
             ICurrentUser currentUser,
             ICartService service,
             CancellationToken cancellationToken) =>
-            Results.Ok(await service.RemoveItemAsync(currentUser.UserId!.Value, itemId, cancellationToken)));
+        {
+            var result = await service.RemoveItemAsync(currentUser.UserId!.Value, itemId, cancellationToken);
+            return Results.Ok(ApiResponse<CartDto>.SuccessResponse(result, "Item removed from cart."));
+        });
+
+        group.MapDelete("/clear", async (ICurrentUser currentUser, ICartService service, CancellationToken cancellationToken) =>
+        {
+            await service.ClearCartAsync(currentUser.UserId!.Value, cancellationToken);
+            var result = await service.GetCurrentCartAsync(currentUser.UserId!.Value, cancellationToken);
+            return Results.Ok(ApiResponse<CartDto>.SuccessResponse(result, "Cart cleared."));
+        });
 
         return app;
     }

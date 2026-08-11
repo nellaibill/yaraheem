@@ -129,6 +129,6 @@ public sealed class CartService(CartDbContext cartDb, CatalogDbContext catalogDb
             return new CartItemDto(i.Id, i.ProductId, productName, i.ProductVariantId, variantName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity);
         }).ToList();
 
-        return new CartDto(cart.Id, itemDtos, itemDtos.Sum(i => i.LineTotal));
+        return new CartDto(cart.Id, itemDtos, itemDtos.Sum(i => i.LineTotal), itemDtos.Sum(i => i.Quantity));
     }
 }
