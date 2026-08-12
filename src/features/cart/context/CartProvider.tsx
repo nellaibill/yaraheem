@@ -1,91 +1,165 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { readStorage, writeStorage, scopedKey } from '@/lib/storage'
-import { STORAGE_KEYS } from '@/lib/constants'
-import { getMenuItems } from '@/features/menu/lib/menuStore'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import type { CartLine } from '@/types'
+import { useMenuData } from '@/features/menu/hooks/useMenuData'
+import { ensureBackendSession } from '@/lib/api/authBridge'
+import { ApiError } from '@/lib/api/client'
+import { addCartItem, clearCart, fetchCart, removeCartItem, updateCartItem } from '@/lib/api/cartApi'
+import { fetchProducts } from '@/lib/api/catalogApi'
+import type { CartDto } from '@/lib/api/types'
 import { CartContext, type CartLineWithItem } from '@/features/cart/context/cart-context'
 
+function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
+}
+
 /**
- * Cart is namespaced per mobile number so each logged-in user gets an
- * independent bag. Persistence is done explicitly at each mutation site
- * (rather than via a blanket write-on-change effect) so switching users
- * can't race and clobber the next user's freshly-loaded cart.
+ * Cart is the live backend cart (per-user, tied to the real JWT session). Line items
+ * are keyed by product slug on the frontend and product id (Guid) on the backend —
+ * productIndex bridges the two, built once from the same product list useMenuData()
+ * already fetches.
  */
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const storageKey = scopedKey(STORAGE_KEYS.cart, user?.mobile ?? 'guest')
+  const { items: menuItems } = useMenuData()
 
-  const [lines, setLines] = useState<CartLine[]>(() => readStorage(storageKey, []))
+  const [productIndex, setProductIndex] = useState<{
+    slugToId: Map<string, string>
+    idToSlug: Map<string, string>
+  } | null>(null)
+  const [backendCart, setBackendCart] = useState<CartDto | null>(null)
+
+  // Mutations read this (not the `backendCart` state closure) so a burst of quick
+  // clicks — e.g. the quantity stepper — each act on the result of the one before
+  // them instead of racing off the same stale snapshot.
+  const backendCartRef = useRef<CartDto | null>(null)
+  const setCart = useCallback((cart: CartDto) => {
+    backendCartRef.current = cart
+    setBackendCart(cart)
+  }, [])
+
+  // Serializes cart mutations so concurrent calls (double-clicks, StrictMode, etc.)
+  // apply one at a time against the latest server state rather than in parallel.
+  const mutationQueueRef = useRef<Promise<unknown>>(Promise.resolve())
+  const enqueue = useCallback(
+    (mutation: () => Promise<CartDto | null>, onError: (error: unknown) => void) => {
+      const run = mutationQueueRef.current.then(async () => {
+        try {
+          const result = await mutation()
+          if (result) setCart(result)
+        } catch (error) {
+          onError(error)
+        }
+      })
+      mutationQueueRef.current = run
+      return run
+    },
+    [setCart],
+  )
 
   useEffect(() => {
-    setLines(readStorage(storageKey, []))
-  }, [storageKey])
+    let cancelled = false
+    fetchProducts()
+      .then((products) => {
+        if (cancelled) return
+        setProductIndex({
+          slugToId: new Map(products.map((p) => [p.slug, p.id])),
+          idToSlug: new Map(products.map((p) => [p.id, p.slug])),
+        })
+      })
+      .catch((error) => console.error('Failed to load product catalog for cart.', error))
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const persist = useCallback(
-    (next: CartLine[]) => {
-      setLines(next)
-      writeStorage(storageKey, next)
-    },
-    [storageKey],
-  )
+  useEffect(() => {
+    if (!user) {
+      backendCartRef.current = null
+      setBackendCart(null)
+      return
+    }
+    let cancelled = false
+    ensureBackendSession(user.mobile, user.name)
+      .then(() => fetchCart())
+      .then((cart) => {
+        if (!cancelled) setCart(cart)
+      })
+      .catch((error) => {
+        if (!cancelled) console.error('Failed to sync cart with the backend.', error)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user, setCart])
 
   const addItem = useCallback(
     (itemId: string, quantity = 1) => {
-      setLines((prev) => {
-        const existing = prev.find((line) => line.itemId === itemId)
-        const next = existing
-          ? prev.map((line) =>
-              line.itemId === itemId ? { ...line, quantity: line.quantity + quantity } : line,
-            )
-          : [...prev, { itemId, quantity }]
-        writeStorage(storageKey, next)
-        return next
-      })
+      const productId = productIndex?.slugToId.get(itemId)
+      if (!productId) {
+        toast.error('Still connecting to the menu — try again in a moment.')
+        return Promise.resolve()
+      }
+      return enqueue(
+        () => addCartItem({ productId, quantity }),
+        (error) => toast.error('Could not add item to cart', { description: errorMessage(error) }),
+      )
     },
-    [storageKey],
+    [productIndex, enqueue],
   )
 
   const removeItem = useCallback(
     (itemId: string) => {
-      setLines((prev) => {
-        const next = prev.filter((line) => line.itemId !== itemId)
-        writeStorage(storageKey, next)
-        return next
-      })
+      const productId = productIndex?.slugToId.get(itemId)
+      if (!productId) return Promise.resolve()
+      return enqueue(
+        () => {
+          const existing = backendCartRef.current?.items.find((i) => i.productId === productId)
+          return existing ? removeCartItem(existing.id) : Promise.resolve(null)
+        },
+        (error) => toast.error('Could not remove item', { description: errorMessage(error) }),
+      )
     },
-    [storageKey],
+    [productIndex, enqueue],
   )
 
   const setQuantity = useCallback(
     (itemId: string, quantity: number) => {
-      setLines((prev) => {
-        const next =
-          quantity <= 0
-            ? prev.filter((line) => line.itemId !== itemId)
-            : prev.map((line) => (line.itemId === itemId ? { ...line, quantity } : line))
-        writeStorage(storageKey, next)
-        return next
-      })
+      const productId = productIndex?.slugToId.get(itemId)
+      if (!productId) return Promise.resolve()
+      return enqueue(
+        () => {
+          const existing = backendCartRef.current?.items.find((i) => i.productId === productId)
+          if (quantity <= 0) {
+            return existing ? removeCartItem(existing.id) : Promise.resolve(null)
+          }
+          return existing ? updateCartItem(existing.id, { quantity }) : addCartItem({ productId, quantity })
+        },
+        (error) => toast.error('Could not update cart', { description: errorMessage(error) }),
+      )
     },
-    [storageKey],
+    [productIndex, enqueue],
   )
 
-  const clear = useCallback(() => persist([]), [persist])
+  const clear = useCallback(
+    () => enqueue(() => clearCart(), (error) => toast.error('Could not clear cart', { description: errorMessage(error) })),
+    [enqueue],
+  )
 
   const enrichedLines = useMemo<CartLineWithItem[]>(() => {
-    const menuItems = getMenuItems()
-    return lines
-      .map((line) => {
-        const item = menuItems.find((menuItem) => menuItem.id === line.itemId)
-        if (!item) return null
-        return { ...line, item, lineTotal: item.price * line.quantity }
+    if (!backendCart || !productIndex) return []
+    return backendCart.items
+      .map((cartItem) => {
+        const slug = productIndex.idToSlug.get(cartItem.productId)
+        const item = menuItems.find((menuItem) => menuItem.id === slug)
+        if (!slug || !item) return null
+        return { itemId: slug, quantity: cartItem.quantity, item, lineTotal: cartItem.lineTotal }
       })
       .filter((line): line is CartLineWithItem => line !== null)
-  }, [lines])
+  }, [backendCart, productIndex, menuItems])
 
-  const totalItems = enrichedLines.reduce((sum, line) => sum + line.quantity, 0)
-  const totalPrice = enrichedLines.reduce((sum, line) => sum + line.lineTotal, 0)
+  const totalItems = backendCart?.totalItems ?? 0
+  const totalPrice = backendCart?.subtotal ?? 0
 
   const value = useMemo(
     () => ({ lines: enrichedLines, totalItems, totalPrice, addItem, removeItem, setQuantity, clear }),

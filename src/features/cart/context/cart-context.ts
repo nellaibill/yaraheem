@@ -10,10 +10,10 @@ export interface CartContextValue {
   lines: CartLineWithItem[]
   totalItems: number
   totalPrice: number
-  addItem: (itemId: string, quantity?: number) => void
-  removeItem: (itemId: string) => void
-  setQuantity: (itemId: string, quantity: number) => void
-  clear: () => void
+  addItem: (itemId: string, quantity?: number) => Promise<void>
+  removeItem: (itemId: string) => Promise<void>
+  setQuantity: (itemId: string, quantity: number) => Promise<void>
+  clear: () => Promise<void>
 }
 
 export const CartContext = createContext<CartContextValue | undefined>(undefined)
