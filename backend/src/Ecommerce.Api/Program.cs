@@ -17,10 +17,12 @@ using Ecommerce.Modules.Orders.Infrastructure;
 using Ecommerce.Modules.Payments;
 using Ecommerce.Modules.Payments.Endpoints;
 using Ecommerce.Modules.Payments.Infrastructure;
+using System.Threading.RateLimiting;
 using Ecommerce.Shared.Infrastructure.Extensions;
 using Ecommerce.Shared.Infrastructure.Options;
 using Ecommerce.Shared.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -42,6 +44,31 @@ try
 
     builder.Services.AddSharedInfrastructure(builder.Configuration);
     builder.Services.AddSharedCors(builder.Configuration);
+
+    // Per-IP throttling on auth endpoints (brute-force login/register/refresh) and the
+    // payment webhook. Fixed-window, no queueing — a throttled caller gets an immediate 429.
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+
+        options.AddPolicy("webhook", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+    });
 
     builder.Services.AddAuthorizationBuilder()
         .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
@@ -96,6 +123,7 @@ try
     app.UseCors("Default");
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.MapAuthEndpoints();
     app.MapCategoryEndpoints();
@@ -126,7 +154,8 @@ try
         await IdentitySeeder.SeedAsync(
             services.GetRequiredService<IdentityDbContext>(),
             services.GetRequiredService<IPasswordHasher>(),
-            services.GetRequiredService<IOptions<AdminSeedOptions>>());
+            services.GetRequiredService<IOptions<AdminSeedOptions>>(),
+            app.Logger);
 
         await CatalogSeeder.SeedAsync(
             services.GetRequiredService<CatalogDbContext>(),

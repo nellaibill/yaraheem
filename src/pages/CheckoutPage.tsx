@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Banknote, CreditCard, Plus, ShoppingBag, Smartphone, Tag, X } from 'lucide-react'
+import { Banknote, CreditCard, Plus, ShoppingBag, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -16,7 +15,6 @@ import { useAddresses } from '@/features/checkout/hooks/useAddresses'
 import { useOrders } from '@/features/checkout/hooks/useOrders'
 import { AddressCard } from '@/features/checkout/components/AddressCard'
 import { AddressFormDialog } from '@/features/checkout/components/AddressFormDialog'
-import { findOffer, calculateDiscount } from '@/features/offers/data/offersData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { formatCurrency } from '@/lib/utils'
@@ -58,12 +56,12 @@ export default function CheckoutPage() {
   )
   const [addressDialogOpen, setAddressDialogOpen] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
-  const [couponInput, setCouponInput] = useState('')
-  const [appliedCode, setAppliedCode] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
 
-  const appliedOffer = appliedCode ? findOffer(appliedCode) : undefined
-  const discount = appliedOffer ? calculateDiscount(appliedOffer, totalPrice) : 0
+  // Coupons are disabled: the backend checkout endpoint has no discount field, so any
+  // discount applied here would show the customer one total and charge them another.
+  // Re-enable once checkout accepts and honors a discount (see docs/STABILIZATION_ROADMAP.md).
+  const discount = 0
   const deliveryFee = totalPrice - discount >= FREE_DELIVERY_THRESHOLD || totalPrice === 0 ? 0 : DELIVERY_FEE
   const grandTotal = Math.max(totalPrice - discount + deliveryFee, 0)
 
@@ -78,20 +76,6 @@ export default function CheckoutPage() {
         actionTo="/menu"
       />
     )
-  }
-
-  function handleApplyCoupon() {
-    const offer = findOffer(couponInput)
-    if (!offer) {
-      toast.error('Invalid coupon code')
-      return
-    }
-    if (totalPrice < offer.minOrder) {
-      toast.error(`Add ${formatCurrency(offer.minOrder - totalPrice)} more to use ${offer.code}`)
-      return
-    }
-    setAppliedCode(offer.code)
-    toast.success(`Coupon ${offer.code} applied!`)
   }
 
   function handleSaveAddress(address: Omit<Address, 'id'>) {
@@ -139,7 +123,6 @@ export default function CheckoutPage() {
         discount,
         deliveryFee,
         total: grandTotal,
-        couponCode: appliedCode ?? undefined,
         address,
         paymentMethod,
         status: 'placed',
@@ -230,40 +213,16 @@ export default function CheckoutPage() {
 
             <Separator />
 
-            {appliedOffer ? (
-              <div className="flex items-center justify-between rounded-lg bg-green-600/10 px-3 py-2 text-xs text-green-700">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Tag className="size-3.5" />
-                  {appliedOffer.code} applied
-                </span>
-                <button onClick={() => setAppliedCode(null)} aria-label="Remove coupon">
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            ) : settings.offersEnabled ? (
-              <div className="flex gap-2">
-                <Input
-                  value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                  placeholder="Coupon code"
-                  className="h-9 text-sm"
-                />
-                <Button size="sm" variant="outline" onClick={handleApplyCoupon}>
-                  Apply
-                </Button>
-              </div>
-            ) : null}
+            {settings.offersEnabled && (
+              <p className="text-muted-foreground bg-secondary/30 rounded-lg px-3 py-2 text-xs">
+                Coupon codes are coming soon.
+              </p>
+            )}
 
             <div className="text-muted-foreground flex justify-between text-sm">
               <span>Subtotal</span>
               <span>{formatCurrency(totalPrice)}</span>
             </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-sm text-green-700">
-                <span>Discount</span>
-                <span>-{formatCurrency(discount)}</span>
-              </div>
-            )}
             <div className="text-muted-foreground flex justify-between text-sm">
               <span>Delivery Fee</span>
               <span>{deliveryFee === 0 ? 'Free' : formatCurrency(deliveryFee)}</span>

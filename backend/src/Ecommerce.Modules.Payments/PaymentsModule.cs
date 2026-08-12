@@ -1,5 +1,6 @@
 using Ecommerce.Modules.Payments.Application;
 using Ecommerce.Modules.Payments.Infrastructure;
+using Ecommerce.Modules.Payments.Options;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +12,8 @@ public static class PaymentsModule
 {
     public static IServiceCollection AddPaymentsModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<PaymentsOptions>(configuration.GetSection(PaymentsOptions.SectionName));
+
         var connectionString = configuration.GetConnectionString("PostgreSql");
 
         services.AddDbContext<PaymentsDbContext>(options =>

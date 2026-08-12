@@ -60,10 +60,13 @@ All errors are returned as RFC 7807 `ProblemDetails` via a global `IExceptionHan
 
 ## Security
 
-- JWT access tokens (HMAC-SHA256, 15 min default) + rotating refresh tokens (7 day default, single-use — each refresh revokes the old token and issues a new one).
+- JWT access tokens (HMAC-SHA256, 15 min default) + rotating refresh tokens (7 day default, single-use — each refresh revokes the old token and issues a new one). App refuses to start if `Jwt:SigningKey` is missing or under 32 characters.
 - Passwords hashed with ASP.NET Core's `PasswordHasher<T>` (PBKDF2).
-- `Admin` and `Customer` roles seeded on startup; an admin user is seeded from `AdminSeed` configuration.
-- CORS policy restricted to `Cors:AllowedOrigins` (falls back to allow-all if left empty — set explicit origins for production).
+- `Admin` and `Customer` roles seeded on startup; an admin user is seeded from `AdminSeed` configuration if `AdminSeed:Password` is set (otherwise seeding is skipped, not defaulted).
+- CORS policy restricted to `Cors:AllowedOrigins` — an empty list denies all cross-origin requests rather than allowing any.
+- Rate limiting on `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, and `/api/payments/webhook`.
+- `POST /api/payments/webhook` requires a valid HMAC signature (`Payments:WebhookSecret`) — unsigned or mis-signed requests are rejected.
+- See [`SECRETS.md`](./SECRETS.md) for how to configure all of the above locally and elsewhere.
 
 ## Setup
 
@@ -97,7 +100,7 @@ dotnet ef database update --project src/Ecommerce.Database.Migrations --startup-
 dotnet run --project src/Ecommerce.Api
 ```
 
-Swagger UI: `https://localhost:<port>/swagger`. Seeded admin login: `admin@ecommerce.local` / `Admin@123` (override via the `AdminSeed` config section before first run in a real environment); demo customer logins: `customer1@ecommerce.local` / `customer2@ecommerce.local`, both `Admin@123`. On first run, catalog data is seeded to match the real frontend menu (`src/features/menu/data/menuData.ts` and `src/lib/foodImages.ts`) — 8 categories and 23 dishes with their real (external) photo URLs where the frontend has one — so `GET /api/products` and `GET /api/categories/tree` line up with what's already rendered client-side. `wwwroot/images/{products,categories,banners}` exist for future locally-hosted images; static file serving is enabled via `app.UseStaticFiles()`.
+Swagger UI: `https://localhost:<port>/swagger`. Seeded admin login is whatever `AdminSeed:Email`/`AdminSeed:Password` you configured (see [`SECRETS.md`](./SECRETS.md) — nothing is seeded if `AdminSeed:Password` is unset); demo customer logins: `customer1@ecommerce.local` / `customer2@ecommerce.local`, both `Admin@123` (non-privileged seed data, not treated as a secret). On first run, catalog data is seeded to match the real frontend menu (`src/features/menu/data/menuData.ts` and `src/lib/foodImages.ts`) — 8 categories and 23 dishes with their real (external) photo URLs where the frontend has one — so `GET /api/products` and `GET /api/categories/tree` line up with what's already rendered client-side. `wwwroot/images/{products,categories,banners}` exist for future locally-hosted images; static file serving is enabled via `app.UseStaticFiles()`.
 
 ### Generating new migrations after model changes
 
@@ -117,7 +120,7 @@ dotnet test
 
 ## Configuration
 
-Connection string, JWT signing key, CORS origins, and admin seed credentials are all in `src/Ecommerce.Api/appsettings.json` — override via `appsettings.Development.json`, environment variables, or user secrets. **Change `Jwt:SigningKey` and `AdminSeed:Password` before deploying anywhere real.**
+CORS origins live in `src/Ecommerce.Api/appsettings.json`. The connection string, JWT signing key, admin seed password, and payment webhook secret are **not** in `appsettings.json` — see [`SECRETS.md`](./SECRETS.md) for how to supply them via user-secrets (dev) or environment variables (everywhere else). The app fails fast at startup if a required one is missing or too weak.
 
 ## Future Enhancements
 

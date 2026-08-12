@@ -85,14 +85,12 @@ const router = createBrowserRouter(
                 { path: 'gallery', element: withSuspense(<GalleryPage />) },
                 { path: 'about', element: withSuspense(<AboutPage />) },
                 { path: 'contact', element: withSuspense(<ContactPage />) },
-                { path: 'style-guide', element: withSuspense(<StyleGuidePage />) },
+                ...(import.meta.env.DEV ? [{ path: 'style-guide', element: withSuspense(<StyleGuidePage />) }] : []),
                 { path: '*', element: withSuspense(<NotFoundPage />) },
               ],
             },
           ],
         },
-        { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
-        { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
         {
           element: <AuthLayout />,
           children: [
@@ -113,6 +111,8 @@ const router = createBrowserRouter(
         {
           element: <RequireAdminAuth />,
           children: [
+            { path: '/print/kot/:id', element: withSuspense(<KotPage />) },
+            { path: '/print/invoice/:id', element: withSuspense(<InvoicePage />) },
             {
               path: '/admin',
               element: <AdminLayout />,

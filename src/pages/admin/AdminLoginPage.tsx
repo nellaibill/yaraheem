@@ -95,10 +95,14 @@ export default function AdminLoginPage() {
           </Button>
         </form>
 
-        <div className="mt-6 rounded-lg border border-dashed p-3">
-          <p className="text-muted-foreground mb-1.5 text-xs font-medium">Seeded admin account</p>
-          <p className="text-muted-foreground text-xs">Email: admin@ecommerce.local · Password: Admin@123</p>
-        </div>
+        {import.meta.env.DEV && (
+          <div className="mt-6 rounded-lg border border-dashed p-3">
+            <p className="text-muted-foreground mb-1.5 text-xs font-medium">Dev only — seeded admin account</p>
+            <p className="text-muted-foreground text-xs">
+              Whatever email/password you configured via <code>AdminSeed</code> — see backend/SECRETS.md.
+            </p>
+          </div>
+        )}
       </motion.div>
     </div>
   )

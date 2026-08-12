@@ -24,7 +24,7 @@ public static class AuthEndpoints
             await validator.ValidateAndThrowAsync(request, cancellationToken);
             var result = await authService.RegisterAsync(request, cancellationToken);
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(result, "Registration successful."));
-        });
+        }).RequireRateLimiting("auth");
 
         group.MapPost("/login", async (
             LoginRequest request,
@@ -35,7 +35,7 @@ public static class AuthEndpoints
             await validator.ValidateAndThrowAsync(request, cancellationToken);
             var result = await authService.LoginAsync(request, cancellationToken);
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(result, "Login successful."));
-        });
+        }).RequireRateLimiting("auth");
 
         group.MapPost("/refresh", async (
             RefreshTokenRequest request,
@@ -46,7 +46,7 @@ public static class AuthEndpoints
             await validator.ValidateAndThrowAsync(request, cancellationToken);
             var result = await authService.RefreshAsync(request, cancellationToken);
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(result, "Token refreshed."));
-        });
+        }).RequireRateLimiting("auth");
 
         group.MapGet("/me", async (
             ICurrentUser currentUser,

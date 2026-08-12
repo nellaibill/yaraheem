@@ -24,9 +24,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestOtp = useCallback((mobile: string) => {
-    toast.success(`Demo OTP for ${mobile}: ${MOCK_OTP}`, {
-      description: 'This is a mock flow — no SMS is actually sent.',
-    })
+    // Never display the OTP value outside a dev build — this is a mock flow (no SMS is
+    // actually sent), but the code itself must not be disclosed in anything resembling
+    // a production build.
+    if (import.meta.env.DEV) {
+      toast.success(`Demo OTP for ${mobile}: ${MOCK_OTP}`, {
+        description: 'This is a mock flow — no SMS is actually sent.',
+      })
+    } else {
+      toast.success('OTP sent', { description: `Sent to +91 ${mobile}` })
+    }
   }, [])
 
   const verifyOtp = useCallback(

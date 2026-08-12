@@ -103,9 +103,11 @@ export default function OtpPage() {
       </div>
       {error && <p className="text-destructive mt-3 text-center text-xs">{error}</p>}
 
-      <p className="text-muted-foreground mt-4 text-center text-xs">
-        Demo mode — use <span className="font-semibold">{MOCK_OTP}</span> to continue
-      </p>
+      {import.meta.env.DEV && (
+        <p className="text-muted-foreground mt-4 text-center text-xs">
+          Demo mode — use <span className="font-semibold">{MOCK_OTP}</span> to continue
+        </p>
+      )}
 
       <Button variant="gold" size="lg" className="mt-6 w-full" onClick={handleVerify}>
         Verify &amp; Continue
