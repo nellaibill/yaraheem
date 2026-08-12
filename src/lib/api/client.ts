@@ -56,7 +56,21 @@ async function parseErrorMessage(response: Response): Promise<string> {
   return `Request failed with status ${response.status}`
 }
 
-async function refreshSession(): Promise<StoredApiSession | null> {
+// Refresh tokens are single-use and rotate on each call, so concurrent 401s (e.g. every
+// request a newly-loaded page fires at once) must share one in-flight refresh rather than
+// each consuming the same token — the loser would otherwise get "invalid refresh token".
+let refreshInFlight: Promise<StoredApiSession | null> | null = null
+
+function refreshSession(): Promise<StoredApiSession | null> {
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = performRefresh().finally(() => {
+    refreshInFlight = null
+  })
+  return refreshInFlight
+}
+
+async function performRefresh(): Promise<StoredApiSession | null> {
   const session = getApiSession()
   if (!session) return null
 

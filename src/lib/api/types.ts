@@ -129,3 +129,59 @@ export interface ProblemDetails {
   instance?: string
   errors?: Record<string, string[]>
 }
+
+/** Matches Ecommerce.Modules.Orders.Domain.OrderStatus — serialized as its int value. */
+export type BackendOrderStatus = 1 | 2 | 3 | 4 | 5 | 6
+
+export interface OrderItemDto {
+  id: string
+  productId: string
+  productVariantId: string | null
+  productName: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+}
+
+export interface OrderStatusHistoryDto {
+  previousStatus: BackendOrderStatus | null
+  newStatus: BackendOrderStatus
+  notes: string | null
+  changedAt: string
+}
+
+export interface AddressDto {
+  fullName: string
+  phoneNumber: string
+  addressLine1: string
+  addressLine2: string | null
+  city: string
+  state: string
+  postalCode: string
+  country: string
+}
+
+export interface OrderDto {
+  id: string
+  orderNumber: string
+  userId: string
+  status: BackendOrderStatus
+  subtotal: number
+  total: number
+  shippingAddress: AddressDto
+  items: OrderItemDto[]
+  statusHistory: OrderStatusHistoryDto[]
+  createdAt: string
+}
+
+export interface OrderTrackingEventDto {
+  status: BackendOrderStatus
+  timestamp: string
+}
+
+export interface OrderTrackingResponse {
+  orderNumber: string
+  status: BackendOrderStatus
+  updatedAt: string
+  timeline: OrderTrackingEventDto[]
+}

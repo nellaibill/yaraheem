@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
@@ -28,14 +28,16 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { MenuCard } from '@/features/menu/components/MenuCard'
 import { AddressFormDialog } from '@/features/checkout/components/AddressFormDialog'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { useOrders } from '@/features/checkout/hooks/useOrders'
 import { useAddresses } from '@/features/checkout/hooks/useAddresses'
 import { useFavorites } from '@/features/favorites/hooks/useFavorites'
 import { useTheme } from '@/hooks/useTheme'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useMenuData } from '@/features/menu/hooks/useMenuData'
+import { ORDER_STATUS_META } from '@/features/tracking/lib/backendOrderStatus'
+import { ensureBackendSession } from '@/lib/api/authBridge'
+import { fetchMyOrders } from '@/lib/api/ordersApi'
+import type { OrderDto } from '@/lib/api/types'
 import { formatCurrency } from '@/lib/utils'
-import { ORDER_STATUS_LABELS } from '@/lib/constants'
 import type { Address } from '@/types'
 
 function initials(name: string) {
@@ -49,7 +51,6 @@ function initials(name: string) {
 
 export default function ProfilePage() {
   const { user, updateName, logout } = useAuth()
-  const { orders } = useOrders()
   const { addresses, addAddress, removeAddress, setDefaultAddress } = useAddresses()
   const { favoriteIds } = useFavorites()
   const { theme, setTheme } = useTheme()
@@ -62,6 +63,25 @@ export default function ProfilePage() {
   const [addressDialogOpen, setAddressDialogOpen] = useState(false)
   const [orderUpdates, setOrderUpdates] = useState(true)
   const [promotions, setPromotions] = useState(false)
+  const [orders, setOrders] = useState<OrderDto[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    ensureBackendSession(user.mobile, user.name)
+      .then(() => fetchMyOrders(1, 50))
+      .then((result) => {
+        if (!cancelled) setOrders(result.items)
+      })
+      .catch((error) => console.error('Failed to load order history.', error))
+      .finally(() => {
+        if (!cancelled) setOrdersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   if (!user) return null
 
@@ -145,7 +165,9 @@ export default function ProfilePage() {
         </TabsList>
 
         <TabsContent value="orders" className="mt-6">
-          {orders.length === 0 ? (
+          {ordersLoading ? (
+            <p className="text-muted-foreground py-12 text-center text-sm">Loading your orders...</p>
+          ) : orders.length === 0 ? (
             <EmptyState
               icon={ShoppingBag}
               title="No orders yet"
@@ -160,19 +182,19 @@ export default function ProfilePage() {
                   <Card className="hover:bg-secondary/30 transition-colors">
                     <CardContent className="flex items-center justify-between gap-4 p-4">
                       <div>
-                        <p className="text-sm font-semibold">Order #{order.id.slice(0, 8).toUpperCase()}</p>
+                        <p className="text-sm font-semibold">Order #{order.orderNumber}</p>
                         <p className="text-muted-foreground text-xs">
                           {new Date(order.createdAt).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',
                           })}{' '}
-                          · {order.lines.reduce((sum, l) => sum + l.quantity, 0)} items
+                          · {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge variant={order.status === 'delivered' ? 'secondary' : 'gold'}>
-                          {ORDER_STATUS_LABELS[order.status]}
+                        <Badge variant={order.status === 5 ? 'secondary' : 'gold'}>
+                          {ORDER_STATUS_META[order.status].label}
                         </Badge>
                         <span className="text-sm font-semibold">{formatCurrency(order.total)}</span>
                       </div>
