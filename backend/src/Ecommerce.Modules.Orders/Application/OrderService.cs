@@ -1,4 +1,5 @@
 using Ecommerce.Modules.Cart.Application;
+using Ecommerce.Modules.Identity.Domain;
 using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Orders.Contracts;
@@ -6,6 +7,7 @@ using Ecommerce.Modules.Orders.Domain;
 using Ecommerce.Modules.Orders.Infrastructure;
 using Ecommerce.Modules.Payments.Application;
 using Ecommerce.Modules.Payments.Domain;
+using Ecommerce.Modules.Payments.Infrastructure;
 using Ecommerce.Shared.Kernel;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +17,7 @@ namespace Ecommerce.Modules.Orders.Application;
 public sealed class OrderService(
     OrdersDbContext db,
     IdentityDbContext identityDb,
+    PaymentsDbContext paymentsDb,
     ICartService cartService,
     IInventoryService inventoryService,
     IPaymentService paymentService,
@@ -102,7 +105,8 @@ public sealed class OrderService(
             throw new ForbiddenException("You do not have access to this order.");
         }
 
-        return ToDto(order);
+        var paymentMethods = await GetPaymentMethodsAsync([order.Id], cancellationToken);
+        return ToDto(order, paymentMethods.GetValueOrDefault(order.Id));
     }
 
     public async Task<PagedResult<OrderDto>> GetMyOrdersAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken)
@@ -111,10 +115,11 @@ public sealed class OrderService(
 
         var totalCount = await query.CountAsync(cancellationToken);
         var orders = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        var paymentMethods = await GetPaymentMethodsAsync(orders.Select(o => o.Id), cancellationToken);
 
         return new PagedResult<OrderDto>
         {
-            Items = orders.Select(ToDto).ToList(),
+            Items = orders.Select(o => ToDto(o, paymentMethods.GetValueOrDefault(o.Id))).ToList(),
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount,
@@ -123,10 +128,6 @@ public sealed class OrderService(
 
     public async Task<OrderDto> UpdateStatusAsync(Guid orderId, UpdateOrderStatusRequest request, Guid? changedByUserId, CancellationToken cancellationToken)
     {
-        // Only StatusHistory needs to be tracked for this mutation. Loading Items/ShippingAddress
-        // on the same tracked entity too (as LoadTrackedOrderQuery does) causes EF Core to
-        // misreport the UPDATE's affected-row count and throw a spurious
-        // DbUpdateConcurrencyException — see MarkOrderConfirmedFromPaymentAsync for the same reason.
         var order = await db.Orders.Include(o => o.StatusHistory).FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
                     ?? throw new NotFoundException("Order", orderId);
 
@@ -172,10 +173,11 @@ public sealed class OrderService(
 
         var totalCount = await ordersQuery.CountAsync(cancellationToken);
         var orders = await ordersQuery.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToListAsync(cancellationToken);
+        var paymentMethods = await GetPaymentMethodsAsync(orders.Select(o => o.Id), cancellationToken);
 
         return new PagedResult<OrderDto>
         {
-            Items = orders.Select(ToDto).ToList(),
+            Items = orders.Select(o => ToDto(o, paymentMethods.GetValueOrDefault(o.Id))).ToList(),
             Page = query.Page,
             PageSize = query.PageSize,
             TotalCount = totalCount,
@@ -212,6 +214,36 @@ public sealed class OrderService(
 
         ApplyStatusTransition(order, OrderStatus.Confirmed, changedByUserId: null, notes: "Payment received");
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CustomerSummaryDto>> GetCustomerSummariesAsync(CancellationToken cancellationToken)
+    {
+        var normalizedCustomerRole = Role.WellKnown.Customer.ToUpperInvariant();
+        var users = await identityDb.Users.AsNoTracking()
+            .Where(u => u.UserRoles.Any(ur => ur.Role.NormalizedName == normalizedCustomerRole))
+            .ToListAsync(cancellationToken);
+
+        var orderStats = await db.Orders.AsNoTracking()
+            .GroupBy(o => o.UserId)
+            .Select(g => new
+            {
+                UserId = g.Key,
+                OrderCount = g.Count(),
+                TotalSpent = g.Sum(o => o.Total),
+                LastOrderAt = g.Max(o => o.CreatedAt),
+            })
+            .ToDictionaryAsync(x => x.UserId, cancellationToken);
+
+        return users
+            .Select(u =>
+            {
+                orderStats.TryGetValue(u.Id, out var stats);
+                return new CustomerSummaryDto(
+                    u.Id, u.Email, u.FirstName, u.LastName, u.PhoneNumber, u.CreatedAt,
+                    stats?.OrderCount ?? 0, stats?.TotalSpent ?? 0m, stats?.LastOrderAt);
+            })
+            .OrderByDescending(c => c.TotalSpent)
+            .ToList();
     }
 
     private void ApplyStatusTransition(Order order, OrderStatus newStatus, Guid? changedByUserId, string? notes)
@@ -265,6 +297,28 @@ public sealed class OrderService(
         return $"{prefix}{todayCount + 1:D4}";
     }
 
+    /// <summary>
+    /// Latest payment transaction's method per order, for display only (e.g. invoices).
+    /// Orders/Payments are separate modules/schemas, so this is a batched cross-module read
+    /// rather than a foreign key — consistent with how Cart reads Catalog's Product directly.
+    /// </summary>
+    private async Task<Dictionary<Guid, string>> GetPaymentMethodsAsync(IEnumerable<Guid> orderIds, CancellationToken cancellationToken)
+    {
+        var ids = orderIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var transactions = await paymentsDb.PaymentTransactions.AsNoTracking()
+            .Where(t => ids.Contains(t.OrderId))
+            .ToListAsync(cancellationToken);
+
+        return transactions
+            .GroupBy(t => t.OrderId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(t => t.CreatedAt).First().PaymentMethod);
+    }
+
     private IQueryable<Order> LoadOrderQuery() =>
         db.Orders.AsNoTracking()
             .Include(o => o.ShippingAddress)
@@ -272,11 +326,6 @@ public sealed class OrderService(
             .Include(o => o.StatusHistory)
             .AsSplitQuery();
 
-    // AsSplitQuery is required here, not just a perf nicety: loading two collection
-    // navigations (Items + StatusHistory) via a single cartesian-product query, then
-    // modifying the root entity and calling SaveChanges, causes EF Core to misreport the
-    // UPDATE's affected-row count and throw a spurious DbUpdateConcurrencyException even
-    // though there is no actual concurrency conflict (no RowVersion/token exists on Order).
     private IQueryable<Order> LoadTrackedOrderQuery() =>
         db.Orders
             .Include(o => o.ShippingAddress)
@@ -284,15 +333,11 @@ public sealed class OrderService(
             .Include(o => o.StatusHistory)
             .AsSplitQuery();
 
-    private static OrderDto ToDto(Order o) => new(
-        o.Id,
-        o.OrderNumber,
-        o.UserId,
-        o.Status,
-        o.Subtotal,
-        o.Total,
+    private static OrderDto ToDto(Order o, string? paymentMethod) => new(
+        o.Id, o.OrderNumber, o.UserId, o.Status, o.Subtotal, o.Total,
         new AddressDto(o.ShippingAddress.FullName, o.ShippingAddress.PhoneNumber, o.ShippingAddress.AddressLine1, o.ShippingAddress.AddressLine2, o.ShippingAddress.City, o.ShippingAddress.State, o.ShippingAddress.PostalCode, o.ShippingAddress.Country),
         o.Items.Select(i => new OrderItemDto(i.Id, i.ProductId, i.ProductVariantId, i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList(),
         o.StatusHistory.OrderBy(h => h.ChangedAt).Select(h => new OrderStatusHistoryDto(h.PreviousStatus, h.NewStatus, h.Notes, h.ChangedAt)).ToList(),
-        o.CreatedAt);
+        o.CreatedAt,
+        paymentMethod);
 }

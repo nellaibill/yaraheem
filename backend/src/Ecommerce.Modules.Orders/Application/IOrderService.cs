@@ -12,4 +12,5 @@ public interface IOrderService
     Task<PagedResult<OrderDto>> GetAdminOrdersAsync(AdminOrderQuery query, CancellationToken cancellationToken);
     Task<OrderTrackingResponse> GetTrackingAsync(Guid userId, bool isAdmin, Guid orderId, CancellationToken cancellationToken);
     Task MarkOrderConfirmedFromPaymentAsync(Guid orderId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<CustomerSummaryDto>> GetCustomerSummariesAsync(CancellationToken cancellationToken);
 }

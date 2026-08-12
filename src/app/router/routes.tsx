@@ -35,6 +35,7 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage')
 const AdminMenuPage = lazy(() => import('@/pages/admin/AdminMenuPage'))
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
 const AdminCustomersPage = lazy(() => import('@/pages/admin/AdminCustomersPage'))
+const AdminInquiriesPage = lazy(() => import('@/pages/admin/AdminInquiriesPage'))
 const AdminDeliveryPartnersPage = lazy(() => import('@/pages/admin/AdminDeliveryPartnersPage'))
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
@@ -121,6 +122,7 @@ const router = createBrowserRouter(
                 { path: 'menu', element: withSuspense(<AdminMenuPage />) },
                 { path: 'orders', element: withSuspense(<AdminOrdersPage />) },
                 { path: 'customers', element: withSuspense(<AdminCustomersPage />) },
+                { path: 'inquiries', element: withSuspense(<AdminInquiriesPage />) },
                 { path: 'delivery-partners', element: withSuspense(<AdminDeliveryPartnersPage />) },
                 { path: 'reports', element: withSuspense(<AdminReportsPage />) },
                 { path: 'settings', element: withSuspense(<AdminSettingsPage />) },

@@ -34,6 +34,7 @@
     <ProjectReference Include="..\Ecommerce.Modules.Inventory\Ecommerce.Modules.Inventory.csproj" />
     <ProjectReference Include="..\Ecommerce.Database.Migrations\Ecommerce.Database.Migrations.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Payments\Ecommerce.Modules.Payments.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Leads\Ecommerce.Modules.Leads.csproj" />
   </ItemGroup>
 
 </Project>

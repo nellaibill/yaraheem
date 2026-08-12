@@ -1,15 +1,48 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PrintHeader } from '@/features/print/components/PrintHeader'
-import { getOrderById } from '@/features/admin/lib/adminStore'
-import { getCustomerName } from '@/features/delivery/lib/deliveryStore'
+import { fetchAdminOrder } from '@/lib/api/adminOrdersApi'
 import { formatCurrency } from '@/lib/utils'
-import { PAYMENT_METHOD_LABELS, SITE } from '@/lib/constants'
+import { SITE } from '@/lib/constants'
+import type { OrderDto } from '@/lib/api/types'
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  COD: 'Cash on Delivery',
+  ONLINE: 'Online Payment',
+}
 
 export default function InvoicePage() {
   const { id } = useParams()
-  const order = id ? getOrderById(id) : undefined
+  const [order, setOrder] = useState<OrderDto | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    fetchAdminOrder(id)
+      .then((result) => {
+        if (!cancelled) setOrder(result)
+      })
+      .catch(() => {
+        if (!cancelled) setOrder(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground text-sm">Loading...</p>
+      </div>
+    )
+  }
 
   if (!order) {
     return (
@@ -21,6 +54,8 @@ export default function InvoicePage() {
       </div>
     )
   }
+
+  const address = order.shippingAddress
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 print:bg-white print:py-0">
@@ -40,28 +75,25 @@ export default function InvoicePage() {
         <div className="mt-6 flex justify-between text-sm">
           <div>
             <p className="mb-1 text-xs font-semibold tracking-wide text-gray-500 uppercase">Billed To</p>
-            <p className="font-medium">{getCustomerName(order.mobile)}</p>
-            <p className="text-gray-600">+91 {order.mobile}</p>
+            <p className="font-medium">{address.fullName}</p>
+            <p className="text-gray-600">+91 {address.phoneNumber}</p>
             <p className="max-w-52 text-gray-600">
-              {order.address.line1}
-              {order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city},{' '}
-              {order.address.state} - {order.address.pincode}
+              {address.addressLine1}
+              {address.addressLine2 ? `, ${address.addressLine2}` : ''}, {address.city}, {address.state} -{' '}
+              {address.postalCode}
             </p>
           </div>
           <div className="text-right">
             <p>
-              <span className="font-semibold">Invoice #</span> {order.id.slice(0, 8).toUpperCase()}
+              <span className="font-semibold">Invoice #</span> {order.orderNumber}
             </p>
             <p>
               <span className="font-semibold">Date:</span>{' '}
-              {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
+              {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
             <p>
-              <span className="font-semibold">Payment:</span> {PAYMENT_METHOD_LABELS[order.paymentMethod]}
+              <span className="font-semibold">Payment:</span>{' '}
+              {order.paymentMethod ? (PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod) : 'Not recorded'}
             </p>
             <p className="text-gray-500">GSTIN: 36AABCU1234A1Z5 (mock)</p>
           </div>
@@ -77,12 +109,12 @@ export default function InvoicePage() {
             </tr>
           </thead>
           <tbody>
-            {order.lines.map((line) => (
-              <tr key={line.itemId} className="border-b border-gray-200">
-                <td className="py-2.5">{line.name}</td>
-                <td className="py-2.5 text-right">{line.quantity}</td>
-                <td className="py-2.5 text-right">{formatCurrency(line.price)}</td>
-                <td className="py-2.5 text-right">{formatCurrency(line.price * line.quantity)}</td>
+            {order.items.map((item) => (
+              <tr key={item.id} className="border-b border-gray-200">
+                <td className="py-2.5">{item.productName}</td>
+                <td className="py-2.5 text-right">{item.quantity}</td>
+                <td className="py-2.5 text-right">{formatCurrency(item.unitPrice)}</td>
+                <td className="py-2.5 text-right">{formatCurrency(item.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
@@ -91,17 +123,7 @@ export default function InvoicePage() {
         <div className="mt-4 ml-auto flex w-56 flex-col gap-1.5 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">Subtotal</span>
-            <span>{formatCurrency(order.itemsTotal)}</span>
-          </div>
-          {order.discount > 0 && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
-              <span>-{formatCurrency(order.discount)}</span>
-            </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-gray-600">Delivery Fee</span>
-            <span>{order.deliveryFee === 0 ? 'Free' : formatCurrency(order.deliveryFee)}</span>
+            <span>{formatCurrency(order.subtotal)}</span>
           </div>
           <div className="mt-1 flex justify-between border-t-2 border-black pt-1.5 text-base font-bold">
             <span>Total</span>

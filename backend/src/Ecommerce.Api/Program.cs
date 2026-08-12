@@ -11,6 +11,9 @@ using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory;
 using Ecommerce.Modules.Inventory.Endpoints;
 using Ecommerce.Modules.Inventory.Infrastructure;
+using Ecommerce.Modules.Leads;
+using Ecommerce.Modules.Leads.Endpoints;
+using Ecommerce.Modules.Leads.Infrastructure;
 using Ecommerce.Modules.Orders;
 using Ecommerce.Modules.Orders.Endpoints;
 using Ecommerce.Modules.Orders.Infrastructure;
@@ -68,6 +71,15 @@ try
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
             }));
+
+        options.AddPolicy("leads", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
     });
 
     builder.Services.AddAuthorizationBuilder()
@@ -79,6 +91,7 @@ try
     builder.Services.AddCartModule(builder.Configuration);
     builder.Services.AddPaymentsModule(builder.Configuration);
     builder.Services.AddOrdersModule(builder.Configuration);
+    builder.Services.AddLeadsModule(builder.Configuration);
 
     var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
                             ?? throw new InvalidOperationException("Connection string 'PostgreSql' is not configured.");
@@ -133,10 +146,12 @@ try
     app.MapCartEndpoints();
     app.MapOrderEndpoints();
     app.MapAdminOrderEndpoints();
+    app.MapAdminCustomerEndpoints();
     app.MapInventoryEndpoints();
     app.MapAdminInventoryEndpoints();
     app.MapPaymentEndpoints();
     app.MapPaymentOrderEndpoints();
+    app.MapLeadsEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -150,6 +165,7 @@ try
         await services.GetRequiredService<CartDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<PaymentsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
+        await services.GetRequiredService<LeadsDbContext>().Database.MigrateAsync();
 
         await IdentitySeeder.SeedAsync(
             services.GetRequiredService<IdentityDbContext>(),

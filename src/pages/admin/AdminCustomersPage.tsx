@@ -1,19 +1,42 @@
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
-import { useAdminData } from '@/features/admin/hooks/useAdminData'
+import { fetchAdminCustomers } from '@/lib/api/adminCustomersApi'
+import { ApiError } from '@/lib/api/client'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
+import type { CustomerSummaryDto } from '@/lib/api/types'
 
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
+function initials(firstName: string, lastName: string) {
+  return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
 }
 
 export default function AdminCustomersPage() {
-  const { customers } = useAdminData()
+  useDocumentTitle('Customers')
+  const [customers, setCustomers] = useState<CustomerSummaryDto[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAdminCustomers()
+      .then((result) => {
+        if (!cancelled) setCustomers(result)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast.error('Could not load customers', {
+            description: error instanceof ApiError ? error.message : 'Something went wrong.',
+          })
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,7 +47,9 @@ export default function AdminCustomersPage() {
 
       <Card>
         <CardContent className="p-5">
-          {customers.length === 0 ? (
+          {loading ? (
+            <p className="text-muted-foreground py-12 text-center text-sm">Loading...</p>
+          ) : customers.length === 0 ? (
             <p className="text-muted-foreground py-12 text-center text-sm">No customers yet.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -32,7 +57,7 @@ export default function AdminCustomersPage() {
                 <thead>
                   <tr className="text-muted-foreground border-b text-left text-xs">
                     <th className="pb-2 font-medium">Customer</th>
-                    <th className="pb-2 font-medium">Mobile</th>
+                    <th className="pb-2 font-medium">Contact</th>
                     <th className="pb-2 font-medium">Joined</th>
                     <th className="pb-2 font-medium">Orders</th>
                     <th className="pb-2 text-right font-medium">Total Spent</th>
@@ -40,18 +65,22 @@ export default function AdminCustomersPage() {
                 </thead>
                 <tbody>
                   {customers.map((customer) => (
-                    <tr key={customer.mobile} className="border-b last:border-0">
+                    <tr key={customer.id} className="border-b last:border-0">
                       <td className="py-2.5">
                         <div className="flex items-center gap-2.5">
                           <Avatar className="size-7">
                             <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
-                              {initials(customer.name)}
+                              {initials(customer.firstName, customer.lastName)}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium">{customer.name}</span>
+                          <span className="font-medium">
+                            {customer.firstName} {customer.lastName}
+                          </span>
                         </div>
                       </td>
-                      <td className="text-muted-foreground py-2.5 whitespace-nowrap">+91 {customer.mobile}</td>
+                      <td className="text-muted-foreground py-2.5 whitespace-nowrap">
+                        {customer.phoneNumber ? `+91 ${customer.phoneNumber}` : customer.email}
+                      </td>
                       <td className="text-muted-foreground py-2.5 whitespace-nowrap">
                         {new Date(customer.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',

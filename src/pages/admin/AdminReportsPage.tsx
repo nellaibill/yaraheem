@@ -1,16 +1,25 @@
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { RevenueChart } from '@/features/admin/components/RevenueChart'
 import { TopSellingList } from '@/features/admin/components/TopSellingList'
-import { useAdminData } from '@/features/admin/hooks/useAdminData'
+import { ORDER_STATUS_META, ORDER_STATUS_SEQUENCE } from '@/features/tracking/lib/backendOrderStatus'
 import {
   getPaymentMethodBreakdown,
   getRevenueByDay,
   getStatusBreakdown,
   getTopSellingItems,
-} from '@/features/admin/lib/analytics'
-import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@/lib/constants'
+} from '@/features/admin/lib/backendAnalytics'
+import { fetchAdminOrders } from '@/lib/api/adminOrdersApi'
+import { ApiError } from '@/lib/api/client'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
-import type { OrderStatus, PaymentMethod } from '@/types'
+import type { BackendOrderStatus, OrderDto } from '@/lib/api/types'
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  COD: 'Cash on Delivery',
+  ONLINE: 'Online Payment',
+}
 
 function BreakdownBar({ label, count, total, color }: { label: string; count: number; total: number; color: string }) {
   const percent = total > 0 ? Math.round((count / total) * 100) : 0
@@ -30,7 +39,30 @@ function BreakdownBar({ label, count, total, color }: { label: string; count: nu
 }
 
 export default function AdminReportsPage() {
-  const { orders } = useAdminData()
+  useDocumentTitle('Reports')
+  const [orders, setOrders] = useState<OrderDto[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAdminOrders({ pageSize: 100 })
+      .then((result) => {
+        if (!cancelled) setOrders(result.items)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast.error('Could not load reports', {
+            description: error instanceof ApiError ? error.message : 'Something went wrong.',
+          })
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const revenueByDay = getRevenueByDay(orders, 14)
   const topSelling = getTopSellingItems(orders, 8)
@@ -38,10 +70,13 @@ export default function AdminReportsPage() {
   const statusBreakdown = getStatusBreakdown(orders)
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0)
 
-  const paymentColors: Record<PaymentMethod, string> = {
-    cash: 'bg-primary',
-    upi: 'bg-gold',
-    card: 'bg-chart-2',
+  const paymentColors: Record<string, string> = {
+    COD: 'bg-primary',
+    ONLINE: 'bg-gold',
+  }
+
+  if (loading) {
+    return <p className="text-muted-foreground py-12 text-center text-sm">Loading reports...</p>
   }
 
   return (
@@ -72,11 +107,11 @@ export default function AdminReportsPage() {
           <Card>
             <CardContent className="flex flex-col gap-3 p-5">
               <h2 className="font-display mb-1 text-base font-semibold">Payment Methods</h2>
-              {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((method) => (
+              {Object.keys(PAYMENT_METHOD_LABELS).map((method) => (
                 <BreakdownBar
                   key={method}
                   label={PAYMENT_METHOD_LABELS[method]}
-                  count={paymentBreakdown[method]}
+                  count={paymentBreakdown[method] ?? 0}
                   total={orders.length}
                   color={paymentColors[method]}
                 />
@@ -87,10 +122,10 @@ export default function AdminReportsPage() {
           <Card>
             <CardContent className="flex flex-col gap-3 p-5">
               <h2 className="font-display mb-1 text-base font-semibold">Order Status</h2>
-              {(Object.keys(statusBreakdown) as OrderStatus[]).map((status) => (
+              {[...ORDER_STATUS_SEQUENCE, 6 as BackendOrderStatus].map((status) => (
                 <BreakdownBar
                   key={status}
-                  label={ORDER_STATUS_LABELS[status]}
+                  label={ORDER_STATUS_META[status].label}
                   count={statusBreakdown[status]}
                   total={orders.length}
                   color="bg-primary"
