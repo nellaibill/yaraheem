@@ -11,8 +11,10 @@ public sealed class ProductImageConfiguration : IEntityTypeConfiguration<Product
         builder.ToTable("product_images");
         builder.HasKey(pi => pi.Id);
 
-        builder.Property(pi => pi.Url).IsRequired().HasMaxLength(1000);
-        builder.Property(pi => pi.AltText).HasMaxLength(300);
+        builder.Property(pi => pi.ImageUrl).IsRequired().HasMaxLength(500);
+        builder.Property(pi => pi.AltText).HasMaxLength(200);
+
+        builder.HasIndex(pi => new { pi.ProductId, pi.DisplayOrder });
 
         builder.HasOne(pi => pi.Product)
             .WithMany(p => p.Images)

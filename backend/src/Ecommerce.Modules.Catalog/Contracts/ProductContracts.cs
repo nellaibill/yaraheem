@@ -1,8 +1,24 @@
 namespace Ecommerce.Modules.Catalog.Contracts;
 
-public sealed record ProductImageDto(Guid Id, string Url, string? AltText, int SortOrder);
+public sealed record ProductImageDto(Guid Id, string Url, string? AltText, int DisplayOrder, bool IsPrimary);
 
-public sealed record ProductVariantDto(Guid Id, string Sku, string Name, decimal PriceAdjustment, bool IsActive);
+public sealed record ProductVariantDto(
+    Guid Id, string Sku, string Name, string? Size, string? Color,
+    decimal PriceAdjustment, decimal? PriceOverride, int StockQuantity, bool IsActive);
+
+public sealed record CreateProductImageRequest(string Url, string? AltText, int DisplayOrder = 0, bool IsPrimary = false);
+
+public sealed record ImageDisplayOrderEntry(Guid ImageId, int DisplayOrder);
+
+public sealed record ReorderProductImagesRequest(IReadOnlyList<ImageDisplayOrderEntry> Items);
+
+public sealed record CreateProductVariantRequest(
+    string Sku, string? Size, string? Color, decimal PriceAdjustment = 0,
+    decimal? PriceOverride = null, int StockQuantity = 0, bool IsActive = true);
+
+public sealed record UpdateProductVariantRequest(
+    string Sku, string? Size, string? Color, decimal PriceAdjustment,
+    decimal? PriceOverride, int StockQuantity, bool IsActive);
 
 public sealed record ProductListResponse(
     Guid Id,

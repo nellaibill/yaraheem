@@ -10,6 +10,7 @@ public sealed class CreateCategoryRequestValidator : AbstractValidator<CreateCat
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Slug).NotEmpty().MaximumLength(150).Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
         RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.ImageUrl).MaximumLength(500);
     }
 }
 
@@ -20,5 +21,6 @@ public sealed class UpdateCategoryRequestValidator : AbstractValidator<UpdateCat
         RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Slug).NotEmpty().MaximumLength(150).Matches("^[a-z0-9]+(?:-[a-z0-9]+)*$");
         RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.ImageUrl).MaximumLength(500);
     }
 }

@@ -13,3 +13,22 @@ public sealed class AdjustInventoryRequestValidator : AbstractValidator<AdjustIn
         RuleFor(x => x.Reference).MaximumLength(200);
     }
 }
+
+public sealed class CreateInventoryAdjustmentRequestValidator : AbstractValidator<CreateInventoryAdjustmentRequest>
+{
+    public CreateInventoryAdjustmentRequestValidator()
+    {
+        RuleFor(x => x.ProductId).NotEmpty();
+        RuleFor(x => x.Quantity).NotEqual(0);
+        RuleFor(x => x.Reason).IsInEnum();
+        RuleFor(x => x.Notes).MaximumLength(500);
+    }
+}
+
+public sealed class SetStockRequestValidator : AbstractValidator<SetStockRequest>
+{
+    public SetStockRequestValidator()
+    {
+        RuleFor(x => x.Quantity).GreaterThanOrEqualTo(0);
+    }
+}

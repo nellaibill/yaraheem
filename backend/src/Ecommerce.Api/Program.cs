@@ -92,6 +92,7 @@ try
     }
 
     app.UseHttpsRedirection();
+    app.UseStaticFiles();
     app.UseCors("Default");
     app.UseAuthentication();
     app.UseAuthorization();
@@ -99,10 +100,13 @@ try
     app.MapAuthEndpoints();
     app.MapCategoryEndpoints();
     app.MapProductEndpoints();
+    app.MapAdminProductImageEndpoints();
+    app.MapAdminProductVariantEndpoints();
     app.MapCartEndpoints();
     app.MapOrderEndpoints();
     app.MapAdminOrderEndpoints();
     app.MapInventoryEndpoints();
+    app.MapAdminInventoryEndpoints();
     app.MapPaymentEndpoints();
     app.MapPaymentOrderEndpoints();
 
@@ -133,6 +137,11 @@ try
             services.GetRequiredService<IdentityDbContext>(),
             services.GetRequiredService<CatalogDbContext>(),
             services.GetRequiredService<PaymentsDbContext>());
+
+        if (app.Environment.IsDevelopment())
+        {
+            await CatalogAssetAuditor.AuditAsync(services.GetRequiredService<CatalogDbContext>(), app.Logger);
+        }
     }
 
     app.Run();

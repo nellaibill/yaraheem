@@ -46,13 +46,17 @@ Each module owns its own `DbContext` and PostgreSQL schema (`identity`, `catalog
 
 **Admin / Orders** — `GET /api/admin/orders` (filter by `status`, `orderNumber`, `customerEmail`, `fromDate`, `toDate`), `GET /api/admin/orders/{id}`, `PUT /api/admin/orders/{id}/status` (enforces `Pending→Confirmed→Processing→Shipped→Delivered`, cancellable from `Pending`/`Confirmed`/`Processing`; all `Admin` only)
 
+**Admin / Products** — `GET/POST /api/admin/products/{id}/images`, `DELETE /api/admin/products/{id}/images/{imageId}`, `PUT /api/admin/products/{id}/images/reorder`, `PUT /api/admin/products/{id}/images/{imageId}/primary`, `GET/POST /api/admin/products/{id}/variants`, `PUT/DELETE /api/admin/products/{id}/variants/{variantId}` (all `Admin` only)
+
 **Inventory** — `POST /api/inventory/adjust` (`Admin` only; records a `Purchase`/`Sale`/`Adjustment` transaction, rejects changes that would go negative)
+
+**Admin / Inventory** — `GET /api/admin/inventory`, `GET /api/admin/inventory/low-stock` (threshold via `Inventory:LowStockThreshold`, default 5), `PUT /api/admin/inventory/{productId}/stock`, `POST /api/admin/inventory/adjustments` (reasons: `Purchase`/`Return`/`Damage`/`ManualCorrection`; all `Admin` only)
 
 **Payments** — `POST /api/payments/orders/{orderId}/pay` (process/retry payment for a pending order; blocks duplicate successful payments), `GET /api/payments/orders/{orderId}`, `POST /api/payments/webhook` (provider callback; always 200 OK)
 
 **Ops** — `GET /health` (Postgres health check)
 
-All errors are returned as RFC 7807 `ProblemDetails` via a global `IExceptionHandler`. All successful responses are wrapped as `{ success, message, data }` (`Ecommerce.Shared.Kernel.ApiResponse<T>`); paginated list endpoints nest a `{ items, page, pageSize, totalCount, totalPages }` shape inside `data`. Swagger UI is available at `/swagger` in the `Development` environment, grouped by module tag (Auth/Catalog/Cart/Orders/Inventory), with JWT bearer auth wired into the UI.
+All errors are returned as RFC 7807 `ProblemDetails` via a global `IExceptionHandler`. All successful responses are wrapped as `{ success, message, data }` (`Ecommerce.Shared.Kernel.ApiResponse<T>`); paginated list endpoints nest a `{ items, page, pageSize, totalCount, totalPages }` shape inside `data`. Swagger UI is available at `/swagger` in the `Development` environment, grouped by module tag (Auth/Catalog/Cart/Orders/Admin/Admin Products/Inventory/Admin Inventory/Payments), with JWT bearer auth wired into the UI.
 
 ## Security
 
@@ -93,7 +97,7 @@ dotnet ef database update --project src/Ecommerce.Database.Migrations --startup-
 dotnet run --project src/Ecommerce.Api
 ```
 
-Swagger UI: `https://localhost:<port>/swagger`. Seeded admin login: `admin@ecommerce.local` / `Admin@12345` (override via the `AdminSeed` config section before first run in a real environment). On first run, 3 demo categories (Electronics, Fashion, Home & Kitchen) and 6 demo products with stock are also seeded.
+Swagger UI: `https://localhost:<port>/swagger`. Seeded admin login: `admin@ecommerce.local` / `Admin@123` (override via the `AdminSeed` config section before first run in a real environment); demo customer logins: `customer1@ecommerce.local` / `customer2@ecommerce.local`, both `Admin@123`. On first run, catalog data is seeded to match the real frontend menu (`src/features/menu/data/menuData.ts` and `src/lib/foodImages.ts`) — 8 categories and 23 dishes with their real (external) photo URLs where the frontend has one — so `GET /api/products` and `GET /api/categories/tree` line up with what's already rendered client-side. `wwwroot/images/{products,categories,banners}` exist for future locally-hosted images; static file serving is enabled via `app.UseStaticFiles()`.
 
 ### Generating new migrations after model changes
 

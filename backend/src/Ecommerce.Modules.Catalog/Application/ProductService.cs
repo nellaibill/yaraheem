@@ -193,6 +193,6 @@ public sealed class ProductService(CatalogDbContext db, InventoryDbContext inven
     private static ProductDetailsResponse ToDetailsResponse(Product p, IReadOnlyDictionary<Guid, int> stock) => new(
         p.Id, p.Name, p.Slug, p.Description, p.Sku, p.Price, p.ComparePrice, p.ThumbnailUrl, p.IsFeatured, p.IsPublished, p.IsActive,
         stock.GetValueOrDefault(p.Id), p.CategoryId, p.Category.Name,
-        p.Images.OrderBy(i => i.SortOrder).Select(i => new ProductImageDto(i.Id, i.Url, i.AltText, i.SortOrder)).ToList(),
-        p.Variants.Select(v => new ProductVariantDto(v.Id, v.Sku, v.Name, v.PriceAdjustment, v.IsActive)).ToList());
+        p.Images.OrderBy(i => i.DisplayOrder).Select(i => new ProductImageDto(i.Id, i.ImageUrl, i.AltText, i.DisplayOrder, i.IsPrimary)).ToList(),
+        p.Variants.Select(v => new ProductVariantDto(v.Id, v.Sku, v.Name, v.Size, v.Color, v.PriceAdjustment, v.PriceOverride, v.StockQuantity, v.IsActive)).ToList());
 }

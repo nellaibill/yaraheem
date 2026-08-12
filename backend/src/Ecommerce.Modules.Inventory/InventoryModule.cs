@@ -1,5 +1,6 @@
 using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Inventory.Infrastructure;
+using Ecommerce.Modules.Inventory.Options;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +12,8 @@ public static class InventoryModule
 {
     public static IServiceCollection AddInventoryModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<InventoryOptions>(configuration.GetSection(InventoryOptions.SectionName));
+
         var connectionString = configuration.GetConnectionString("PostgreSql");
 
         services.AddDbContext<InventoryDbContext>(options =>

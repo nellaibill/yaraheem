@@ -1,6 +1,7 @@
 using Ecommerce.Modules.Inventory.Contracts;
 using Ecommerce.Modules.Inventory.Domain;
 using Ecommerce.Modules.Inventory.Infrastructure;
+using Ecommerce.Shared.Kernel;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -77,4 +78,97 @@ public sealed class InventoryService(InventoryDbContext db) : IInventoryService
 
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<PagedResult<InventoryItemDto>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var query = db.InventoryItems.AsNoTracking().OrderBy(i => i.ProductId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+
+        return new PagedResult<InventoryItemDto>
+        {
+            Items = items.Select(ToDto).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        };
+    }
+
+    public async Task<IReadOnlyList<InventoryItemDto>> GetLowStockAsync(int threshold, CancellationToken cancellationToken)
+    {
+        var items = await db.InventoryItems.AsNoTracking()
+            .Where(i => i.QuantityOnHand <= threshold)
+            .OrderBy(i => i.QuantityOnHand)
+            .ToListAsync(cancellationToken);
+
+        return items.Select(ToDto).ToList();
+    }
+
+    public async Task<InventoryItemDto> SetStockAsync(Guid productId, int quantity, CancellationToken cancellationToken)
+    {
+        if (quantity < 0)
+        {
+            throw new ConflictException("Stock quantity cannot be negative.");
+        }
+
+        var item = await db.InventoryItems.FirstOrDefaultAsync(i => i.ProductId == productId, cancellationToken);
+        if (item is null)
+        {
+            item = new InventoryItem { ProductId = productId };
+            db.InventoryItems.Add(item);
+        }
+
+        var delta = quantity - item.QuantityOnHand;
+        item.QuantityOnHand = quantity;
+
+        if (delta != 0)
+        {
+            db.InventoryTransactions.Add(new InventoryTransaction
+            {
+                InventoryItem = item,
+                Type = InventoryTransactionType.Adjustment,
+                QuantityChange = delta,
+                Reference = InventoryAdjustmentReason.ManualCorrection.ToString(),
+                Notes = "Stock set directly by admin.",
+            });
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ToDto(item);
+    }
+
+    public async Task<InventoryItemDto> CreateAdjustmentAsync(CreateInventoryAdjustmentRequest request, CancellationToken cancellationToken)
+    {
+        var item = await db.InventoryItems.FirstOrDefaultAsync(i => i.ProductId == request.ProductId, cancellationToken);
+        if (item is null)
+        {
+            item = new InventoryItem { ProductId = request.ProductId };
+            db.InventoryItems.Add(item);
+        }
+
+        var newQuantityOnHand = item.QuantityOnHand + request.Quantity;
+        if (newQuantityOnHand < 0)
+        {
+            throw new ConflictException("Adjustment would result in negative stock.");
+        }
+
+        item.QuantityOnHand = newQuantityOnHand;
+
+        db.InventoryTransactions.Add(new InventoryTransaction
+        {
+            InventoryItem = item,
+            Type = InventoryTransactionType.Adjustment,
+            QuantityChange = request.Quantity,
+            Reference = request.Reason.ToString(),
+            Notes = request.Notes,
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ToDto(item);
+    }
+
+    private static InventoryItemDto ToDto(InventoryItem i) => new(i.ProductId, i.QuantityOnHand, i.QuantityReserved, i.QuantityAvailable);
 }
