@@ -20,6 +20,8 @@ import { findOffer, calculateDiscount } from '@/features/offers/data/offersData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { formatCurrency } from '@/lib/utils'
+import { ApiError } from '@/lib/api/client'
+import { checkout } from '@/lib/api/ordersApi'
 import {
   DEFAULT_RESTAURANT_SETTINGS,
   DELIVERY_FEE,
@@ -28,6 +30,13 @@ import {
   STORAGE_KEYS,
 } from '@/lib/constants'
 import type { Address, Order, PaymentMethod, RestaurantSettings } from '@/types'
+
+/** Backend DummyPaymentService: "ONLINE" settles immediately, anything else is treated as COD. */
+const BACKEND_PAYMENT_METHOD: Record<PaymentMethod, string> = {
+  cash: 'COD',
+  upi: 'ONLINE',
+  card: 'ONLINE',
+}
 
 const PAYMENT_ICONS: Record<PaymentMethod, typeof Banknote> = {
   cash: Banknote,
@@ -90,7 +99,7 @@ export default function CheckoutPage() {
     setSelectedAddressId(created.id)
   }
 
-  function handlePlaceOrder() {
+  async function handlePlaceOrder() {
     const address = addresses.find((a) => a.id === selectedAddressId)
     if (!address) {
       toast.error('Please select a delivery address')
@@ -99,34 +108,56 @@ export default function CheckoutPage() {
     if (!user) return
 
     setPlacing(true)
-    const order: Order = {
-      id: crypto.randomUUID(),
-      mobile: user.mobile,
-      lines: lines.map((line) => ({
-        itemId: line.itemId,
-        name: line.item.name,
-        price: line.item.price,
-        quantity: line.quantity,
-      })),
-      itemsTotal: totalPrice,
-      discount,
-      deliveryFee,
-      total: grandTotal,
-      couponCode: appliedCode ?? undefined,
-      address,
-      paymentMethod,
-      status: 'placed',
-      statusUpdatedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      estimatedDeliveryMinutes: 35,
-    }
+    try {
+      const result = await checkout({
+        paymentMethod: BACKEND_PAYMENT_METHOD[paymentMethod],
+        shippingAddress: {
+          fullName: user.name,
+          phoneNumber: user.mobile,
+          addressLine1: address.line1,
+          addressLine2: address.line2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.pincode,
+          country: 'India',
+        },
+      })
 
-    setTimeout(() => {
+      // The backend order/cart are now authoritative; this mirror keeps the existing
+      // local order-tracking/profile pages (out of scope for this change) working
+      // against the real order id, since they still read from local storage.
+      const order: Order = {
+        id: result.orderId,
+        mobile: user.mobile,
+        lines: lines.map((line) => ({
+          itemId: line.itemId,
+          name: line.item.name,
+          price: line.item.price,
+          quantity: line.quantity,
+        })),
+        itemsTotal: totalPrice,
+        discount,
+        deliveryFee,
+        total: grandTotal,
+        couponCode: appliedCode ?? undefined,
+        address,
+        paymentMethod,
+        status: 'placed',
+        statusUpdatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        estimatedDeliveryMinutes: 35,
+      }
       placeOrder(order)
-      clear()
-      toast.success('Order placed successfully!')
+      await clear()
+      toast.success(`Order ${result.orderNumber} placed successfully!`)
       navigate(`/orders/${order.id}`, { replace: true })
-    }, 600)
+    } catch (error) {
+      toast.error('Could not place order', {
+        description: error instanceof ApiError ? error.message : 'Something went wrong — please try again.',
+      })
+    } finally {
+      setPlacing(false)
+    }
   }
 
   return (

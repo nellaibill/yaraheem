@@ -45,6 +45,7 @@ export const STORAGE_KEYS = {
   menuItemsOverride: 'yaraheem:menu:items',
   menuSectionsOverride: 'yaraheem:menu:sections',
   promoBanner: 'yaraheem:promo-banner',
+  apiSession: 'yaraheem:api:session',
 } as const
 
 export const DEFAULT_PROMO_BANNER = {
