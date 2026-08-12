@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FoodImage } from '@/components/common/FoodImage'
 import { MenuItemFormDialog } from '@/features/admin/components/MenuItemFormDialog'
-import { useMenuData } from '@/features/menu/hooks/useMenuData'
+import { useLocalMenuData } from '@/features/menu/hooks/useLocalMenuData'
 import { upsertMenuItem, deleteMenuItem, upsertMenuSection } from '@/features/menu/lib/menuStore'
 import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
 import { MENU_SECTION_LABELS } from '@/lib/constants'
@@ -21,7 +21,7 @@ import type { MenuItem, MenuSection, MenuSectionKey } from '@/types'
 const VALID_SECTIONS = new Set(Object.keys(MENU_SECTION_LABELS))
 
 export default function AdminMenuPage() {
-  const { items, sections, refresh } = useMenuData()
+  const { items, sections, refresh } = useLocalMenuData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [formOpen, setFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
