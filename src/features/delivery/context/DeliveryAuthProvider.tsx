@@ -1,39 +1,31 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { STORAGE_KEYS } from '@/lib/constants'
-import { useDeliveryPartners } from '@/features/delivery/hooks/useDeliveryPartners'
-import { DeliveryAuthContext } from '@/features/delivery/context/delivery-auth-context'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { deliveryLogin, deliveryLogout, getDeliverySession, type StoredDeliverySession } from '@/lib/api/deliveryClient'
+import { DeliveryAuthContext, type DeliveryAuthPartner } from '@/features/delivery/context/delivery-auth-context'
+
+function sessionToPartner(session: StoredDeliverySession | null): DeliveryAuthPartner | null {
+  if (!session) return null
+  return {
+    id: session.user.id,
+    name: `${session.user.firstName} ${session.user.lastName}`.trim(),
+    email: session.user.email,
+  }
+}
 
 export function DeliveryAuthProvider({ children }: { children: ReactNode }) {
-  const { partners, updateStatus } = useDeliveryPartners()
-  const [activePartnerId, setActivePartnerId] = useLocalStorage<string | null>(
-    STORAGE_KEYS.activePartnerId,
-    null,
-  )
+  const [partner, setPartner] = useState<DeliveryAuthPartner | null>(() => sessionToPartner(getDeliverySession()))
 
-  const login = useCallback(
-    (mobile: string, password: string) => {
-      const digits = mobile.replace(/\D/g, '')
-      const match = partners.find((p) => p.mobile === digits && p.password === password)
-      if (!match) return false
-      setActivePartnerId(match.id)
-      if (match.status === 'offline') updateStatus(match.id, 'available')
-      return true
-    },
-    [partners, setActivePartnerId, updateStatus],
-  )
+  const login = useCallback(async (email: string, password: string) => {
+    const success = await deliveryLogin(email, password)
+    if (success) setPartner(sessionToPartner(getDeliverySession()))
+    return success
+  }, [])
 
   const logout = useCallback(() => {
-    if (activePartnerId) updateStatus(activePartnerId, 'offline')
-    setActivePartnerId(null)
-  }, [activePartnerId, setActivePartnerId, updateStatus])
+    deliveryLogout()
+    setPartner(null)
+  }, [])
 
-  const partner = activePartnerId ? (partners.find((p) => p.id === activePartnerId) ?? null) : null
-
-  const value = useMemo(
-    () => ({ partner, isAuthenticated: partner !== null, login, logout }),
-    [partner, login, logout],
-  )
+  const value = useMemo(() => ({ partner, isAuthenticated: partner !== null, login, logout }), [partner, login, logout])
 
   return <DeliveryAuthContext.Provider value={value}>{children}</DeliveryAuthContext.Provider>
 }

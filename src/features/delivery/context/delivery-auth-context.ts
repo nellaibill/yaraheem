@@ -1,10 +1,15 @@
 import { createContext } from 'react'
-import type { DeliveryPartner } from '@/types'
+
+export interface DeliveryAuthPartner {
+  id: string
+  name: string
+  email: string
+}
 
 export interface DeliveryAuthContextValue {
-  partner: DeliveryPartner | null
+  partner: DeliveryAuthPartner | null
   isAuthenticated: boolean
-  login: (mobile: string, password: string) => boolean
+  login: (email: string, password: string) => Promise<boolean>
   logout: () => void
 }
 
