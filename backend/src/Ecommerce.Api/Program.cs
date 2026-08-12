@@ -5,6 +5,9 @@ using Ecommerce.Modules.Cart.Infrastructure;
 using Ecommerce.Modules.Catalog;
 using Ecommerce.Modules.Catalog.Endpoints;
 using Ecommerce.Modules.Catalog.Infrastructure;
+using Ecommerce.Modules.Delivery;
+using Ecommerce.Modules.Delivery.Endpoints;
+using Ecommerce.Modules.Delivery.Infrastructure;
 using Ecommerce.Modules.Identity;
 using Ecommerce.Modules.Identity.Endpoints;
 using Ecommerce.Modules.Identity.Infrastructure;
@@ -83,7 +86,8 @@ try
     });
 
     builder.Services.AddAuthorizationBuilder()
-        .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+        .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
+        .AddPolicy("DeliveryOnly", policy => policy.RequireRole("DeliveryPartner"));
 
     builder.Services.AddIdentityModule(builder.Configuration);
     builder.Services.AddCatalogModule(builder.Configuration);
@@ -92,6 +96,7 @@ try
     builder.Services.AddPaymentsModule(builder.Configuration);
     builder.Services.AddOrdersModule(builder.Configuration);
     builder.Services.AddLeadsModule(builder.Configuration);
+    builder.Services.AddDeliveryModule(builder.Configuration);
 
     var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
                             ?? throw new InvalidOperationException("Connection string 'PostgreSql' is not configured.");
@@ -152,6 +157,9 @@ try
     app.MapPaymentEndpoints();
     app.MapPaymentOrderEndpoints();
     app.MapLeadsEndpoints();
+    app.MapAdminDeliveryPartnerEndpoints();
+    app.MapAdminDeliveryAssignmentEndpoints();
+    app.MapDeliveryEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -166,6 +174,7 @@ try
         await services.GetRequiredService<PaymentsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<LeadsDbContext>().Database.MigrateAsync();
+        await services.GetRequiredService<DeliveryDbContext>().Database.MigrateAsync();
 
         await IdentitySeeder.SeedAsync(
             services.GetRequiredService<IdentityDbContext>(),
@@ -182,6 +191,12 @@ try
             services.GetRequiredService<IdentityDbContext>(),
             services.GetRequiredService<CatalogDbContext>(),
             services.GetRequiredService<PaymentsDbContext>());
+
+        await DeliverySeeder.SeedAsync(
+            services.GetRequiredService<IdentityDbContext>(),
+            services.GetRequiredService<DeliveryDbContext>(),
+            services.GetRequiredService<IPasswordHasher>(),
+            app.Logger);
 
         if (app.Environment.IsDevelopment())
         {

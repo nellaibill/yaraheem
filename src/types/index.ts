@@ -160,22 +160,6 @@ export interface Order {
   cancellationReason?: string
 }
 
-export type DeliveryPartnerStatus = 'available' | 'busy' | 'offline'
-export type VehicleType = 'bike' | 'scooter' | 'bicycle'
-
-export interface DeliveryPartner {
-  id: string
-  name: string
-  mobile: string
-  /** Mock password for the delivery portal login — plaintext is fine, this is a POC with no real auth. */
-  password: string
-  vehicleType: VehicleType
-  rating: number
-  status: DeliveryPartnerStatus
-  activeOrderId?: string
-  totalDeliveries: number
-}
-
 /** Mock admin account for the gated Admin Portal login — plaintext is fine, this is a POC with no real auth. */
 export interface AdminUser {
   username: string

@@ -4,25 +4,25 @@ import { API_BASE_URL, ApiError } from '@/lib/api/client'
 import type { ApiResponse, AuthResponse, ProblemDetails, UserDto } from '@/lib/api/types'
 
 /**
- * A separate JWT session from the customer one (src/lib/api/client.ts) — an admin can be
- * signed into /admin in the same browser as a customer session on the storefront, and the
- * two must not clobber each other's tokens. Backed by the single seeded Admin account
- * (see backend AdminSeedOptions); there's no self-registration path for Admin.
+ * A third, isolated JWT session — separate storage key from both the customer session
+ * (client.ts) and the admin session (adminClient.ts) — mirroring the same pattern so a
+ * delivery partner, admin, and customer can all be signed in on the same device/browser
+ * without clobbering each other's tokens.
  */
-export interface StoredAdminSession {
+export interface StoredDeliverySession {
   accessToken: string
   refreshToken: string
   accessTokenExpiresAt: string
   user: UserDto
 }
 
-export function getAdminSession(): StoredAdminSession | null {
-  return readStorage<StoredAdminSession | null>(STORAGE_KEYS.adminApiSession, null)
+export function getDeliverySession(): StoredDeliverySession | null {
+  return readStorage<StoredDeliverySession | null>(STORAGE_KEYS.deliveryApiSession, null)
 }
 
-export function setAdminSession(session: StoredAdminSession | null) {
-  if (session) writeStorage(STORAGE_KEYS.adminApiSession, session)
-  else removeStorage(STORAGE_KEYS.adminApiSession)
+export function setDeliverySession(session: StoredDeliverySession | null) {
+  if (session) writeStorage(STORAGE_KEYS.deliveryApiSession, session)
+  else removeStorage(STORAGE_KEYS.deliveryApiSession)
 }
 
 async function parseErrorMessage(response: Response): Promise<string> {
@@ -40,7 +40,7 @@ async function parseErrorMessage(response: Response): Promise<string> {
   return `Request failed with status ${response.status}`
 }
 
-export async function adminLogin(email: string, password: string): Promise<boolean> {
+export async function deliveryLogin(email: string, password: string): Promise<boolean> {
   const response = await fetch(new URL('/api/auth/login', API_BASE_URL), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -50,9 +50,9 @@ export async function adminLogin(email: string, password: string): Promise<boole
   if (!response.ok) return false
 
   const body = (await response.json()) as ApiResponse<AuthResponse>
-  if (!body.data.user.roles.includes('Admin')) return false
+  if (!body.data.user.roles.includes('DeliveryPartner')) return false
 
-  setAdminSession({
+  setDeliverySession({
     accessToken: body.data.accessToken,
     refreshToken: body.data.refreshToken,
     accessTokenExpiresAt: body.data.accessTokenExpiresAt,
@@ -61,15 +61,13 @@ export async function adminLogin(email: string, password: string): Promise<boole
   return true
 }
 
-export function adminLogout() {
-  setAdminSession(null)
+export function deliveryLogout() {
+  setDeliverySession(null)
 }
 
-// Refresh tokens are single-use and rotate on each call — see client.ts for why concurrent
-// 401s must share one in-flight refresh instead of each consuming the same token.
-let refreshInFlight: Promise<StoredAdminSession | null> | null = null
+let refreshInFlight: Promise<StoredDeliverySession | null> | null = null
 
-function refreshAdminSession(): Promise<StoredAdminSession | null> {
+function refreshDeliverySession(): Promise<StoredDeliverySession | null> {
   if (refreshInFlight) return refreshInFlight
   refreshInFlight = performRefresh().finally(() => {
     refreshInFlight = null
@@ -77,8 +75,8 @@ function refreshAdminSession(): Promise<StoredAdminSession | null> {
   return refreshInFlight
 }
 
-async function performRefresh(): Promise<StoredAdminSession | null> {
-  const session = getAdminSession()
+async function performRefresh(): Promise<StoredDeliverySession | null> {
+  const session = getDeliverySession()
   if (!session) return null
 
   const response = await fetch(new URL('/api/auth/refresh', API_BASE_URL), {
@@ -88,23 +86,23 @@ async function performRefresh(): Promise<StoredAdminSession | null> {
   })
 
   if (!response.ok) {
-    setAdminSession(null)
+    setDeliverySession(null)
     return null
   }
 
   const body = (await response.json()) as ApiResponse<AuthResponse>
-  const next: StoredAdminSession = {
+  const next: StoredDeliverySession = {
     accessToken: body.data.accessToken,
     refreshToken: body.data.refreshToken,
     accessTokenExpiresAt: body.data.accessTokenExpiresAt,
     user: body.data.user,
   }
-  setAdminSession(next)
+  setDeliverySession(next)
   return next
 }
 
 async function request<T>(
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown,
   params?: Record<string, string | number | undefined>,
@@ -117,7 +115,7 @@ async function request<T>(
     }
   }
 
-  const session = getAdminSession()
+  const session = getDeliverySession()
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (session) headers.Authorization = `Bearer ${session.accessToken}`
@@ -129,7 +127,7 @@ async function request<T>(
   })
 
   if (response.status === 401 && session && !_isRetry) {
-    const refreshed = await refreshAdminSession()
+    const refreshed = await refreshDeliverySession()
     if (refreshed) return request<T>(method, path, body, params, true)
   }
 
@@ -147,18 +145,10 @@ async function request<T>(
   return responseBody.data
 }
 
-export function adminApiGet<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+export function deliveryApiGet<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
   return request<T>('GET', path, undefined, params)
 }
 
-export function adminApiPost<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>('POST', path, body)
-}
-
-export function adminApiPut<T>(path: string, body?: unknown): Promise<T> {
+export function deliveryApiPut<T>(path: string, body?: unknown): Promise<T> {
   return request<T>('PUT', path, body)
-}
-
-export function adminApiDelete<T>(path: string): Promise<T> {
-  return request<T>('DELETE', path)
 }

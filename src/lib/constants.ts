@@ -48,6 +48,7 @@ export const STORAGE_KEYS = {
   apiSession: 'yaraheem:api:session',
   adminApiSession: 'yaraheem:api:admin-session',
   adminOrderDeliveryAssignments: 'yaraheem:admin:order-delivery-assignments',
+  deliveryApiSession: 'yaraheem:api:delivery-session',
 } as const
 
 export const DEFAULT_PROMO_BANNER = {
@@ -89,12 +90,6 @@ export const ORDER_STATUS_SEQUENCE = [
   'out_for_delivery',
   'delivered',
 ] as const
-
-export const DELIVERY_PARTNER_STATUS_LABELS = {
-  available: 'Available',
-  busy: 'On Delivery',
-  offline: 'Offline',
-} as const
 
 export const DEFAULT_RESTAURANT_SETTINGS = {
   acceptingOrders: true,

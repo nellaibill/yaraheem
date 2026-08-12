@@ -1,35 +1,38 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Bike, ChevronLeft, Lock, Phone } from 'lucide-react'
+import { Bike, ChevronLeft, Lock, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDeliveryAuth } from '@/features/delivery/hooks/useDeliveryAuth'
-import { defaultDeliveryPartners } from '@/features/delivery/data/deliveryPartners'
 
 export default function DeliveryLoginPage() {
   const { login, isAuthenticated } = useDeliveryAuth()
   const navigate = useNavigate()
-  const [mobile, setMobile] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   if (isAuthenticated) {
     return <Navigate to="/delivery" replace />
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!mobile.trim() || !password.trim()) {
-      setError('Please enter both your mobile number and password')
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both your email and password')
       return
     }
-    if (!login(mobile, password)) {
-      setError('Mobile number or password is incorrect')
-      return
-    }
+    setSubmitting(true)
     setError('')
+    const success = await login(email.trim(), password)
+    setSubmitting(false)
+    if (!success) {
+      setError('Email or password is incorrect')
+      return
+    }
     navigate('/delivery', { replace: true })
   }
 
@@ -54,26 +57,22 @@ export default function DeliveryLoginPage() {
             <Bike className="size-5.5" />
           </span>
           <h1 className="font-display text-2xl font-bold">Delivery Partner Login</h1>
-          <p className="text-muted-foreground text-sm">Enter your registered mobile number</p>
+          <p className="text-muted-foreground text-sm">Enter your registered email</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="dp-mobile">Mobile number</Label>
+            <Label htmlFor="dp-email">Email</Label>
             <div className="relative">
-              <span className="text-muted-foreground pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm">
-                +91
-              </span>
+              <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
-                id="dp-mobile"
-                type="tel"
-                inputMode="numeric"
+                id="dp-email"
+                type="email"
                 autoFocus
-                placeholder="9123456701"
-                value={mobile}
-                maxLength={10}
-                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
-                className="pl-11"
+                placeholder="partner1@ecommerce.local"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-9"
               />
             </div>
           </div>
@@ -94,22 +93,19 @@ export default function DeliveryLoginPage() {
           </div>
           {error && <p className="text-destructive text-xs">{error}</p>}
 
-          <Button type="submit" variant="gold" size="lg" className="mt-2 gap-2">
-            <Phone className="size-4" />
-            Login
+          <Button type="submit" variant="gold" size="lg" className="mt-2 gap-2" disabled={submitting}>
+            <Bike className="size-4" />
+            {submitting ? 'Signing in…' : 'Login'}
           </Button>
         </form>
 
-        <div className="mt-6 rounded-lg border border-dashed p-3">
-          <p className="text-muted-foreground mb-1.5 text-xs font-medium">Demo accounts (password: delivery123)</p>
-          <ul className="text-muted-foreground space-y-0.5 text-xs">
-            {defaultDeliveryPartners.slice(0, 3).map((p) => (
-              <li key={p.id}>
-                {p.name} — {p.mobile}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {import.meta.env.DEV && (
+          <div className="mt-6 rounded-lg border border-dashed p-3">
+            <p className="text-muted-foreground text-xs">
+              Dev seed accounts live in backend/SECRETS.md — not shown in production builds.
+            </p>
+          </div>
+        )}
       </motion.div>
     </div>
   )

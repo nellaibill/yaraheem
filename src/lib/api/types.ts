@@ -27,6 +27,49 @@ export interface ProductListResponse {
   categoryName: string
 }
 
+export interface ProductDetailsResponse {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  sku: string
+  price: number
+  comparePrice: number | null
+  thumbnailUrl: string | null
+  isFeatured: boolean
+  isPublished: boolean
+  isActive: boolean
+  stockQuantity: number
+  categoryId: string
+  categoryName: string
+}
+
+export interface CreateProductRequest {
+  name: string
+  slug: string
+  description: string | null
+  sku: string
+  price: number
+  comparePrice: number | null
+  thumbnailUrl: string | null
+  categoryId: string
+  isFeatured?: boolean
+  isPublished?: boolean
+}
+
+export interface UpdateProductRequest {
+  name: string
+  slug: string
+  description: string | null
+  price: number
+  comparePrice: number | null
+  thumbnailUrl: string | null
+  categoryId: string
+  isFeatured: boolean
+  isPublished: boolean
+  isActive: boolean
+}
+
 export interface CategoryDto {
   id: string
   name: string
@@ -241,4 +284,61 @@ export interface SubmitCateringInquiryRequest {
   guestCount?: number | null
   packageName?: string | null
   message?: string | null
+}
+
+export type DeliveryPartnerStatus = 1 | 2 | 3
+
+export interface DeliveryPartnerDto {
+  id: string
+  name: string
+  phoneNumber: string
+  vehicleType: string
+  status: DeliveryPartnerStatus
+  email: string
+}
+
+export interface CreateDeliveryPartnerRequest {
+  name: string
+  phoneNumber: string
+  vehicleType: string
+  email: string
+  password: string
+}
+
+export interface UpdateDeliveryPartnerRequest {
+  name: string
+  phoneNumber: string
+  vehicleType: string
+  status: DeliveryPartnerStatus
+}
+
+export type DeliveryAssignmentStatus = 1 | 2 | 3 | 4
+
+export interface OrderAssignmentDto {
+  orderId: string
+  deliveryPartnerId: string | null
+  deliveryPartnerName: string | null
+  status: DeliveryAssignmentStatus | null
+  assignedAt: string | null
+}
+
+export interface DeliveryOrderItemDto {
+  productName: string
+  quantity: number
+}
+
+export interface MyDeliveryOrderDto {
+  orderId: string
+  orderNumber: string
+  status: DeliveryAssignmentStatus
+  customerName: string
+  customerPhone: string
+  addressLine1: string
+  addressLine2: string | null
+  city: string
+  state: string
+  postalCode: string
+  items: DeliveryOrderItemDto[]
+  total: number
+  assignedAt: string
 }

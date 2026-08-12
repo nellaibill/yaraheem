@@ -2,10 +2,8 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Bike, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Toaster } from '@/components/ui/sonner'
 import { useDeliveryAuth } from '@/features/delivery/hooks/useDeliveryAuth'
-import { DELIVERY_PARTNER_STATUS_LABELS } from '@/lib/constants'
 
 export function DeliveryLayout() {
   const { partner, logout } = useDeliveryAuth()
@@ -27,11 +25,7 @@ export function DeliveryLayout() {
             </span>
             <div className="leading-none">
               <p className="text-sm font-semibold">{partner?.name}</p>
-              {partner && (
-                <Badge variant="gold" className="mt-1 h-4 px-1.5 text-[10px]">
-                  {DELIVERY_PARTNER_STATUS_LABELS[partner.status]}
-                </Badge>
-              )}
+              {partner && <p className="text-primary-foreground/70 mt-1 text-[11px]">{partner.email}</p>}
             </div>
           </div>
           <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5" onClick={handleLogout}>

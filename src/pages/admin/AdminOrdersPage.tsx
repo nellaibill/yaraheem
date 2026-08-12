@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useDeliveryPartners } from '@/features/delivery/hooks/useDeliveryPartners'
-import { getAssignedPartnerId, setAssignedPartnerId } from '@/features/admin/lib/orderDeliveryAssignmentStore'
+import { assignOrderDelivery, fetchAdminDeliveryPartners, fetchOrderDeliveryAssignment } from '@/lib/api/adminDeliveryApi'
 import {
   ORDER_STATUS_ALLOWED_TRANSITIONS,
   ORDER_STATUS_META,
@@ -16,7 +15,7 @@ import {
 import { fetchAdminOrders, updateAdminOrderStatus } from '@/lib/api/adminOrdersApi'
 import { ApiError } from '@/lib/api/client'
 import { cn, formatCurrency } from '@/lib/utils'
-import type { BackendOrderStatus, OrderDto } from '@/lib/api/types'
+import type { BackendOrderStatus, DeliveryPartnerDto, OrderAssignmentDto, OrderDto } from '@/lib/api/types'
 
 const FILTERABLE_STATUSES: BackendOrderStatus[] = [...ORDER_STATUS_SEQUENCE, 6]
 
@@ -25,19 +24,28 @@ function errorMessage(error: unknown): string {
 }
 
 export default function AdminOrdersPage() {
-  const { partners } = useDeliveryPartners()
+  const [partners, setPartners] = useState<DeliveryPartnerDto[]>([])
+  const [assignments, setAssignments] = useState<Record<string, OrderAssignmentDto | null>>({})
   const [statusFilter, setStatusFilter] = useState<BackendOrderStatus | 'all'>('all')
   const [orders, setOrders] = useState<OrderDto[]>([])
   const [loading, setLoading] = useState(true)
   const [version, setVersion] = useState(0)
-  const [, setAssignmentVersion] = useState(0)
+
+  useEffect(() => {
+    fetchAdminDeliveryPartners().catch(() => []).then((result) => setPartners(result ?? []))
+  }, [])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     fetchAdminOrders({ status: statusFilter === 'all' ? undefined : statusFilter })
-      .then((result) => {
-        if (!cancelled) setOrders(result.items)
+      .then(async (result) => {
+        if (cancelled) return
+        setOrders(result.items)
+        const entries = await Promise.all(
+          result.items.map(async (order) => [order.id, await fetchOrderDeliveryAssignment(order.id).catch(() => null)] as const),
+        )
+        if (!cancelled) setAssignments(Object.fromEntries(entries))
       })
       .catch((error) => {
         if (!cancelled) toast.error('Could not load orders', { description: errorMessage(error) })
@@ -64,10 +72,15 @@ export default function AdminOrdersPage() {
     }
   }
 
-  function handleAssignPartner(orderId: string, partnerId: string) {
-    setAssignedPartnerId(orderId, partnerId === 'unassigned' ? undefined : partnerId)
-    setAssignmentVersion((v) => v + 1)
-    toast.success(partnerId === 'unassigned' ? 'Delivery partner unassigned' : 'Delivery partner assigned')
+  async function handleAssignPartner(orderId: string, partnerId: string) {
+    if (partnerId === 'unassigned') return
+    try {
+      const assignment = await assignOrderDelivery(orderId, partnerId)
+      setAssignments((prev) => ({ ...prev, [orderId]: assignment }))
+      toast.success('Delivery partner assigned')
+    } catch (error) {
+      toast.error('Could not assign delivery partner', { description: errorMessage(error) })
+    }
   }
 
   return (
@@ -123,7 +136,7 @@ export default function AdminOrdersPage() {
                     const isCancelled = order.status === 6
                     const isPending = order.status === 1
                     const nextOptions = ORDER_STATUS_ALLOWED_TRANSITIONS[order.status].filter((s) => s !== 6)
-                    const assignedPartnerId = getAssignedPartnerId(order.id)
+                    const assignedPartnerId = assignments[order.id]?.deliveryPartnerId ?? undefined
 
                     return (
                       <tr key={order.id} className="border-b last:border-0">

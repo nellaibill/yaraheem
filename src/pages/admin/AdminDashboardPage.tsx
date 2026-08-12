@@ -26,12 +26,12 @@ import {
 } from '@/features/admin/lib/backendAnalytics'
 import { fetchAdminOrders, updateAdminOrderStatus } from '@/lib/api/adminOrdersApi'
 import { fetchAdminCustomers } from '@/lib/api/adminCustomersApi'
+import { fetchAdminDeliveryPartners } from '@/lib/api/adminDeliveryApi'
 import { ApiError } from '@/lib/api/client'
-import { useDeliveryPartners } from '@/features/delivery/hooks/useDeliveryPartners'
 import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency, cn } from '@/lib/utils'
-import type { BackendOrderStatus, CustomerSummaryDto, OrderDto } from '@/lib/api/types'
+import type { BackendOrderStatus, CustomerSummaryDto, DeliveryPartnerDto, OrderDto } from '@/lib/api/types'
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
@@ -39,21 +39,22 @@ function errorMessage(error: unknown): string {
 
 export default function AdminDashboardPage() {
   useDocumentTitle('Admin Dashboard')
-  const { partners } = useDeliveryPartners()
   const { items: menuItems } = useMenuData()
   const [orders, setOrders] = useState<OrderDto[]>([])
   const [customers, setCustomers] = useState<CustomerSummaryDto[]>([])
+  const [partners, setPartners] = useState<DeliveryPartnerDto[]>([])
   const [loading, setLoading] = useState(true)
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    Promise.all([fetchAdminOrders({ pageSize: 100 }), fetchAdminCustomers()])
-      .then(([orderResult, customerResult]) => {
+    Promise.all([fetchAdminOrders({ pageSize: 100 }), fetchAdminCustomers(), fetchAdminDeliveryPartners()])
+      .then(([orderResult, customerResult, partnerResult]) => {
         if (cancelled) return
         setOrders(orderResult.items)
         setCustomers(customerResult)
+        setPartners(partnerResult)
       })
       .catch((error) => {
         if (!cancelled) toast.error('Could not load dashboard data', { description: errorMessage(error) })
@@ -77,7 +78,7 @@ export default function AdminDashboardPage() {
   const topSelling = getTopSellingItems(orders)
   const popularCombos = getPopularCombos(orders, menuItems)
   const kitchenQueue = getKitchenQueue(orders)
-  const activePartners = partners.filter((p) => p.status !== 'offline').length
+  const activePartners = partners.filter((p) => p.status !== 3).length
   const recentOrders = orders.slice(0, 6)
 
   async function handleKitchenAdvance(orderId: string, next: BackendOrderStatus) {

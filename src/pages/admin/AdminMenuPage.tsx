@@ -10,29 +10,35 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { FoodImage } from '@/components/common/FoodImage'
-import { MenuItemFormDialog } from '@/features/admin/components/MenuItemFormDialog'
-import { useLocalMenuData } from '@/features/menu/hooks/useLocalMenuData'
-import { upsertMenuItem, deleteMenuItem, upsertMenuSection } from '@/features/menu/lib/menuStore'
+import { MenuItemFormDialog, type MenuItemFormValues } from '@/features/admin/components/MenuItemFormDialog'
+import { useAdminMenuData } from '@/features/menu/hooks/useAdminMenuData'
+import type { AdminMenuItem } from '@/features/menu/lib/adminMenuMapping'
+import { deleteMenuItem, getMenuSections, upsertMenuSection } from '@/features/menu/lib/menuStore'
+import { createAdminProduct, deleteAdminProduct, updateAdminProduct } from '@/lib/api/adminProductsApi'
+import { ApiError } from '@/lib/api/client'
 import { MENU_CATEGORY_LABELS } from '@/features/menu/data/menuData'
 import { MENU_SECTION_LABELS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
-import type { MenuItem, MenuSection, MenuSectionKey } from '@/types'
+import type { MenuSection } from '@/types'
 
 const VALID_SECTIONS = new Set(Object.keys(MENU_SECTION_LABELS))
 
+function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
+}
+
 export default function AdminMenuPage() {
-  const { items, sections, refresh } = useLocalMenuData()
+  const { products, categories, items, loading, refresh } = useAdminMenuData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [formOpen, setFormOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null)
-  const [defaultSections, setDefaultSections] = useState<MenuSectionKey[]>([])
+  const [editingItem, setEditingItem] = useState<AdminMenuItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminMenuItem | null>(null)
+  const [sections, setSections] = useState<MenuSection[]>(() => getMenuSections())
 
   useEffect(() => {
     const sectionParam = searchParams.get('section')
     if (searchParams.get('new') === '1' && sectionParam && VALID_SECTIONS.has(sectionParam)) {
       setEditingItem(null)
-      setDefaultSections([sectionParam as MenuSectionKey])
       setFormOpen(true)
       setSearchParams({}, { replace: true })
     }
@@ -41,37 +47,90 @@ export default function AdminMenuPage() {
 
   function openAddForm() {
     setEditingItem(null)
-    setDefaultSections([])
     setFormOpen(true)
   }
 
-  function openEditForm(item: MenuItem) {
+  function openEditForm(item: AdminMenuItem) {
     setEditingItem(item)
     setFormOpen(true)
   }
 
-  function handleSaveItem(item: MenuItem) {
-    upsertMenuItem(item)
-    refresh()
-    toast.success(editingItem ? 'Menu item updated' : 'Menu item added')
+  async function handleSaveItem(values: MenuItemFormValues, editing: AdminMenuItem | null) {
+    try {
+      if (editing) {
+        const current = products.find((p) => p.id === editing.productId)
+        await updateAdminProduct(editing.productId, {
+          name: values.name,
+          slug: values.slug,
+          description: current?.description ?? null,
+          price: values.price,
+          comparePrice: values.comparePrice ?? null,
+          thumbnailUrl: values.thumbnailUrl ?? null,
+          categoryId: values.categoryId,
+          isFeatured: values.isFeatured,
+          isPublished: values.isPublished,
+          isActive: current?.isActive ?? true,
+        })
+        toast.success('Menu item updated')
+      } else {
+        await createAdminProduct({
+          name: values.name,
+          slug: values.slug,
+          description: null,
+          sku: `SKU-${values.slug.toUpperCase()}`,
+          price: values.price,
+          comparePrice: values.comparePrice ?? null,
+          thumbnailUrl: values.thumbnailUrl ?? null,
+          categoryId: values.categoryId,
+          isFeatured: values.isFeatured,
+          isPublished: values.isPublished,
+        })
+        toast.success('Menu item added')
+      }
+      refresh()
+    } catch (error) {
+      toast.error('Could not save menu item', { description: errorMessage(error) })
+    }
   }
 
-  function handleToggleAvailability(item: MenuItem, available: boolean) {
-    upsertMenuItem({ ...item, isAvailable: available })
-    refresh()
+  async function handleToggleAvailability(item: AdminMenuItem, available: boolean) {
+    const current = products.find((p) => p.id === item.productId)
+    if (!current) return
+    try {
+      await updateAdminProduct(item.productId, {
+        name: current.name,
+        slug: current.slug,
+        description: current.description,
+        price: current.price,
+        comparePrice: current.comparePrice,
+        thumbnailUrl: current.thumbnailUrl,
+        categoryId: current.categoryId,
+        isFeatured: current.isFeatured,
+        isPublished: available,
+        isActive: current.isActive,
+      })
+      refresh()
+    } catch (error) {
+      toast.error('Could not update availability', { description: errorMessage(error) })
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return
-    deleteMenuItem(deleteTarget.id)
-    refresh()
-    toast.success(`${deleteTarget.name} removed from the menu`)
-    setDeleteTarget(null)
+    try {
+      await deleteAdminProduct(deleteTarget.productId)
+      deleteMenuItem(deleteTarget.id)
+      refresh()
+      toast.success(`${deleteTarget.name} removed from the menu`)
+    } catch (error) {
+      toast.error('Could not delete menu item', { description: errorMessage(error) })
+    } finally {
+      setDeleteTarget(null)
+    }
   }
 
   function handleSaveSection(section: MenuSection) {
-    upsertMenuSection(section)
-    refresh()
+    setSections(upsertMenuSection(section))
     toast.success(`${section.name} updated`)
   }
 
@@ -82,7 +141,7 @@ export default function AdminMenuPage() {
           <h1 className="font-display text-2xl font-bold">Menu Management</h1>
           <p className="text-muted-foreground text-sm">{items.length} items across {sections.length} menu sections</p>
         </div>
-        <Button variant="gold" className="gap-1.5" onClick={openAddForm}>
+        <Button variant="gold" className="gap-1.5" onClick={openAddForm} disabled={categories.length === 0}>
           <Plus className="size-4" />
           Add Menu Item
         </Button>
@@ -97,7 +156,9 @@ export default function AdminMenuPage() {
         <TabsContent value="items">
           <Card>
             <CardContent className="p-5">
-              {items.length === 0 ? (
+              {loading ? (
+                <p className="text-muted-foreground py-12 text-center text-sm">Loading menu items...</p>
+              ) : items.length === 0 ? (
                 <p className="text-muted-foreground py-12 text-center text-sm">No menu items yet.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -114,7 +175,7 @@ export default function AdminMenuPage() {
                     </thead>
                     <tbody>
                       {items.map((item) => (
-                        <tr key={item.id} className="border-b last:border-0">
+                        <tr key={item.productId} className="border-b last:border-0">
                           <td className="py-2.5">
                             <div className="flex items-center gap-3">
                               <FoodImage
@@ -129,7 +190,7 @@ export default function AdminMenuPage() {
                             </div>
                           </td>
                           <td className="text-muted-foreground py-2.5 whitespace-nowrap">
-                            {MENU_CATEGORY_LABELS[item.category]}
+                            {MENU_CATEGORY_LABELS[item.category] ?? item.category}
                           </td>
                           <td className="py-2.5 text-right font-medium whitespace-nowrap">
                             {formatCurrency(item.price)}
@@ -197,8 +258,8 @@ export default function AdminMenuPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         item={editingItem}
-        defaultSections={defaultSections}
-        existingIds={items.map((i) => i.id)}
+        categories={categories}
+        existingSlugs={items.map((i) => i.id)}
         onSave={handleSaveItem}
       />
 
