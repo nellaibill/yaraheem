@@ -1,34 +1,39 @@
-import { type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { STORAGE_KEYS } from '@/lib/constants'
-import type { ContactMessage } from '@/types'
+import { submitContactMessage } from '@/lib/api/leadsApi'
+import { ApiError } from '@/lib/api/client'
 
 export function ContactForm() {
-  const [, setMessages] = useLocalStorage<ContactMessage[]>(STORAGE_KEYS.contactMessages, [])
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const formData = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const formData = new FormData(form)
 
-    const message: ContactMessage = {
-      id: crypto.randomUUID(),
-      name: String(formData.get('name') ?? ''),
-      email: String(formData.get('email') ?? ''),
-      phone: String(formData.get('phone') ?? ''),
-      subject: String(formData.get('subject') ?? ''),
-      message: String(formData.get('message') ?? ''),
-      createdAt: new Date().toISOString(),
+    setSubmitting(true)
+    try {
+      await submitContactMessage({
+        name: String(formData.get('name') ?? ''),
+        email: String(formData.get('email') ?? ''),
+        phone: String(formData.get('phone') ?? '') || undefined,
+        subject: String(formData.get('subject') ?? ''),
+        message: String(formData.get('message') ?? ''),
+      })
+      toast.success("Message sent! We'll get back to you soon.")
+      form.reset()
+    } catch (error) {
+      toast.error('Could not send your message', {
+        description: error instanceof ApiError ? error.message : 'Please try again in a moment.',
+      })
+    } finally {
+      setSubmitting(false)
     }
-
-    setMessages((prev) => [...prev, message])
-    toast.success("Message sent! We'll get back to you soon.")
-    event.currentTarget.reset()
   }
 
   return (
@@ -55,9 +60,9 @@ export function ContactForm() {
         <Label htmlFor="message">Message</Label>
         <Textarea id="message" name="message" required rows={5} placeholder="How can we help?" />
       </div>
-      <Button type="submit" variant="gold" size="lg" className="gap-2">
+      <Button type="submit" variant="gold" size="lg" className="gap-2" disabled={submitting}>
         <Send className="size-4" />
-        Send Message
+        {submitting ? 'Sending...' : 'Send Message'}
       </Button>
     </form>
   )

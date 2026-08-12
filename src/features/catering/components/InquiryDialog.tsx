@@ -13,10 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { STORAGE_KEYS } from '@/lib/constants'
 import { cateringPackages } from '@/features/catering/data/cateringData'
-import type { CateringInquiry } from '@/types'
+import { submitCateringInquiry } from '@/lib/api/leadsApi'
+import { ApiError } from '@/lib/api/client'
 
 export function InquiryDialog({
   open,
@@ -27,29 +26,36 @@ export function InquiryDialog({
   onOpenChange: (open: boolean) => void
   packageId?: string
 }) {
-  const [, setInquiries] = useLocalStorage<CateringInquiry[]>(STORAGE_KEYS.cateringInquiries, [])
   const [selectedPackage, setSelectedPackage] = useState(packageId ?? '')
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const formData = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    const packageName = cateringPackages.find((pkg) => pkg.id === selectedPackage)?.name
 
-    const inquiry: CateringInquiry = {
-      id: crypto.randomUUID(),
-      name: String(formData.get('name') ?? ''),
-      phone: String(formData.get('phone') ?? ''),
-      email: String(formData.get('email') ?? ''),
-      eventDate: String(formData.get('eventDate') ?? ''),
-      guestCount: Number(formData.get('guestCount') ?? 0),
-      packageId: selectedPackage || undefined,
-      message: String(formData.get('message') ?? ''),
-      createdAt: new Date().toISOString(),
+    setSubmitting(true)
+    try {
+      await submitCateringInquiry({
+        name: String(formData.get('name') ?? ''),
+        phone: String(formData.get('phone') ?? ''),
+        email: String(formData.get('email') ?? '') || undefined,
+        eventDate: String(formData.get('eventDate') ?? '') || undefined,
+        guestCount: Number(formData.get('guestCount') ?? 0) || undefined,
+        packageName,
+        message: String(formData.get('message') ?? '') || undefined,
+      })
+      toast.success("Thank you! We've received your inquiry and will reach out shortly.")
+      form.reset()
+      onOpenChange(false)
+    } catch (error) {
+      toast.error('Could not submit your inquiry', {
+        description: error instanceof ApiError ? error.message : 'Please try again in a moment.',
+      })
+    } finally {
+      setSubmitting(false)
     }
-
-    setInquiries((prev) => [...prev, inquiry])
-    toast.success("Thank you! We've received your inquiry and will reach out shortly.")
-    event.currentTarget.reset()
-    onOpenChange(false)
   }
 
   return (
@@ -112,8 +118,8 @@ export function InquiryDialog({
             <Textarea id="message" name="message" placeholder="Wedding reception, 200 guests, outdoor venue..." />
           </div>
           <DialogFooter>
-            <Button type="submit" variant="gold" className="w-full sm:w-auto">
-              Submit Inquiry
+            <Button type="submit" variant="gold" className="w-full sm:w-auto" disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit Inquiry'}
             </Button>
           </DialogFooter>
         </form>

@@ -37,7 +37,19 @@ public sealed record OrderDto(
     AddressDto ShippingAddress,
     IReadOnlyList<OrderItemDto> Items,
     IReadOnlyList<OrderStatusHistoryDto> StatusHistory,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? PaymentMethod);
+
+public sealed record CustomerSummaryDto(
+    Guid Id,
+    string Email,
+    string FirstName,
+    string LastName,
+    string? PhoneNumber,
+    DateTimeOffset CreatedAt,
+    int OrderCount,
+    decimal TotalSpent,
+    DateTimeOffset? LastOrderAt);
 
 public sealed record CheckoutRequest(string PaymentMethod, ShippingAddressRequest ShippingAddress);
 

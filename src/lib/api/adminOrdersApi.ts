@@ -22,3 +22,7 @@ export function fetchAdminOrders(query: AdminOrderQuery = {}): Promise<PagedResu
 export function updateAdminOrderStatus(orderId: string, status: BackendOrderStatus, notes?: string): Promise<OrderDto> {
   return adminApiPut<OrderDto>(`/api/admin/orders/${orderId}/status`, { status, notes })
 }
+
+export function fetchAdminOrder(orderId: string): Promise<OrderDto> {
+  return adminApiGet<OrderDto>(`/api/admin/orders/${orderId}`)
+}

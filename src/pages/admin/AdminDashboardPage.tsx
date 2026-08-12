@@ -1,40 +1,74 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Bike, ClipboardCheck, IndianRupee, PackageX, Receipt, TrendingUp, Users, XCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { StatCard } from '@/features/admin/components/StatCard'
 import { RevenueChart } from '@/features/admin/components/RevenueChart'
 import { OrdersChart } from '@/features/admin/components/OrdersChart'
 import { TopSellingList } from '@/features/admin/components/TopSellingList'
-import { OrderStatusBadge } from '@/features/admin/components/OrderStatusBadge'
 import { KitchenQueue } from '@/features/admin/components/KitchenQueue'
 import { OrderTimeline } from '@/features/admin/components/OrderTimeline'
 import { QuickActions } from '@/features/admin/components/QuickActions'
-import { useAdminData } from '@/features/admin/hooks/useAdminData'
-import { updateOrderStatusGlobal } from '@/features/admin/lib/adminStore'
+import { ORDER_STATUS_META } from '@/features/tracking/lib/backendOrderStatus'
 import {
   getAverageOrderValue,
-  getCancelledOrdersCount,
-  getCompletedOrdersCount,
   getKitchenQueue,
   getPendingOrdersCount,
+  getCompletedOrdersCount,
+  getCancelledOrdersCount,
   getPopularCombos,
   getRevenueByDay,
   getTodayOrders,
   getTodayRevenue,
   getTopSellingItems,
-} from '@/features/admin/lib/analytics'
+} from '@/features/admin/lib/backendAnalytics'
+import { fetchAdminOrders, updateAdminOrderStatus } from '@/lib/api/adminOrdersApi'
+import { fetchAdminCustomers } from '@/lib/api/adminCustomersApi'
+import { ApiError } from '@/lib/api/client'
 import { useDeliveryPartners } from '@/features/delivery/hooks/useDeliveryPartners'
 import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { formatCurrency } from '@/lib/utils'
-import type { OrderStatus } from '@/types'
+import { formatCurrency, cn } from '@/lib/utils'
+import type { BackendOrderStatus, CustomerSummaryDto, OrderDto } from '@/lib/api/types'
+
+function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
+}
 
 export default function AdminDashboardPage() {
   useDocumentTitle('Admin Dashboard')
-  const { orders, customers, refresh } = useAdminData()
   const { partners } = useDeliveryPartners()
   const { items: menuItems } = useMenuData()
+  const [orders, setOrders] = useState<OrderDto[]>([])
+  const [customers, setCustomers] = useState<CustomerSummaryDto[]>([])
+  const [loading, setLoading] = useState(true)
+  const [version, setVersion] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([fetchAdminOrders({ pageSize: 100 }), fetchAdminCustomers()])
+      .then(([orderResult, customerResult]) => {
+        if (cancelled) return
+        setOrders(orderResult.items)
+        setCustomers(customerResult)
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error('Could not load dashboard data', { description: errorMessage(error) })
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [version])
+
+  function refresh() {
+    setVersion((v) => v + 1)
+  }
 
   const todayOrders = getTodayOrders(orders)
   const todayRevenue = getTodayRevenue(orders)
@@ -46,10 +80,18 @@ export default function AdminDashboardPage() {
   const activePartners = partners.filter((p) => p.status !== 'offline').length
   const recentOrders = orders.slice(0, 6)
 
-  function handleKitchenAdvance(mobile: string, orderId: string, next: OrderStatus) {
-    updateOrderStatusGlobal(mobile, orderId, next)
-    refresh()
-    toast.success('Kitchen status updated')
+  async function handleKitchenAdvance(orderId: string, next: BackendOrderStatus) {
+    try {
+      await updateAdminOrderStatus(orderId, next)
+      toast.success('Kitchen status updated')
+      refresh()
+    } catch (error) {
+      toast.error('Could not update order', { description: errorMessage(error) })
+    }
+  }
+
+  if (loading) {
+    return <p className="text-muted-foreground py-12 text-center text-sm">Loading dashboard...</p>
   }
 
   return (
@@ -153,10 +195,12 @@ export default function AdminDashboardPage() {
                 <tbody>
                   {recentOrders.map((order) => (
                     <tr key={order.id} className="border-b last:border-0">
-                      <td className="py-2.5 font-medium">#{order.id.slice(0, 8).toUpperCase()}</td>
-                      <td className="text-muted-foreground py-2.5">+91 {order.mobile}</td>
+                      <td className="py-2.5 font-medium">#{order.orderNumber}</td>
+                      <td className="text-muted-foreground py-2.5">+91 {order.shippingAddress.phoneNumber}</td>
                       <td className="py-2.5">
-                        <OrderStatusBadge status={order.status} />
+                        <Badge variant="outline" className={cn('border', ORDER_STATUS_META[order.status].badgeClassName)}>
+                          {ORDER_STATUS_META[order.status].label}
+                        </Badge>
                       </td>
                       <td className="py-2.5 text-right font-medium">{formatCurrency(order.total)}</td>
                     </tr>

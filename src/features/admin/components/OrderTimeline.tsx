@@ -1,10 +1,12 @@
-import { OrderStatusBadge } from '@/features/admin/components/OrderStatusBadge'
-import { getRelativeTimeLabel } from '@/lib/utils'
-import type { Order } from '@/types'
+import { Badge } from '@/components/ui/badge'
+import { ORDER_STATUS_META } from '@/features/tracking/lib/backendOrderStatus'
+import { getLastUpdatedAt } from '@/features/admin/lib/backendAnalytics'
+import { getRelativeTimeLabel, cn } from '@/lib/utils'
+import type { OrderDto } from '@/lib/api/types'
 
-export function OrderTimeline({ orders }: { orders: Order[] }) {
+export function OrderTimeline({ orders }: { orders: OrderDto[] }) {
   const recent = [...orders].sort(
-    (a, b) => new Date(b.statusUpdatedAt).getTime() - new Date(a.statusUpdatedAt).getTime(),
+    (a, b) => new Date(getLastUpdatedAt(b)).getTime() - new Date(getLastUpdatedAt(a)).getTime(),
   )
 
   if (recent.length === 0) {
@@ -21,13 +23,15 @@ export function OrderTimeline({ orders }: { orders: Order[] }) {
           <span className="bg-primary relative mt-1.5 size-2.5 shrink-0 rounded-full" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">#{order.id.slice(0, 8).toUpperCase()}</p>
+              <p className="text-sm font-medium">#{order.orderNumber}</p>
               <span className="text-muted-foreground text-xs whitespace-nowrap">
-                {getRelativeTimeLabel(order.statusUpdatedAt)}
+                {getRelativeTimeLabel(getLastUpdatedAt(order))}
               </span>
             </div>
             <div className="mt-1">
-              <OrderStatusBadge status={order.status} />
+              <Badge variant="outline" className={cn('border', ORDER_STATUS_META[order.status].badgeClassName)}>
+                {ORDER_STATUS_META[order.status].label}
+              </Badge>
             </div>
           </div>
         </li>

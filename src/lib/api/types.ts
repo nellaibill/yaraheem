@@ -172,6 +172,19 @@ export interface OrderDto {
   items: OrderItemDto[]
   statusHistory: OrderStatusHistoryDto[]
   createdAt: string
+  paymentMethod: string | null
+}
+
+export interface CustomerSummaryDto {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  phoneNumber: string | null
+  createdAt: string
+  orderCount: number
+  totalSpent: number
+  lastOrderAt: string | null
 }
 
 export interface OrderTrackingEventDto {
@@ -184,4 +197,48 @@ export interface OrderTrackingResponse {
   status: BackendOrderStatus
   updatedAt: string
   timeline: OrderTrackingEventDto[]
+}
+
+export interface ContactMessageDto {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  subject: string
+  message: string
+  isResolved: boolean
+  createdAt: string
+}
+
+export interface SubmitContactMessageRequest {
+  name: string
+  email: string
+  phone?: string
+  subject: string
+  message: string
+}
+
+export type CateringInquiryStatus = 1 | 2 | 3 | 4
+
+export interface CateringInquiryDto {
+  id: string
+  name: string
+  phone: string
+  email: string | null
+  eventDate: string | null
+  guestCount: number | null
+  packageName: string | null
+  message: string | null
+  status: CateringInquiryStatus
+  createdAt: string
+}
+
+export interface SubmitCateringInquiryRequest {
+  name: string
+  phone: string
+  email?: string | null
+  eventDate?: string | null
+  guestCount?: number | null
+  packageName?: string | null
+  message?: string | null
 }
