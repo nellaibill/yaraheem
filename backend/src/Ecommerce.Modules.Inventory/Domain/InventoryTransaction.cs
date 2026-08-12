@@ -10,5 +10,6 @@ public class InventoryTransaction : BaseEntity
     public InventoryTransactionType Type { get; set; }
     public int QuantityChange { get; set; }
     public string? Reference { get; set; }
+    public string? Notes { get; set; }
     public DateTimeOffset OccurredAt { get; set; } = DateTimeOffset.UtcNow;
 }

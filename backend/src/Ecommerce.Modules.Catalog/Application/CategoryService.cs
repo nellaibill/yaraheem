@@ -31,6 +31,7 @@ public sealed class CategoryService(CatalogDbContext db) : ICategoryService
             Name = request.Name,
             Slug = request.Slug,
             Description = request.Description,
+            ImageUrl = request.ImageUrl,
             ParentCategoryId = request.ParentCategoryId,
             DisplayOrder = request.DisplayOrder,
         };
@@ -52,6 +53,7 @@ public sealed class CategoryService(CatalogDbContext db) : ICategoryService
         category.Name = request.Name;
         category.Slug = request.Slug;
         category.Description = request.Description;
+        category.ImageUrl = request.ImageUrl;
         category.ParentCategoryId = request.ParentCategoryId;
         category.DisplayOrder = request.DisplayOrder;
         category.IsActive = request.IsActive;
@@ -99,10 +101,10 @@ public sealed class CategoryService(CatalogDbContext db) : ICategoryService
         var byParent = categories.ToLookup(c => c.ParentCategoryId);
 
         IReadOnlyList<CategoryTreeNode> BuildChildren(Guid? parentId) =>
-            byParent[parentId].Select(c => new CategoryTreeNode(c.Id, c.Name, c.Slug, c.DisplayOrder, BuildChildren(c.Id))).ToList();
+            byParent[parentId].Select(c => new CategoryTreeNode(c.Id, c.Name, c.Slug, c.ImageUrl, c.DisplayOrder, BuildChildren(c.Id))).ToList();
 
         return BuildChildren(null);
     }
 
-    private static CategoryDto ToDto(Category c) => new(c.Id, c.Name, c.Slug, c.Description, c.ParentCategoryId, c.DisplayOrder, c.IsActive);
+    private static CategoryDto ToDto(Category c) => new(c.Id, c.Name, c.Slug, c.Description, c.ImageUrl, c.ParentCategoryId, c.DisplayOrder, c.IsActive);
 }

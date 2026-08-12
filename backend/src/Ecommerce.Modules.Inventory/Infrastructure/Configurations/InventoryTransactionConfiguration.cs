@@ -13,6 +13,7 @@ public sealed class InventoryTransactionConfiguration : IEntityTypeConfiguration
 
         builder.Property(t => t.Type).HasConversion<string>().HasMaxLength(30);
         builder.Property(t => t.Reference).HasMaxLength(200);
+        builder.Property(t => t.Notes).HasColumnType("text");
 
         builder.HasOne(t => t.InventoryItem)
             .WithMany(i => i.Transactions)
