@@ -1,10 +1,14 @@
 import { createContext } from 'react'
-import type { AdminUser } from '@/types'
+
+export interface AdminSessionUser {
+  name: string
+  email: string
+}
 
 export interface AdminAuthContextValue {
-  admin: AdminUser | null
+  admin: AdminSessionUser | null
   isAuthenticated: boolean
-  login: (username: string, password: string) => boolean
+  login: (email: string, password: string) => Promise<boolean>
   logout: () => void
 }
 

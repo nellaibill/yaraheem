@@ -123,14 +123,18 @@ public sealed class OrderService(
 
     public async Task<OrderDto> UpdateStatusAsync(Guid orderId, UpdateOrderStatusRequest request, Guid? changedByUserId, CancellationToken cancellationToken)
     {
-        var order = await LoadTrackedOrderQuery().FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
+        // Only StatusHistory needs to be tracked for this mutation. Loading Items/ShippingAddress
+        // on the same tracked entity too (as LoadTrackedOrderQuery does) causes EF Core to
+        // misreport the UPDATE's affected-row count and throw a spurious
+        // DbUpdateConcurrencyException — see MarkOrderConfirmedFromPaymentAsync for the same reason.
+        var order = await db.Orders.Include(o => o.StatusHistory).FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
                     ?? throw new NotFoundException("Order", orderId);
 
         ApplyStatusTransition(order, request.Status, changedByUserId, request.Notes);
 
         await db.SaveChangesAsync(cancellationToken);
 
-        return ToDto(order);
+        return await GetByIdAsync(Guid.Empty, isAdmin: true, orderId, cancellationToken);
     }
 
     public async Task<PagedResult<OrderDto>> GetAdminOrdersAsync(AdminOrderQuery query, CancellationToken cancellationToken)
@@ -214,13 +218,22 @@ public sealed class OrderService(
     {
         transitionService.EnsureValidTransition(order.Status, newStatus);
 
-        order.StatusHistory.Add(new OrderStatusHistory
+        // Adding only via order.StatusHistory.Add(...) on an already-persisted (tracked,
+        // not newly-Added) Order leaves EF Core unable to tell this new child apart from an
+        // existing one with the same client-generated Guid key — it gets queued as an UPDATE
+        // instead of an INSERT, which then matches 0 rows and throws a spurious
+        // DbUpdateConcurrencyException. Adding it to the DbSet directly forces EF to track it
+        // as Added regardless of how the parent Order is currently tracked.
+        var historyEntry = new OrderStatusHistory
         {
+            OrderId = order.Id,
             PreviousStatus = order.Status,
             NewStatus = newStatus,
             ChangedByUserId = changedByUserId,
             Notes = notes,
-        });
+        };
+        db.OrderStatusHistories.Add(historyEntry);
+        order.StatusHistory.Add(historyEntry);
 
         order.Status = newStatus;
     }
@@ -256,13 +269,20 @@ public sealed class OrderService(
         db.Orders.AsNoTracking()
             .Include(o => o.ShippingAddress)
             .Include(o => o.Items)
-            .Include(o => o.StatusHistory);
+            .Include(o => o.StatusHistory)
+            .AsSplitQuery();
 
+    // AsSplitQuery is required here, not just a perf nicety: loading two collection
+    // navigations (Items + StatusHistory) via a single cartesian-product query, then
+    // modifying the root entity and calling SaveChanges, causes EF Core to misreport the
+    // UPDATE's affected-row count and throw a spurious DbUpdateConcurrencyException even
+    // though there is no actual concurrency conflict (no RowVersion/token exists on Order).
     private IQueryable<Order> LoadTrackedOrderQuery() =>
         db.Orders
             .Include(o => o.ShippingAddress)
             .Include(o => o.Items)
-            .Include(o => o.StatusHistory);
+            .Include(o => o.StatusHistory)
+            .AsSplitQuery();
 
     private static OrderDto ToDto(Order o) => new(
         o.Id,

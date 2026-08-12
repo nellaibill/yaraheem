@@ -1,32 +1,26 @@
-import { useCallback, useMemo, type ReactNode } from 'react'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { STORAGE_KEYS } from '@/lib/constants'
-import { defaultAdminUsers } from '@/features/admin/data/adminUsers'
-import { AdminAuthContext } from '@/features/admin/context/admin-auth-context'
-import type { AdminUser } from '@/types'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { adminLogin, adminLogout, getAdminSession } from '@/lib/api/adminClient'
+import { AdminAuthContext, type AdminSessionUser } from '@/features/admin/context/admin-auth-context'
 
+function toSessionUser(session: ReturnType<typeof getAdminSession>): AdminSessionUser | null {
+  if (!session) return null
+  return { name: `${session.user.firstName} ${session.user.lastName}`.trim(), email: session.user.email }
+}
+
+/** Admin login is real backend auth (the single seeded Admin account) — see lib/api/adminClient.ts. */
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [users] = useLocalStorage<AdminUser[]>(STORAGE_KEYS.adminUsers, defaultAdminUsers)
-  const [sessionUsername, setSessionUsername] = useLocalStorage<string | null>(
-    STORAGE_KEYS.adminSession,
-    null,
-  )
+  const [admin, setAdmin] = useState<AdminSessionUser | null>(() => toSessionUser(getAdminSession()))
 
-  const login = useCallback(
-    (username: string, password: string) => {
-      const match = users.find(
-        (u) => u.username.toLowerCase() === username.trim().toLowerCase() && u.password === password,
-      )
-      if (!match) return false
-      setSessionUsername(match.username)
-      return true
-    },
-    [users, setSessionUsername],
-  )
+  const login = useCallback(async (email: string, password: string) => {
+    const success = await adminLogin(email, password)
+    setAdmin(success ? toSessionUser(getAdminSession()) : null)
+    return success
+  }, [])
 
-  const logout = useCallback(() => setSessionUsername(null), [setSessionUsername])
-
-  const admin = sessionUsername ? (users.find((u) => u.username === sessionUsername) ?? null) : null
+  const logout = useCallback(() => {
+    adminLogout()
+    setAdmin(null)
+  }, [])
 
   const value = useMemo(
     () => ({ admin, isAuthenticated: admin !== null, login, logout }),

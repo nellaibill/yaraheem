@@ -20,14 +20,14 @@ export default function AdminLoginPage() {
     return <Navigate to="/admin" replace />
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!username.trim() || !password.trim()) {
-      setError('Please enter both username/email and password')
+      setError('Please enter both email and password')
       return
     }
-    if (!login(username, password)) {
-      setError('Invalid username or password')
+    if (!(await login(username, password))) {
+      setError('Invalid email or password')
       return
     }
     setError('')
@@ -60,13 +60,13 @@ export default function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="grid gap-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="admin-username">Username / Email</Label>
+            <Label htmlFor="admin-username">Email</Label>
             <div className="relative">
               <User className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
                 id="admin-username"
                 autoFocus
-                placeholder="admin"
+                placeholder="admin@ecommerce.local"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="pl-9"
@@ -96,8 +96,8 @@ export default function AdminLoginPage() {
         </form>
 
         <div className="mt-6 rounded-lg border border-dashed p-3">
-          <p className="text-muted-foreground mb-1.5 text-xs font-medium">Demo credentials</p>
-          <p className="text-muted-foreground text-xs">Username: admin · Password: admin123</p>
+          <p className="text-muted-foreground mb-1.5 text-xs font-medium">Seeded admin account</p>
+          <p className="text-muted-foreground text-xs">Email: admin@ecommerce.local · Password: Admin@123</p>
         </div>
       </motion.div>
     </div>
