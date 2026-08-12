@@ -29,6 +29,13 @@ public static class SharedInfrastructureExtensions
         var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
                   ?? throw new InvalidOperationException("Jwt configuration section is missing.");
 
+        if (string.IsNullOrWhiteSpace(jwt.SigningKey) || jwt.SigningKey.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "Jwt:SigningKey is missing or shorter than 32 characters. Set it via user-secrets (dev) or the " +
+                "Jwt__SigningKey environment variable — see backend/SECRETS.md. Refusing to start with a weak or absent signing key.");
+        }
+
         services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -71,7 +78,14 @@ public static class SharedInfrastructureExtensions
                 }
                 else
                 {
-                    policy.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true).AllowCredentials();
+                    // Fail closed: no configured origins means no cross-origin requests are
+                    // allowed at all, not "allow anything." A previous version of this policy
+                    // fell back to reflecting any origin with credentials enabled, which is a
+                    // wide-open CORS hole if Cors:AllowedOrigins is ever missing/blank.
+                    Console.Error.WriteLine(
+                        "WARNING: Cors:AllowedOrigins is empty — denying all cross-origin requests. " +
+                        "Set Cors:AllowedOrigins to enable the frontend(s) that need API access.");
+                    policy.WithOrigins(Array.Empty<string>()).AllowAnyHeader().AllowAnyMethod();
                 }
             });
         });
