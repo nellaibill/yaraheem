@@ -1,42 +1,58 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, FastForward, MapPin, PackageSearch, Phone, Receipt } from 'lucide-react'
+import { MapPin, PackageSearch, Phone, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { StatusTimeline } from '@/features/tracking/components/StatusTimeline'
+import { PageLoader } from '@/components/common/PageLoader'
+import { BackendStatusTimeline } from '@/features/tracking/components/BackendStatusTimeline'
+import { ORDER_STATUS_META } from '@/features/tracking/lib/backendOrderStatus'
 import { EmptyState } from '@/components/common/EmptyState'
-import { useOrders } from '@/features/checkout/hooks/useOrders'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { ensureBackendSession } from '@/lib/api/authBridge'
+import { fetchOrder, fetchOrderTracking } from '@/lib/api/ordersApi'
+import type { OrderDto, OrderTrackingResponse } from '@/lib/api/types'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
-import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS, SITE } from '@/lib/constants'
-
-const AUTO_ADVANCE_MS = 5000
+import { SITE } from '@/lib/constants'
 
 export default function OrderTrackingPage() {
   const { id } = useParams()
-  const { getOrder, advanceStatus } = useOrders()
-  const order = id ? getOrder(id) : undefined
-  const [now, setNow] = useState(() => Date.now())
-  useDocumentTitle(order ? `Order #${order.id.slice(0, 8).toUpperCase()}` : 'Order Not Found')
-
-  const isDelivered = order?.status === 'delivered'
-  const isCancelled = order?.status === 'cancelled'
-  const isFinal = isDelivered || isCancelled
+  const { user } = useAuth()
+  const [order, setOrder] = useState<OrderDto | null>(null)
+  const [tracking, setTracking] = useState<OrderTrackingResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+  useDocumentTitle(order ? `Order #${order.orderNumber}` : 'Order')
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [])
+    if (!id || !user) return
+    let cancelled = false
+    setLoading(true)
+    setNotFound(false)
+    ensureBackendSession(user.mobile, user.name)
+      .then(() => Promise.all([fetchOrder(id), fetchOrderTracking(id)]))
+      .then(([orderResult, trackingResult]) => {
+        if (cancelled) return
+        setOrder(orderResult)
+        setTracking(trackingResult)
+      })
+      .catch((error) => {
+        console.error('Failed to load order.', error)
+        if (!cancelled) setNotFound(true)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, user])
 
-  useEffect(() => {
-    if (!order || isFinal) return
-    const timer = setInterval(() => advanceStatus(order.id), AUTO_ADVANCE_MS)
-    return () => clearInterval(timer)
-  }, [order, isFinal, advanceStatus])
+  if (loading) return <PageLoader />
 
-  if (!order) {
+  if (notFound || !order || !tracking) {
     return (
       <EmptyState
         fullPage
@@ -49,11 +65,9 @@ export default function OrderTrackingPage() {
     )
   }
 
-  const elapsedMs = now - new Date(order.createdAt).getTime()
-  const remainingMinutes = Math.max(
-    order.estimatedDeliveryMinutes - Math.floor(elapsedMs / 60000),
-    0,
-  )
+  const isDelivered = order.status === 5
+  const isCancelled = order.status === 6
+  const address = order.shippingAddress
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
@@ -67,37 +81,17 @@ export default function OrderTrackingPage() {
             <p className="text-3xl">🎉</p>
           ) : isCancelled ? (
             <p className="text-3xl">⚠️</p>
-          ) : (
-            <span className="bg-secondary text-muted-foreground inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium">
-              <Clock className="size-3.5" />
-              {remainingMinutes > 0 ? `Estimated delivery in ${remainingMinutes} min` : 'Arriving any moment'}
-            </span>
-          )}
+          ) : null}
         </motion.div>
         <h1 className="font-display mt-4 text-2xl font-bold sm:text-3xl">
-          {isDelivered
-            ? 'Delivered! Enjoy your meal.'
-            : isCancelled
-              ? 'Order Cancelled'
-              : ORDER_STATUS_LABELS[order.status]}
+          {isDelivered ? 'Delivered! Enjoy your meal.' : isCancelled ? 'Order Cancelled' : ORDER_STATUS_META[order.status].label}
         </h1>
-        <p className="text-muted-foreground mt-1 text-sm">Order #{order.id.slice(0, 8).toUpperCase()}</p>
+        <p className="text-muted-foreground mt-1 text-sm">Order #{order.orderNumber}</p>
       </div>
 
       <Card className="mb-6">
         <CardContent className="p-6">
-          <StatusTimeline status={order.status} />
-          {!isFinal && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground mt-2 gap-1.5"
-              onClick={() => advanceStatus(order.id)}
-            >
-              <FastForward className="size-3.5" />
-              Simulate next step (demo)
-            </Button>
-          )}
+          <BackendStatusTimeline status={order.status} timeline={tracking.timeline} />
         </CardContent>
       </Card>
 
@@ -109,9 +103,9 @@ export default function OrderTrackingPage() {
               Delivering To
             </h2>
             <p className="text-muted-foreground text-sm">
-              {order.address.label} — {order.address.line1}
-              {order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city},{' '}
-              {order.address.state} - {order.address.pincode}
+              {address.fullName} — {address.addressLine1}
+              {address.addressLine2 ? `, ${address.addressLine2}` : ''}, {address.city}, {address.state} -{' '}
+              {address.postalCode}
             </p>
             <Separator />
             <h2 className="flex items-center gap-2 text-sm font-semibold">
@@ -130,32 +124,19 @@ export default function OrderTrackingPage() {
               <Receipt className="size-4" />
               Order Summary
             </h2>
-            {order.lines.map((line) => (
-              <div key={line.itemId} className="text-muted-foreground flex justify-between text-xs">
+            {order.items.map((item) => (
+              <div key={item.id} className="text-muted-foreground flex justify-between text-xs">
                 <span>
-                  {line.quantity} × {line.name}
+                  {item.quantity} × {item.productName}
                 </span>
-                <span>{formatCurrency(line.price * line.quantity)}</span>
+                <span>{formatCurrency(item.lineTotal)}</span>
               </div>
             ))}
             <Separator className="my-1" />
-            {order.discount > 0 && (
-              <div className="flex justify-between text-xs text-green-700">
-                <span>Discount ({order.couponCode})</span>
-                <span>-{formatCurrency(order.discount)}</span>
-              </div>
-            )}
-            <div className="text-muted-foreground flex justify-between text-xs">
-              <span>Delivery Fee</span>
-              <span>{order.deliveryFee === 0 ? 'Free' : formatCurrency(order.deliveryFee)}</span>
-            </div>
             <div className="flex justify-between text-sm font-semibold">
               <span>Total</span>
               <span>{formatCurrency(order.total)}</span>
             </div>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Paid via {PAYMENT_METHOD_LABELS[order.paymentMethod]}
-            </p>
           </CardContent>
         </Card>
       </div>
