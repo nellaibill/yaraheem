@@ -93,6 +93,9 @@ export default function AdminLoginPage() {
             <LayoutDashboard className="size-4" />
             Login to Dashboard
           </Button>
+          <Link to="/admin/forgot-password" className="text-muted-foreground hover:text-foreground text-center text-xs font-medium">
+            Forgot password?
+          </Link>
         </form>
 
         {import.meta.env.DEV && (

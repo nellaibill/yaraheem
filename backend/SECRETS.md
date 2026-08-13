@@ -8,6 +8,7 @@ None of these are committed to source control. The app fails fast at startup if 
 | `Jwt:SigningKey` | Yes | Minimum 32 characters. App throws at startup if missing or shorter. Rotating this invalidates every existing access/refresh token — every logged-in session (customer, admin) is forced to re-authenticate. |
 | `AdminSeed:Password` | No | If left unset, `IdentitySeeder` skips seeding the admin account and logs a warning, rather than falling back to a hardcoded password. Set it once to seed the initial admin, then it's safe to leave configured or remove — seeding is idempotent (skipped if the account already exists). |
 | `Payments:WebhookSecret` | Yes (to receive webhooks) | Shared HMAC-SHA256 secret used to verify `POST /api/payments/webhook` calls. Requests without a valid `X-Webhook-Signature` header are rejected. |
+| `Email:SmtpHost` / `Email:SmtpUsername` / `Email:SmtpPassword` | No | Leave unset in dev/pilot — password-reset emails are written to the application log instead of sent (see `LoggingEmailSender`). Set all three (a real SMTP provider — SendGrid, SES, etc.) before go-live, or password reset never reaches a real inbox. |
 
 ## Local development
 

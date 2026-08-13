@@ -1,4 +1,5 @@
 using System.Text;
+using Ecommerce.Shared.Infrastructure.Email;
 using Ecommerce.Shared.Infrastructure.Options;
 using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Infrastructure.Security;
@@ -20,8 +21,19 @@ public static class SharedInfrastructureExtensions
         services.Configure<SerilogOptions>(configuration.GetSection(SerilogOptions.SectionName));
         services.Configure<AdminSeedOptions>(configuration.GetSection(AdminSeedOptions.SectionName));
         services.Configure<DeliveryPricingOptions>(configuration.GetSection(DeliveryPricingOptions.SectionName));
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
 
         services.AddSingleton<IDeliveryFeeCalculator, DeliveryFeeCalculator>();
+
+        var emailOptions = configuration.GetSection(EmailOptions.SectionName).Get<EmailOptions>() ?? new EmailOptions();
+        if (string.IsNullOrWhiteSpace(emailOptions.SmtpHost))
+        {
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();

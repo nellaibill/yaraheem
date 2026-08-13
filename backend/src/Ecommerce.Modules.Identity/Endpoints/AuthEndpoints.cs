@@ -48,6 +48,29 @@ public static class AuthEndpoints
             return Results.Ok(ApiResponse<AuthResponse>.SuccessResponse(result, "Token refreshed."));
         }).RequireRateLimiting("auth");
 
+        group.MapPost("/forgot-password", async (
+            ForgotPasswordRequest request,
+            IValidator<ForgotPasswordRequest> validator,
+            IAuthService authService,
+            CancellationToken cancellationToken) =>
+        {
+            await validator.ValidateAndThrowAsync(request, cancellationToken);
+            var result = await authService.ForgotPasswordAsync(request.Email, cancellationToken);
+            return Results.Ok(ApiResponse<ForgotPasswordResponse>.SuccessResponse(result, "If that email exists, a reset link has been sent."));
+        }).RequireRateLimiting("auth")
+          .WithSummary("Always returns success, whether or not the email exists, so this can't be used to enumerate accounts.");
+
+        group.MapPost("/reset-password", async (
+            ResetPasswordRequest request,
+            IValidator<ResetPasswordRequest> validator,
+            IAuthService authService,
+            CancellationToken cancellationToken) =>
+        {
+            await validator.ValidateAndThrowAsync(request, cancellationToken);
+            await authService.ResetPasswordAsync(request.Token, request.NewPassword, cancellationToken);
+            return Results.Ok(ApiResponse<object?>.SuccessResponse(null, "Password reset — please log in with your new password."));
+        }).RequireRateLimiting("auth");
+
         group.MapGet("/me", async (
             ICurrentUser currentUser,
             IAuthService authService,
