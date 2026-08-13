@@ -4,6 +4,7 @@ using Ecommerce.Shared.Infrastructure.Options;
 using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Infrastructure.Security;
 using Ecommerce.Shared.Infrastructure.Sms;
+using Ecommerce.Shared.Infrastructure.WhatsApp;
 using Ecommerce.Shared.Kernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,7 @@ public static class SharedInfrastructureExtensions
         services.Configure<DeliveryPricingOptions>(configuration.GetSection(DeliveryPricingOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
+        services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
 
         services.AddSingleton<IDeliveryFeeCalculator, DeliveryFeeCalculator>();
 
@@ -45,6 +47,16 @@ public static class SharedInfrastructureExtensions
         else
         {
             services.AddHttpClient<ISmsSender, Msg91SmsSender>();
+        }
+
+        var whatsAppOptions = configuration.GetSection(WhatsAppOptions.SectionName).Get<WhatsAppOptions>() ?? new WhatsAppOptions();
+        if (string.IsNullOrWhiteSpace(whatsAppOptions.TwilioAccountSid))
+        {
+            services.AddSingleton<IWhatsAppSender, LoggingWhatsAppSender>();
+        }
+        else
+        {
+            services.AddHttpClient<IWhatsAppSender, TwilioWhatsAppSender>();
         }
 
         services.AddHttpContextAccessor();

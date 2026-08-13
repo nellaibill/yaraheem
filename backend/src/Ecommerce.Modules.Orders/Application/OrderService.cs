@@ -15,6 +15,7 @@ using Ecommerce.Modules.Payments.Domain;
 using Ecommerce.Modules.Payments.Infrastructure;
 using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Infrastructure.Sms;
+using Ecommerce.Shared.Infrastructure.WhatsApp;
 using Ecommerce.Shared.Kernel;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,7 @@ public sealed class OrderService(
     IDeliveryFeeCalculator deliveryFeeCalculator,
     IAuditLogService auditLog,
     ISmsSender smsSender,
+    IWhatsAppSender whatsAppSender,
     ILogger<OrderService> logger) : IOrderService
 {
     private const int MaxOrderNumberAttempts = 3;
@@ -291,6 +293,15 @@ public sealed class OrderService(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Order SMS notification failed for {PhoneNumber} — order flow continues regardless.", phoneNumber);
+        }
+
+        try
+        {
+            await whatsAppSender.SendAsync(phoneNumber, message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Order WhatsApp notification failed for {PhoneNumber} — order flow continues regardless.", phoneNumber);
         }
     }
 
