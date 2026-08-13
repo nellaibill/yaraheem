@@ -31,6 +31,8 @@ const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 const PortalSelectionPage = lazy(() => import('@/pages/PortalSelectionPage'))
 
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'))
+const AdminForgotPasswordPage = lazy(() => import('@/pages/admin/AdminForgotPasswordPage'))
+const AdminResetPasswordPage = lazy(() => import('@/pages/admin/AdminResetPasswordPage'))
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminMenuPage = lazy(() => import('@/pages/admin/AdminMenuPage'))
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'))
@@ -111,6 +113,8 @@ const router = createBrowserRouter(
         },
         { path: '/portal', element: withSuspense(<PortalSelectionPage />) },
         { path: '/admin/login', element: withSuspense(<AdminLoginPage />) },
+        { path: '/admin/forgot-password', element: withSuspense(<AdminForgotPasswordPage />) },
+        { path: '/admin/reset-password', element: withSuspense(<AdminResetPasswordPage />) },
         {
           element: <RequireAdminAuth />,
           children: [
