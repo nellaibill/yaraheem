@@ -10,6 +10,7 @@ None of these are committed to source control. The app fails fast at startup if 
 | `Payments:WebhookSecret` | Yes (to receive webhooks) | Shared HMAC-SHA256 secret used to verify `POST /api/payments/webhook` calls. Requests without a valid `X-Webhook-Signature` header are rejected. |
 | `Email:SmtpHost` / `Email:SmtpUsername` / `Email:SmtpPassword` | No | Leave unset in dev/pilot — password-reset emails are written to the application log instead of sent (see `LoggingEmailSender`). Set all three (a real SMTP provider — SendGrid, SES, etc.) before go-live, or password reset never reaches a real inbox. |
 | `Sms:Msg91ApiKey` / `Sms:Msg91TemplateId` | No | Leave unset in dev/pilot — OTP codes and order-status texts are written to the application log instead of sent (see `LoggingSmsSender`). Set both (a DLT-registered MSG91 template is required for Indian transactional SMS) before go-live, or customers never receive OTPs/notifications by real SMS. |
+| `WhatsApp:TwilioAccountSid` / `WhatsApp:TwilioAuthToken` / `WhatsApp:TwilioFromNumber` | No | Leave unset in dev/pilot — order notifications are written to the application log instead of sent (see `LoggingWhatsAppSender`). Set all three before go-live. `TwilioFromNumber` must be a WhatsApp-enabled Twilio sender (e.g. `whatsapp:+14155238886` for their sandbox, or your approved business number) — production also needs a WhatsApp Business Content Template approved by Meta for messages sent outside an active 24-hour customer session. |
 
 ## Local development
 
