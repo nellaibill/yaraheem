@@ -1,3 +1,4 @@
+using Ecommerce.Modules.Audit.Application;
 using Ecommerce.Modules.Cart.Application;
 using Ecommerce.Modules.Identity.Domain;
 using Ecommerce.Modules.Identity.Infrastructure;
@@ -27,6 +28,7 @@ public sealed class OrderService(
     IPaymentService paymentService,
     IOrderStatusTransitionService transitionService,
     IDeliveryFeeCalculator deliveryFeeCalculator,
+    IAuditLogService auditLog,
     ILogger<OrderService> logger) : IOrderService
 {
     private const int MaxOrderNumberAttempts = 3;
@@ -230,9 +232,12 @@ public sealed class OrderService(
         var order = await db.Orders.Include(o => o.StatusHistory).FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
                     ?? throw new NotFoundException("Order", orderId);
 
+        var previousStatus = order.Status;
         ApplyStatusTransition(db, order, request.Status, changedByUserId, request.Notes);
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await auditLog.LogAsync("Order.StatusChanged", "Order", order.Id.ToString(), $"{previousStatus} -> {order.Status}", cancellationToken);
 
         return await GetByIdAsync(Guid.Empty, isAdmin: true, orderId, cancellationToken);
     }

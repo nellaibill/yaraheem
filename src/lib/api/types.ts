@@ -222,6 +222,18 @@ export interface OrderDto {
   paymentMethod: string | null
 }
 
+export interface AuditLogEntryDto {
+  id: string
+  actorUserId: string | null
+  actorEmail: string | null
+  action: string
+  entityType: string | null
+  entityId: string | null
+  details: string | null
+  ipAddress: string | null
+  createdAt: string
+}
+
 export interface CustomerSummaryDto {
   id: string
   email: string
