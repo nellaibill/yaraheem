@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Ecommerce.Shared.Kernel\Ecommerce.Shared.Kernel.csproj" />
     <ProjectReference Include="..\Ecommerce.Shared.Infrastructure\Ecommerce.Shared.Infrastructure.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Audit\Ecommerce.Modules.Audit.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.Coupons\Ecommerce.Modules.Coupons.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Identity\Ecommerce.Modules.Identity.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Catalog\Ecommerce.Modules.Catalog.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Cart\Ecommerce.Modules.Cart.csproj" />

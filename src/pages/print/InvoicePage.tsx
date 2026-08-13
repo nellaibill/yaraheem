@@ -131,7 +131,7 @@ export default function InvoicePage() {
           </div>
           {order.discountAmount > 0 && (
             <div className="flex justify-between">
-              <span className="text-gray-600">Discount</span>
+              <span className="text-gray-600">Discount{order.couponCode ? ` (${order.couponCode})` : ''}</span>
               <span>-{formatCurrency(order.discountAmount)}</span>
             </div>
           )}

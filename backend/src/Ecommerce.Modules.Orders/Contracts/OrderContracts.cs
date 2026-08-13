@@ -35,6 +35,7 @@ public sealed record OrderDto(
     decimal Subtotal,
     decimal DeliveryFee,
     decimal DiscountAmount,
+    string? CouponCode,
     decimal Total,
     AddressDto ShippingAddress,
     IReadOnlyList<OrderItemDto> Items,
@@ -53,7 +54,7 @@ public sealed record CustomerSummaryDto(
     decimal TotalSpent,
     DateTimeOffset? LastOrderAt);
 
-public sealed record CheckoutRequest(string PaymentMethod, ShippingAddressRequest ShippingAddress);
+public sealed record CheckoutRequest(string PaymentMethod, ShippingAddressRequest ShippingAddress, string? CouponCode = null);
 
 public sealed record CheckoutResponse(Guid OrderId, string OrderNumber, PaymentStatus PaymentStatus, string TransactionReference);
 

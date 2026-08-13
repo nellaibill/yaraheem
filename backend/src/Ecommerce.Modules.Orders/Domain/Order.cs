@@ -12,6 +12,7 @@ public class Order : BaseEntity
     public decimal DiscountAmount { get; set; }
     public decimal Total { get; set; }
     public string? IdempotencyKey { get; set; }
+    public string? CouponCode { get; set; }
 
     public Address ShippingAddress { get; set; } = null!;
     public ICollection<OrderItem> Items { get; set; } = [];

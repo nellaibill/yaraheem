@@ -1,5 +1,7 @@
 using Ecommerce.Modules.Audit.Application;
 using Ecommerce.Modules.Cart.Application;
+using Ecommerce.Modules.Coupons.Application;
+using Ecommerce.Modules.Coupons.Infrastructure;
 using Ecommerce.Modules.Identity.Domain;
 using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory.Application;
@@ -58,7 +60,6 @@ public sealed class OrderService(
         // Backend is the sole source of truth for pricing — the frontend only ever displays
         // what gets computed here, never supplies a delivery fee or discount of its own.
         var deliveryFee = deliveryFeeCalculator.Calculate(cart.Subtotal);
-        const decimal discountAmount = 0m; // coupon engine not implemented yet; kept for schema/reporting completeness
 
         var order = new Order
         {
@@ -67,8 +68,8 @@ public sealed class OrderService(
             Status = OrderStatus.Pending,
             Subtotal = cart.Subtotal,
             DeliveryFee = deliveryFee,
-            DiscountAmount = discountAmount,
-            Total = cart.Subtotal - discountAmount + deliveryFee,
+            DiscountAmount = 0m,
+            Total = cart.Subtotal + deliveryFee,
             IdempotencyKey = idempotencyKey,
             ShippingAddress = new Address
             {
@@ -128,9 +129,28 @@ public sealed class OrderService(
         await using var txPaymentsDb = new PaymentsDbContext(new DbContextOptionsBuilder<PaymentsDbContext>().UseNpgsql(connection).Options);
         await txPaymentsDb.Database.UseTransactionAsync(dbTransaction, cancellationToken);
 
+        await using var txCouponsDb = new CouponsDbContext(new DbContextOptionsBuilder<CouponsDbContext>().UseNpgsql(connection).Options);
+        await txCouponsDb.Database.UseTransactionAsync(dbTransaction, cancellationToken);
+
         PaymentResult paymentResult;
         try
         {
+            // Validate and redeem the coupon (if any) first — row-locked and atomic with the
+            // rest of this transaction so two concurrent checkouts can't both redeem the last
+            // use of a limited coupon. Fails fast before touching inventory if the code is bad.
+            if (!string.IsNullOrWhiteSpace(request.CouponCode))
+            {
+                var redemption = await new CouponService(txCouponsDb).TryRedeemAsync(userId, request.CouponCode, cart.Subtotal, order.Id, cancellationToken);
+                if (!redemption.Success)
+                {
+                    throw new ConflictException(redemption.ErrorMessage ?? "This coupon could not be applied.");
+                }
+
+                order.CouponCode = request.CouponCode.Trim().ToUpperInvariant();
+                order.DiscountAmount = redemption.DiscountAmount;
+                order.Total = order.Subtotal - redemption.DiscountAmount + order.DeliveryFee;
+            }
+
             // Row-level lock: hold every affected product's inventory row for the rest of this
             // transaction so a concurrent checkout for the same product can't read stock before
             // this one commits its deduction and oversell. Released automatically on commit/rollback.
@@ -438,7 +458,7 @@ public sealed class OrderService(
             .AsSplitQuery();
 
     private static OrderDto ToDto(Order o, string? paymentMethod) => new(
-        o.Id, o.OrderNumber, o.UserId, o.Status, o.Subtotal, o.DeliveryFee, o.DiscountAmount, o.Total,
+        o.Id, o.OrderNumber, o.UserId, o.Status, o.Subtotal, o.DeliveryFee, o.DiscountAmount, o.CouponCode, o.Total,
         new AddressDto(o.ShippingAddress.FullName, o.ShippingAddress.PhoneNumber, o.ShippingAddress.AddressLine1, o.ShippingAddress.AddressLine2, o.ShippingAddress.City, o.ShippingAddress.State, o.ShippingAddress.PostalCode, o.ShippingAddress.Country),
         o.Items.Select(i => new OrderItemDto(i.Id, i.ProductId, i.ProductVariantId, i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList(),
         o.StatusHistory.OrderBy(h => h.ChangedAt).Select(h => new OrderStatusHistoryDto(h.PreviousStatus, h.NewStatus, h.Notes, h.ChangedAt)).ToList(),
