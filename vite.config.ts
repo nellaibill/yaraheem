@@ -5,7 +5,10 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/yaraheem/',
+  // GitHub Pages serves this app from a /yaraheem/ subpath, so that's the default. A
+  // self-hosted deployment on its own domain (see docker-compose.yml) overrides this to '/'
+  // via the VITE_BASE_PATH build arg, since it isn't sharing a domain with anything else.
+  base: process.env.VITE_BASE_PATH ?? '/yaraheem/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
