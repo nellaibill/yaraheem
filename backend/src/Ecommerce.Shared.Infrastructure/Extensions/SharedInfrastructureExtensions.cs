@@ -39,25 +39,12 @@ public static class SharedInfrastructureExtensions
             services.AddSingleton<IEmailSender, SmtpEmailSender>();
         }
 
-        var smsOptions = configuration.GetSection(SmsOptions.SectionName).Get<SmsOptions>() ?? new SmsOptions();
-        if (string.IsNullOrWhiteSpace(smsOptions.Msg91ApiKey))
-        {
-            services.AddSingleton<ISmsSender, LoggingSmsSender>();
-        }
-        else
-        {
-            services.AddHttpClient<ISmsSender, Msg91SmsSender>();
-        }
-
-        var whatsAppOptions = configuration.GetSection(WhatsAppOptions.SectionName).Get<WhatsAppOptions>() ?? new WhatsAppOptions();
-        if (string.IsNullOrWhiteSpace(whatsAppOptions.TwilioAccountSid))
-        {
-            services.AddSingleton<IWhatsAppSender, LoggingWhatsAppSender>();
-        }
-        else
-        {
-            services.AddHttpClient<IWhatsAppSender, TwilioWhatsAppSender>();
-        }
+        // Msg91SmsSender/TwilioWhatsAppSender resolve their credentials per call (database
+        // override from the admin Integration Settings page, falling back to config) and log
+        // instead of sending when neither source has a value — so a single registration covers
+        // both the "nothing configured" and "real provider" cases.
+        services.AddHttpClient<ISmsSender, Msg91SmsSender>();
+        services.AddHttpClient<IWhatsAppSender, TwilioWhatsAppSender>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();

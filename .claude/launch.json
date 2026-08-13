@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "yaraheem-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "backend/src/Ecommerce.Api"],
+      "port": 5247
     }
   ]
 }

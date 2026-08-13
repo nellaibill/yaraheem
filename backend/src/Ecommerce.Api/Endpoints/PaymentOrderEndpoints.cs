@@ -67,7 +67,7 @@ public static class PaymentOrderEndpoints
             // trusting anything else in the request.
             await orderService.GetByIdAsync(currentUser.UserId!.Value, currentUser.IsInRole("Admin"), request.OrderId, cancellationToken);
 
-            if (!razorpayGateway.VerifyPaymentSignature(request.RazorpayOrderId, request.RazorpayPaymentId, request.RazorpaySignature))
+            if (!await razorpayGateway.VerifyPaymentSignatureAsync(request.RazorpayOrderId, request.RazorpayPaymentId, request.RazorpaySignature, cancellationToken))
             {
                 throw new UnauthorizedAppException("Payment signature verification failed.");
             }
@@ -97,7 +97,7 @@ public static class PaymentOrderEndpoints
             httpContext.Request.Body.Position = 0;
 
             var signature = httpContext.Request.Headers["X-Razorpay-Signature"].ToString();
-            if (!razorpayGateway.VerifyWebhookSignature(rawBody, signature))
+            if (!await razorpayGateway.VerifyWebhookSignatureAsync(rawBody, signature, cancellationToken))
             {
                 logger.LogWarning("Razorpay webhook rejected: missing or invalid X-Razorpay-Signature.");
                 return Results.Unauthorized();

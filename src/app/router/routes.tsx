@@ -43,6 +43,7 @@ const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'))
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'))
 const AdminAuditLogPage = lazy(() => import('@/pages/admin/AdminAuditLogPage'))
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'))
+const AdminIntegrationSettingsPage = lazy(() => import('@/pages/admin/AdminIntegrationSettingsPage'))
 
 const KotPage = lazy(() => import('@/pages/print/KotPage'))
 const InvoicePage = lazy(() => import('@/pages/print/InvoicePage'))
@@ -134,6 +135,7 @@ const router = createBrowserRouter(
                 { path: 'reports', element: withSuspense(<AdminReportsPage />) },
                 { path: 'audit-log', element: withSuspense(<AdminAuditLogPage />) },
                 { path: 'settings', element: withSuspense(<AdminSettingsPage />) },
+                { path: 'settings/integrations', element: withSuspense(<AdminIntegrationSettingsPage />) },
               ],
             },
           ],
