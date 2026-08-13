@@ -61,8 +61,12 @@ export const DEFAULT_PROMO_BANNER = {
 /** Fake OTP used across the mock auth flow — this is a POC with no real SMS provider. */
 export const MOCK_OTP = '1234'
 
-export const DELIVERY_FEE = 40
-export const FREE_DELIVERY_THRESHOLD = 799
+/**
+ * Display-only hint for the "add ₹X more for free delivery" nudge — must match the backend's
+ * DeliveryPricing:FreeDeliveryThreshold (see appsettings.json), but the actual fee charged
+ * always comes from the backend cart/checkout response, never from this constant.
+ */
+export const FREE_DELIVERY_THRESHOLD_HINT = 799
 
 export const PAYMENT_METHOD_LABELS = {
   cash: 'Cash on Delivery',

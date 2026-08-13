@@ -9,15 +9,12 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { useCart } from '@/features/cart/hooks/useCart'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD } from '@/lib/constants'
+import { FREE_DELIVERY_THRESHOLD_HINT } from '@/lib/constants'
 
 export default function CartPage() {
-  const { lines, totalItems, totalPrice, setQuantity, removeItem, clear } = useCart()
+  const { lines, totalItems, totalPrice, deliveryFee, grandTotal, setQuantity, removeItem, clear } = useCart()
   const navigate = useNavigate()
   useDocumentTitle('Your Cart')
-
-  const deliveryFee = totalPrice >= FREE_DELIVERY_THRESHOLD || totalPrice === 0 ? 0 : DELIVERY_FEE
-  const grandTotal = totalPrice + deliveryFee
 
   if (lines.length === 0) {
     return (
@@ -102,9 +99,9 @@ export default function CartPage() {
               <span>Delivery Fee</span>
               <span>{deliveryFee === 0 ? 'Free' : formatCurrency(deliveryFee)}</span>
             </div>
-            {deliveryFee > 0 && (
+            {deliveryFee > 0 && totalPrice < FREE_DELIVERY_THRESHOLD_HINT && (
               <p className="text-muted-foreground text-xs">
-                Add {formatCurrency(FREE_DELIVERY_THRESHOLD - totalPrice)} more for free delivery
+                Add {formatCurrency(FREE_DELIVERY_THRESHOLD_HINT - totalPrice)} more for free delivery
               </p>
             )}
             <Separator />

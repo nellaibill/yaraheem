@@ -160,10 +160,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const totalItems = backendCart?.totalItems ?? 0
   const totalPrice = backendCart?.subtotal ?? 0
+  const deliveryFee = backendCart?.deliveryFee ?? 0
+  const grandTotal = backendCart?.total ?? 0
 
   const value = useMemo(
-    () => ({ lines: enrichedLines, totalItems, totalPrice, addItem, removeItem, setQuantity, clear }),
-    [enrichedLines, totalItems, totalPrice, addItem, removeItem, setQuantity, clear],
+    () => ({ lines: enrichedLines, totalItems, totalPrice, deliveryFee, grandTotal, addItem, removeItem, setQuantity, clear }),
+    [enrichedLines, totalItems, totalPrice, deliveryFee, grandTotal, addItem, removeItem, setQuantity, clear],
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

@@ -49,7 +49,7 @@ try
         .Enrich.FromLogContext());
 
     builder.Services.AddSharedInfrastructure(builder.Configuration);
-    builder.Services.AddSharedCors(builder.Configuration);
+    builder.Services.AddSharedCors(builder.Configuration, builder.Environment);
 
     // Per-IP throttling on auth endpoints (brute-force login/register/refresh) and the
     // payment webhook. Fixed-window, no queueing — a throttled caller gets an immediate 429.

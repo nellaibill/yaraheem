@@ -33,6 +33,8 @@ public sealed record OrderDto(
     Guid UserId,
     OrderStatus Status,
     decimal Subtotal,
+    decimal DeliveryFee,
+    decimal DiscountAmount,
     decimal Total,
     AddressDto ShippingAddress,
     IReadOnlyList<OrderItemDto> Items,

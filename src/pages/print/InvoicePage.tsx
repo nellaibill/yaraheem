@@ -125,6 +125,16 @@ export default function InvoicePage() {
             <span className="text-gray-600">Subtotal</span>
             <span>{formatCurrency(order.subtotal)}</span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Delivery Fee</span>
+            <span>{order.deliveryFee === 0 ? 'Free' : formatCurrency(order.deliveryFee)}</span>
+          </div>
+          {order.discountAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Discount</span>
+              <span>-{formatCurrency(order.discountAmount)}</span>
+            </div>
+          )}
           <div className="mt-1 flex justify-between border-t-2 border-black pt-1.5 text-base font-bold">
             <span>Total</span>
             <span>{formatCurrency(order.total)}</span>
