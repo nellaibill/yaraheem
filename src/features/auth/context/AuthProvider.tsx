@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { readStorage, writeStorage } from '@/lib/storage'
-import { MOCK_OTP, STORAGE_KEYS } from '@/lib/constants'
+import { STORAGE_KEYS } from '@/lib/constants'
+import { requestOtpCode, verifyOtpCode } from '@/lib/api/otpApi'
+import { ApiError } from '@/lib/api/client'
 import type { AuthUser } from '@/types'
 import { AuthContext } from '@/features/auth/context/auth-context'
 
@@ -23,22 +25,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     writeStorage(STORAGE_KEYS.authActiveMobile, mobile)
   }, [])
 
-  const requestOtp = useCallback((mobile: string) => {
-    // Never display the OTP value outside a dev build — this is a mock flow (no SMS is
-    // actually sent), but the code itself must not be disclosed in anything resembling
-    // a production build.
-    if (import.meta.env.DEV) {
-      toast.success(`Demo OTP for ${mobile}: ${MOCK_OTP}`, {
-        description: 'This is a mock flow — no SMS is actually sent.',
+  const requestOtp = useCallback(async (mobile: string) => {
+    try {
+      const result = await requestOtpCode(mobile)
+      if (result.devOnlyCode) {
+        // Backend only ever populates this outside Production — real deployments never see it.
+        toast.success(`Dev-only OTP for ${mobile}: ${result.devOnlyCode}`, {
+          description: 'No SMS provider configured on the backend — see backend/SECRETS.md.',
+        })
+      } else {
+        toast.success('OTP sent', { description: `Sent to +91 ${mobile}` })
+      }
+      return result.devOnlyCode
+    } catch (error) {
+      toast.error('Could not send OTP', {
+        description: error instanceof ApiError ? error.message : 'Something went wrong — please try again.',
       })
-    } else {
-      toast.success('OTP sent', { description: `Sent to +91 ${mobile}` })
+      return null
     }
   }, [])
 
   const verifyOtp = useCallback(
-    (mobile: string, code: string) => {
-      if (code !== MOCK_OTP) return false
+    async (mobile: string, code: string) => {
+      let verified = false
+      try {
+        const result = await verifyOtpCode(mobile, code)
+        verified = result.verified
+      } catch (error) {
+        toast.error('Could not verify OTP', {
+          description: error instanceof ApiError ? error.message : 'Something went wrong — please try again.',
+        })
+        return false
+      }
+
+      if (!verified) return false
 
       const now = new Date().toISOString()
       const existing = users[mobile]

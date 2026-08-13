@@ -14,6 +14,7 @@ using Ecommerce.Modules.Payments.Contracts;
 using Ecommerce.Modules.Payments.Domain;
 using Ecommerce.Modules.Payments.Infrastructure;
 using Ecommerce.Shared.Infrastructure.Pricing;
+using Ecommerce.Shared.Infrastructure.Sms;
 using Ecommerce.Shared.Kernel;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,7 @@ public sealed class OrderService(
     IOrderStatusTransitionService transitionService,
     IDeliveryFeeCalculator deliveryFeeCalculator,
     IAuditLogService auditLog,
+    ISmsSender smsSender,
     ILogger<OrderService> logger) : IOrderService
 {
     private const int MaxOrderNumberAttempts = 3;
@@ -190,10 +192,13 @@ public sealed class OrderService(
             "Checkout committed. CorrelationId={CorrelationId} OrderId={OrderId} OrderNumber={OrderNumber} PaymentStatus={PaymentStatus}",
             correlationId, order.Id, order.OrderNumber, paymentResult.Status);
 
-        // Cart clearing is a best-effort side effect after the order is durably committed —
-        // if it fails, the customer keeps a stale cart, which is a UX nuisance, not a stock or
-        // money correctness issue, so it deliberately sits outside the transaction above.
+        // Cart clearing and the confirmation SMS are best-effort side effects after the order
+        // is durably committed — if either fails, that's a UX nuisance, not a stock or money
+        // correctness issue, so both deliberately sit outside the transaction above.
         await cartService.ClearCartAsync(userId, cancellationToken);
+        await SendOrderNotificationAsync(order.ShippingAddress.PhoneNumber,
+            $"Your Ya Raheem order #{order.OrderNumber} for {FormatInr(order.Total)} has been placed. We'll text you as it moves through the kitchen.",
+            cancellationToken);
 
         return new CheckoutResponse(order.Id, order.OrderNumber, paymentResult.Status, paymentResult.TransactionReference);
     }
@@ -247,9 +252,18 @@ public sealed class OrderService(
         };
     }
 
+    private static readonly IReadOnlyDictionary<OrderStatus, string> StatusNotificationText = new Dictionary<OrderStatus, string>
+    {
+        [OrderStatus.Confirmed] = "has been confirmed",
+        [OrderStatus.Processing] = "is being prepared",
+        [OrderStatus.Shipped] = "is out for delivery",
+        [OrderStatus.Delivered] = "has been delivered — enjoy your meal!",
+        [OrderStatus.Cancelled] = "has been cancelled",
+    };
+
     public async Task<OrderDto> UpdateStatusAsync(Guid orderId, UpdateOrderStatusRequest request, Guid? changedByUserId, CancellationToken cancellationToken)
     {
-        var order = await db.Orders.Include(o => o.StatusHistory).FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
+        var order = await db.Orders.Include(o => o.StatusHistory).Include(o => o.ShippingAddress).FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
                     ?? throw new NotFoundException("Order", orderId);
 
         var previousStatus = order.Status;
@@ -259,8 +273,28 @@ public sealed class OrderService(
 
         await auditLog.LogAsync("Order.StatusChanged", "Order", order.Id.ToString(), $"{previousStatus} -> {order.Status}", cancellationToken);
 
+        if (StatusNotificationText.TryGetValue(order.Status, out var statusText))
+        {
+            await SendOrderNotificationAsync(order.ShippingAddress.PhoneNumber, $"Your Ya Raheem order #{order.OrderNumber} {statusText}.", cancellationToken);
+        }
+
         return await GetByIdAsync(Guid.Empty, isAdmin: true, orderId, cancellationToken);
     }
+
+    /// <summary>Never throws — a notification-delivery failure must not fail the order operation it's attached to.</summary>
+    private async Task SendOrderNotificationAsync(string phoneNumber, string message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await smsSender.SendAsync(phoneNumber, message, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Order SMS notification failed for {PhoneNumber} — order flow continues regardless.", phoneNumber);
+        }
+    }
+
+    private static string FormatInr(decimal amount) => $"Rs. {amount:N0}";
 
     public async Task<PagedResult<OrderDto>> GetAdminOrdersAsync(AdminOrderQuery query, CancellationToken cancellationToken)
     {

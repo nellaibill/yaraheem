@@ -3,6 +3,7 @@ using Ecommerce.Shared.Infrastructure.Email;
 using Ecommerce.Shared.Infrastructure.Options;
 using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Infrastructure.Security;
+using Ecommerce.Shared.Infrastructure.Sms;
 using Ecommerce.Shared.Kernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ public static class SharedInfrastructureExtensions
         services.Configure<AdminSeedOptions>(configuration.GetSection(AdminSeedOptions.SectionName));
         services.Configure<DeliveryPricingOptions>(configuration.GetSection(DeliveryPricingOptions.SectionName));
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<SmsOptions>(configuration.GetSection(SmsOptions.SectionName));
 
         services.AddSingleton<IDeliveryFeeCalculator, DeliveryFeeCalculator>();
 
@@ -33,6 +35,16 @@ public static class SharedInfrastructureExtensions
         else
         {
             services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
+
+        var smsOptions = configuration.GetSection(SmsOptions.SectionName).Get<SmsOptions>() ?? new SmsOptions();
+        if (string.IsNullOrWhiteSpace(smsOptions.Msg91ApiKey))
+        {
+            services.AddSingleton<ISmsSender, LoggingSmsSender>();
+        }
+        else
+        {
+            services.AddHttpClient<ISmsSender, Msg91SmsSender>();
         }
 
         services.AddHttpContextAccessor();

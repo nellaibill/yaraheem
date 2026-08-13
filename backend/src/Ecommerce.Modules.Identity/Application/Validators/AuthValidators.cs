@@ -48,3 +48,20 @@ public sealed class ResetPasswordRequestValidator : AbstractValidator<ResetPassw
         RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8).Matches("[A-Z]").Matches("[a-z]").Matches("[0-9]");
     }
 }
+
+public sealed class RequestOtpRequestValidator : AbstractValidator<RequestOtpRequest>
+{
+    public RequestOtpRequestValidator()
+    {
+        RuleFor(x => x.PhoneNumber).NotEmpty().Matches(@"^\d{10}$").WithMessage("Enter a 10-digit mobile number.");
+    }
+}
+
+public sealed class VerifyOtpRequestValidator : AbstractValidator<VerifyOtpRequest>
+{
+    public VerifyOtpRequestValidator()
+    {
+        RuleFor(x => x.PhoneNumber).NotEmpty().Matches(@"^\d{10}$").WithMessage("Enter a 10-digit mobile number.");
+        RuleFor(x => x.Code).NotEmpty().Length(6);
+    }
+}

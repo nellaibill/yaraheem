@@ -152,6 +152,7 @@ try
     app.UseRateLimiter();
 
     app.MapAuthEndpoints();
+    app.MapOtpEndpoints();
     app.MapCategoryEndpoints();
     app.MapProductEndpoints();
     app.MapAdminProductImageEndpoints();

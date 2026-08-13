@@ -4,9 +4,8 @@ import { motion } from 'framer-motion'
 import { ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { MOCK_OTP } from '@/lib/constants'
 
-const OTP_LENGTH = MOCK_OTP.length
+const OTP_LENGTH = 6
 
 export default function OtpPage() {
   const navigate = useNavigate()
@@ -16,6 +15,8 @@ export default function OtpPage() {
 
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [error, setError] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [devCode, setDevCode] = useState<string | null>((location.state as { devCode?: string } | null)?.devCode ?? null)
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -47,22 +48,27 @@ export default function OtpPage() {
     }
   }
 
-  function handleVerify() {
+  async function handleVerify() {
     const code = digits.join('')
     if (code.length !== OTP_LENGTH) {
       setError('Enter the complete OTP')
       return
     }
-    if (!verifyOtp(mobileNumber, code)) {
-      setError(`Incorrect OTP — try ${MOCK_OTP} for this demo`)
-      return
+    setVerifying(true)
+    try {
+      if (!(await verifyOtp(mobileNumber, code))) {
+        setError('Incorrect or expired OTP — request a new one and try again')
+        return
+      }
+      setError('')
+      navigate('/auth-success', { replace: true })
+    } finally {
+      setVerifying(false)
     }
-    setError('')
-    navigate('/auth-success', { replace: true })
   }
 
-  function handleResend() {
-    requestOtp(mobileNumber)
+  async function handleResend() {
+    setDevCode(await requestOtp(mobileNumber))
     setDigits(Array(OTP_LENGTH).fill(''))
     inputsRef.current[0]?.focus()
   }
@@ -103,14 +109,14 @@ export default function OtpPage() {
       </div>
       {error && <p className="text-destructive mt-3 text-center text-xs">{error}</p>}
 
-      {import.meta.env.DEV && (
+      {devCode && (
         <p className="text-muted-foreground mt-4 text-center text-xs">
-          Demo mode — use <span className="font-semibold">{MOCK_OTP}</span> to continue
+          Dev only — no SMS provider configured, use <span className="font-semibold">{devCode}</span> to continue
         </p>
       )}
 
-      <Button variant="gold" size="lg" className="mt-6 w-full" onClick={handleVerify}>
-        Verify &amp; Continue
+      <Button variant="gold" size="lg" className="mt-6 w-full" onClick={handleVerify} disabled={verifying}>
+        {verifying ? 'Verifying…' : 'Verify & Continue'}
       </Button>
 
       <div className="mt-4 flex items-center justify-between text-xs">
