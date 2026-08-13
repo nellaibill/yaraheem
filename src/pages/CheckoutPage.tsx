@@ -22,6 +22,8 @@ import { formatCurrency } from '@/lib/utils'
 import { ApiError } from '@/lib/api/client'
 import { checkout } from '@/lib/api/ordersApi'
 import { previewCoupon } from '@/lib/api/couponApi'
+import { verifyRazorpayPayment } from '@/lib/api/razorpayApi'
+import { openRazorpayCheckout } from '@/lib/razorpay'
 import { DEFAULT_RESTAURANT_SETTINGS, PAYMENT_METHOD_LABELS, STORAGE_KEYS } from '@/lib/constants'
 import type { Address, Order, PaymentMethod, RestaurantSettings } from '@/types'
 
@@ -142,6 +144,33 @@ export default function CheckoutPage() {
         idempotencyKey,
       )
 
+      let paymentSucceeded = true
+      if (result.razorpayKeyId) {
+        // A real Razorpay gateway is configured on the backend — the order was created as
+        // Pending and needs an actual payment before it's confirmed. Without real Razorpay
+        // credentials, checkout never returns a key here and this block never runs.
+        try {
+          const razorpayResult = await openRazorpayCheckout({
+            keyId: result.razorpayKeyId,
+            razorpayOrderId: result.transactionReference,
+            amountInPaise: Math.round(finalTotal * 100),
+            customerName: user.name,
+            customerPhone: user.mobile,
+          })
+          await verifyRazorpayPayment({
+            orderId: result.orderId,
+            razorpayOrderId: razorpayResult.razorpay_order_id,
+            razorpayPaymentId: razorpayResult.razorpay_payment_id,
+            razorpaySignature: razorpayResult.razorpay_signature,
+          })
+        } catch (razorpayError) {
+          paymentSucceeded = false
+          toast.error('Payment not completed', {
+            description: razorpayError instanceof Error ? razorpayError.message : 'You can retry payment from your order.',
+          })
+        }
+      }
+
       // The backend order/cart are now authoritative; this mirror keeps the existing
       // local order-tracking/profile pages (out of scope for this change) working
       // against the real order id, since they still read from local storage.
@@ -167,7 +196,11 @@ export default function CheckoutPage() {
       }
       placeOrder(order)
       await clear()
-      toast.success(`Order ${result.orderNumber} placed successfully!`)
+      if (paymentSucceeded) {
+        toast.success(`Order ${result.orderNumber} placed successfully!`)
+      } else {
+        toast.info(`Order ${result.orderNumber} saved — payment is still pending.`)
+      }
       navigate(`/orders/${order.id}`, { replace: true })
     } catch (error) {
       toast.error('Could not place order', {
