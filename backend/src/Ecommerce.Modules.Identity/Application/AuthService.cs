@@ -1,3 +1,4 @@
+using Ecommerce.Modules.Audit.Application;
 using Ecommerce.Modules.Identity.Contracts;
 using Ecommerce.Modules.Identity.Domain;
 using Ecommerce.Modules.Identity.Infrastructure;
@@ -13,7 +14,8 @@ public sealed class AuthService(
     IdentityDbContext db,
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
-    IOptions<JwtOptions> jwtOptions) : IAuthService
+    IOptions<JwtOptions> jwtOptions,
+    IAuditLogService auditLog) : IAuthService
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
@@ -60,6 +62,12 @@ public sealed class AuthService(
         }
 
         var roles = user.UserRoles.Select(ur => ur.Role.Name).ToArray();
+
+        if (roles.Contains(Role.WellKnown.Admin))
+        {
+            await auditLog.LogForActorAsync(user.Id, user.Email, "Auth.AdminLogin", "User", user.Id.ToString(), null, cancellationToken);
+        }
+
         return await IssueTokensAsync(user, roles, cancellationToken);
     }
 

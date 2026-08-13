@@ -1,3 +1,4 @@
+using Ecommerce.Modules.Audit.Application;
 using Ecommerce.Modules.Catalog.Contracts;
 using Ecommerce.Modules.Catalog.Domain;
 using Ecommerce.Modules.Catalog.Infrastructure;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Modules.Catalog.Application;
 
-public sealed class ProductService(CatalogDbContext db, InventoryDbContext inventoryDb) : IProductService
+public sealed class ProductService(CatalogDbContext db, InventoryDbContext inventoryDb, IAuditLogService auditLog) : IProductService
 {
     public async Task<PagedResult<ProductListResponse>> SearchAsync(ProductQuery query, CancellationToken cancellationToken)
     {
@@ -114,6 +115,8 @@ public sealed class ProductService(CatalogDbContext db, InventoryDbContext inven
         db.Products.Add(product);
         await db.SaveChangesAsync(cancellationToken);
 
+        await auditLog.LogAsync("Product.Created", "Product", product.Id.ToString(), $"Created '{product.Name}' (SKU {product.Sku})", cancellationToken);
+
         return await GetByIdAsync(product.Id, cancellationToken);
     }
 
@@ -143,6 +146,8 @@ public sealed class ProductService(CatalogDbContext db, InventoryDbContext inven
 
         await db.SaveChangesAsync(cancellationToken);
 
+        await auditLog.LogAsync("Product.Updated", "Product", product.Id.ToString(), $"Updated '{product.Name}'", cancellationToken);
+
         return await GetByIdAsync(product.Id, cancellationToken);
     }
 
@@ -153,6 +158,8 @@ public sealed class ProductService(CatalogDbContext db, InventoryDbContext inven
 
         db.Products.Remove(product);
         await db.SaveChangesAsync(cancellationToken);
+
+        await auditLog.LogAsync("Product.Deleted", "Product", id.ToString(), $"Deleted '{product.Name}'", cancellationToken);
     }
 
     private IQueryable<Product> LoadDetailsQuery() =>

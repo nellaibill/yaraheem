@@ -1,3 +1,4 @@
+using Ecommerce.Modules.Audit.Application;
 using Ecommerce.Modules.Delivery.Contracts;
 using Ecommerce.Modules.Delivery.Domain;
 using Ecommerce.Modules.Delivery.Infrastructure;
@@ -19,7 +20,8 @@ public sealed class DeliveryService(
     OrdersDbContext ordersDb,
     IOrderService orderService,
     IPasswordHasher passwordHasher,
-    IDeliveryAssignmentTransitionService transitionService) : IDeliveryService
+    IDeliveryAssignmentTransitionService transitionService,
+    IAuditLogService auditLog) : IDeliveryService
 {
     public async Task<IReadOnlyList<DeliveryPartnerDto>> GetPartnersAsync(CancellationToken cancellationToken)
     {
@@ -68,6 +70,8 @@ public sealed class DeliveryService(
         db.DeliveryPartners.Add(partner);
         await db.SaveChangesAsync(cancellationToken);
 
+        await auditLog.LogAsync("DeliveryPartner.Created", "DeliveryPartner", partner.Id.ToString(), $"Created '{partner.Name}' ({user.Email})", cancellationToken);
+
         return ToDto(partner, user.Email);
     }
 
@@ -82,6 +86,8 @@ public sealed class DeliveryService(
         partner.Status = request.Status;
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await auditLog.LogAsync("DeliveryPartner.Updated", "DeliveryPartner", partner.Id.ToString(), $"Updated '{partner.Name}'", cancellationToken);
 
         var email = await identityDb.Users.AsNoTracking().Where(u => u.Id == partner.UserId).Select(u => u.Email).FirstOrDefaultAsync(cancellationToken);
         return ToDto(partner, email ?? string.Empty);
@@ -112,6 +118,8 @@ public sealed class DeliveryService(
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await auditLog.LogAsync("DeliveryAssignment.Created", "Order", orderId.ToString(), $"Assigned to '{partner.Name}'", cancellationToken);
 
         return new OrderAssignmentDto(orderId, partner.Id, partner.Name, assignment.Status, assignment.AssignedAt);
     }
@@ -181,6 +189,8 @@ public sealed class DeliveryService(
         transitionService.EnsureValidTransition(assignment.Status, newStatus);
         assignment.Status = newStatus;
         await db.SaveChangesAsync(cancellationToken);
+
+        await auditLog.LogAsync("DeliveryAssignment.StatusChanged", "Order", orderId.ToString(), $"-> {newStatus}", cancellationToken);
 
         await SyncOrderStatusAsync(orderId, newStatus, partnerUserId, cancellationToken);
 

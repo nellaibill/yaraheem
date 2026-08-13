@@ -1,4 +1,7 @@
 using Ecommerce.Api.Endpoints;
+using Ecommerce.Modules.Audit;
+using Ecommerce.Modules.Audit.Endpoints;
+using Ecommerce.Modules.Audit.Infrastructure;
 using Ecommerce.Modules.Cart;
 using Ecommerce.Modules.Cart.Endpoints;
 using Ecommerce.Modules.Cart.Infrastructure;
@@ -89,6 +92,7 @@ try
         .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
         .AddPolicy("DeliveryOnly", policy => policy.RequireRole("DeliveryPartner"));
 
+    builder.Services.AddAuditModule(builder.Configuration);
     builder.Services.AddIdentityModule(builder.Configuration);
     builder.Services.AddCatalogModule(builder.Configuration);
     builder.Services.AddInventoryModule(builder.Configuration);
@@ -160,6 +164,7 @@ try
     app.MapAdminDeliveryPartnerEndpoints();
     app.MapAdminDeliveryAssignmentEndpoints();
     app.MapDeliveryEndpoints();
+    app.MapAdminAuditEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -167,6 +172,7 @@ try
     {
         var services = scope.ServiceProvider;
 
+        await services.GetRequiredService<AuditDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();
