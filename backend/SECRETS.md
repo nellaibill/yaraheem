@@ -9,9 +9,31 @@ None of these are committed to source control. The app fails fast at startup if 
 | `AdminSeed:Password` | No | If left unset, `IdentitySeeder` skips seeding the admin account and logs a warning, rather than falling back to a hardcoded password. Set it once to seed the initial admin, then it's safe to leave configured or remove — seeding is idempotent (skipped if the account already exists). |
 | `Payments:WebhookSecret` | Yes (to receive webhooks) | Shared HMAC-SHA256 secret used to verify `POST /api/payments/webhook` calls. Requests without a valid `X-Webhook-Signature` header are rejected. |
 | `Email:SmtpHost` / `Email:SmtpUsername` / `Email:SmtpPassword` | No | Leave unset in dev/pilot — password-reset emails are written to the application log instead of sent (see `LoggingEmailSender`). Set all three (a real SMTP provider — SendGrid, SES, etc.) before go-live, or password reset never reaches a real inbox. |
-| `Sms:Msg91ApiKey` / `Sms:Msg91TemplateId` | No | Leave unset in dev/pilot — OTP codes and order-status texts are written to the application log instead of sent (see `LoggingSmsSender`). Set both (a DLT-registered MSG91 template is required for Indian transactional SMS) before go-live, or customers never receive OTPs/notifications by real SMS. |
-| `WhatsApp:TwilioAccountSid` / `WhatsApp:TwilioAuthToken` / `WhatsApp:TwilioFromNumber` | No | Leave unset in dev/pilot — order notifications are written to the application log instead of sent (see `LoggingWhatsAppSender`). Set all three before go-live. `TwilioFromNumber` must be a WhatsApp-enabled Twilio sender (e.g. `whatsapp:+14155238886` for their sandbox, or your approved business number) — production also needs a WhatsApp Business Content Template approved by Meta for messages sent outside an active 24-hour customer session. |
-| `Razorpay:KeyId` / `Razorpay:KeySecret` / `Razorpay:WebhookSecret` | No | Leave unset in dev/pilot — ONLINE checkout falls back to the dummy payment simulator (instant fake "Paid", no real money moves). Set all three before go-live, or customers are never actually charged. `WebhookSecret` is configured separately in the Razorpay Dashboard's webhook settings (not the same as `KeySecret`) for the `payment.captured` event pointed at `POST /api/payments/orders/razorpay/webhook`. |
+| `Sms:Msg91ApiKey` / `Sms:Msg91TemplateId` | No | Leave unset in dev/pilot — OTP codes and order-status texts are written to the application log instead of sent (see `Msg91SmsSender`). Set both (a DLT-registered MSG91 template is required for Indian transactional SMS) before go-live, or customers never receive OTPs/notifications by real SMS. Can also be set (or overridden per deployment) from the admin UI — see below. |
+| `WhatsApp:TwilioAccountSid` / `WhatsApp:TwilioAuthToken` / `WhatsApp:TwilioFromNumber` | No | Leave unset in dev/pilot — order notifications are written to the application log instead of sent (see `TwilioWhatsAppSender`). Set all three before go-live. `TwilioFromNumber` must be a WhatsApp-enabled Twilio sender (e.g. `whatsapp:+14155238886` for their sandbox, or your approved business number) — production also needs a WhatsApp Business Content Template approved by Meta for messages sent outside an active 24-hour customer session. Can also be set (or overridden per deployment) from the admin UI — see below. |
+| `Razorpay:KeyId` / `Razorpay:KeySecret` / `Razorpay:WebhookSecret` | No | Leave unset in dev/pilot — ONLINE checkout falls back to the dummy payment simulator (instant fake "Paid", no real money moves). Set all three before go-live, or customers are never actually charged. `WebhookSecret` is configured separately in the Razorpay Dashboard's webhook settings (not the same as `KeySecret`) for the `payment.captured` event pointed at `POST /api/payments/orders/razorpay/webhook`. Can also be set (or overridden per deployment) from the admin UI — see below. |
+
+## Admin-configurable credentials (SMS / WhatsApp / Razorpay)
+
+The nine keys above for SMS, WhatsApp, and Razorpay don't have to be set as user-secrets/environment
+variables at all — they can instead be set from **Admin → Integrations** (`/admin/settings/integrations`)
+in the running app. That's the intended path for onboarding a *new customer/deployment* onto this
+codebase without touching server config files: an admin logs in, pastes the new customer's MSG91/
+Twilio/Razorpay credentials into the form, and it takes effect on the very next SMS/WhatsApp send or
+payment attempt — no restart.
+
+How it works: `IIntegrationSettingsStore` (`Ecommerce.Shared.Infrastructure/Settings`) checks a
+database table (`settings.integration_settings`, values encrypted at rest via ASP.NET Core Data
+Protection) before falling back to the corresponding `Sms:*`/`WhatsApp:*`/`Razorpay:*` config value.
+Config values above are therefore just the *initial* defaults — either source works, and a database
+override always wins. Values are never returned to the frontend in plaintext, only as a `••••last4`
+preview.
+
+**Caveat:** Data Protection persists its encryption key ring to the local filesystem by default. That's
+fine for the current single-instance deployment, but means saved overrides become unreadable if that
+key ring is lost (e.g. redeploying a container without persistent storage, or scaling to multiple
+instances without a shared key ring). Point Data Protection at shared storage (`PersistKeysToDbContext`,
+Azure Blob, etc.) in `SettingsModule.AddSettingsModule` before running more than one instance.
 
 ## Local development
 

@@ -29,6 +29,9 @@ using Ecommerce.Modules.Orders.Infrastructure;
 using Ecommerce.Modules.Payments;
 using Ecommerce.Modules.Payments.Endpoints;
 using Ecommerce.Modules.Payments.Infrastructure;
+using Ecommerce.Modules.Settings;
+using Ecommerce.Modules.Settings.Endpoints;
+using Ecommerce.Modules.Settings.Infrastructure;
 using System.Threading.RateLimiting;
 using Ecommerce.Shared.Infrastructure.Extensions;
 using Ecommerce.Shared.Infrastructure.Options;
@@ -96,6 +99,7 @@ try
         .AddPolicy("DeliveryOnly", policy => policy.RequireRole("DeliveryPartner"));
 
     builder.Services.AddAuditModule(builder.Configuration);
+    builder.Services.AddSettingsModule(builder.Configuration);
     builder.Services.AddIdentityModule(builder.Configuration);
     builder.Services.AddCatalogModule(builder.Configuration);
     builder.Services.AddInventoryModule(builder.Configuration);
@@ -172,6 +176,7 @@ try
     app.MapAdminAuditEndpoints();
     app.MapCouponEndpoints();
     app.MapAdminCouponEndpoints();
+    app.MapAdminIntegrationSettingsEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -180,6 +185,7 @@ try
         var services = scope.ServiceProvider;
 
         await services.GetRequiredService<AuditDbContext>().Database.MigrateAsync();
+        await services.GetRequiredService<SettingsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();

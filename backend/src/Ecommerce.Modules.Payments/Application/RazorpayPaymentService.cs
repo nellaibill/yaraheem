@@ -16,7 +16,7 @@ public sealed class RazorpayPaymentService(IRazorpayGateway razorpayGateway, Dum
 {
     public async Task<PaymentResult> ProcessPaymentAsync(Guid orderId, decimal amount, string paymentMethod, CancellationToken cancellationToken = default)
     {
-        if (!paymentMethod.Equals("ONLINE", StringComparison.OrdinalIgnoreCase) || !razorpayGateway.IsConfigured)
+        if (!paymentMethod.Equals("ONLINE", StringComparison.OrdinalIgnoreCase) || !await razorpayGateway.IsConfiguredAsync(cancellationToken))
         {
             return await fallback.ProcessPaymentAsync(orderId, amount, paymentMethod, cancellationToken);
         }

@@ -1,31 +1,51 @@
 using System.Net.Http.Json;
 using Ecommerce.Shared.Infrastructure.Options;
+using Ecommerce.Shared.Infrastructure.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Ecommerce.Shared.Infrastructure.Sms;
 
 /// <summary>
-/// Real sender against MSG91's Flow API (https://control.msg91.com/api/v5/flow), used only
-/// when Sms:Msg91ApiKey is configured (see LoggingSmsSender for the dev/pilot default).
+/// Sender against MSG91's Flow API (https://control.msg91.com/api/v5/flow). Credentials are
+/// resolved per call: a database override set via the admin Integration Settings page (see
+/// IIntegrationSettingsStore) takes precedence, falling back to Sms:* in appsettings/user-secrets.
+/// If no API key is available from either source, the message is written to the application log
+/// instead of sent — this is the only sender registered for ISmsSender, so OTP/order-status
+/// texts are always exercisable even with nothing configured.
 ///
 /// India requires DLT-registered templates for transactional SMS — this can't send arbitrary
-/// free text. Sms:Msg91TemplateId must point at a template in the MSG91 account with a single
-/// variable (named "VAR1" below); the caller's message text is passed as that variable's value,
-/// so the template itself should be something generic like "{{VAR1}}". Verify the exact request
-/// shape against MSG91's current API docs when wiring up real credentials — provider APIs
-/// change over time and this hasn't been exercised against a live account.
+/// free text. The resolved template must have a single variable (named "VAR1" below); the
+/// caller's message text is passed as that variable's value. Verify the exact request shape
+/// against MSG91's current API docs when wiring up real credentials — provider APIs change over
+/// time and this hasn't been exercised against a live account.
 /// </summary>
-public sealed class Msg91SmsSender(HttpClient httpClient, IOptions<SmsOptions> options, ILogger<Msg91SmsSender> logger) : ISmsSender
+public sealed class Msg91SmsSender(
+    HttpClient httpClient,
+    IOptions<SmsOptions> options,
+    IIntegrationSettingsStore settingsStore,
+    ILogger<Msg91SmsSender> logger) : ISmsSender
 {
     public async Task SendAsync(string toPhoneNumber, string message, CancellationToken cancellationToken)
     {
-        var settings = options.Value;
+        var configured = options.Value;
+
+        var apiKey = await settingsStore.GetOverrideAsync("Sms:Msg91ApiKey", cancellationToken) ?? configured.Msg91ApiKey;
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            logger.LogInformation(
+                "No SMS provider configured (Sms:Msg91ApiKey) — logging SMS instead of sending. To={ToPhoneNumber}\n{Message}",
+                toPhoneNumber, message);
+            return;
+        }
+
+        var templateId = await settingsStore.GetOverrideAsync("Sms:Msg91TemplateId", cancellationToken) ?? configured.Msg91TemplateId;
+        var senderId = await settingsStore.GetOverrideAsync("Sms:Msg91SenderId", cancellationToken) ?? configured.Msg91SenderId;
 
         var payload = new
         {
-            template_id = settings.Msg91TemplateId,
-            sender = settings.Msg91SenderId,
+            template_id = templateId,
+            sender = senderId,
             short_url = "0",
             mobiles = $"91{toPhoneNumber}",
             VAR1 = message,
@@ -35,7 +55,7 @@ public sealed class Msg91SmsSender(HttpClient httpClient, IOptions<SmsOptions> o
         {
             Content = JsonContent.Create(payload),
         };
-        request.Headers.Add("authkey", settings.Msg91ApiKey);
+        request.Headers.Add("authkey", apiKey);
 
         var response = await httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)

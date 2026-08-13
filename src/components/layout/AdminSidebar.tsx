@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { BarChart3, Bike, History, Inbox, LayoutDashboard, LogOut, Receipt, Settings, Tag, UtensilsCrossed, Users } from 'lucide-react'
+import { BarChart3, Bike, History, Inbox, KeyRound, LayoutDashboard, LogOut, Receipt, Settings, Tag, UtensilsCrossed, Users } from 'lucide-react'
 import { useAdminAuth } from '@/features/admin/hooks/useAdminAuth'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +14,7 @@ const ADMIN_NAV = [
   { label: 'Reports', to: '/admin/reports', icon: BarChart3 },
   { label: 'Audit Log', to: '/admin/audit-log', icon: History },
   { label: 'Settings', to: '/admin/settings', icon: Settings },
+  { label: 'Integrations', to: '/admin/settings/integrations', icon: KeyRound },
 ]
 
 export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {

@@ -271,6 +271,25 @@ export interface ApplyCouponPreviewResponse {
   discountAmount: number
 }
 
+export type IntegrationSettingSource = 0 | 1 | 2 // NotConfigured | Config | Database
+
+export interface IntegrationSettingFieldDto {
+  key: string
+  label: string
+  source: IntegrationSettingSource
+  maskedValue: string | null
+}
+
+export interface IntegrationSettingsGroupDto {
+  provider: string
+  title: string
+  fields: IntegrationSettingFieldDto[]
+}
+
+export interface IntegrationSettingsResponse {
+  groups: IntegrationSettingsGroupDto[]
+}
+
 export interface AuditLogEntryDto {
   id: string
   actorUserId: string | null
