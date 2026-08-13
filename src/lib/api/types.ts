@@ -158,6 +158,7 @@ export interface ShippingAddressRequest {
 export interface CheckoutRequest {
   paymentMethod: string
   shippingAddress: ShippingAddressRequest
+  couponCode?: string | null
 }
 
 export interface CheckoutResponse {
@@ -214,12 +215,58 @@ export interface OrderDto {
   subtotal: number
   deliveryFee: number
   discountAmount: number
+  couponCode: string | null
   total: number
   shippingAddress: AddressDto
   items: OrderItemDto[]
   statusHistory: OrderStatusHistoryDto[]
   createdAt: string
   paymentMethod: string | null
+}
+
+export interface CouponDto {
+  id: string
+  code: string
+  title: string
+  description: string | null
+  discountPercent: number
+  maxDiscountAmount: number | null
+  minOrderSubtotal: number
+  usageLimit: number | null
+  usageCount: number
+  perUserLimit: number | null
+  validUntil: string | null
+  isActive: boolean
+}
+
+export interface CreateCouponRequest {
+  code: string
+  title: string
+  description?: string | null
+  discountPercent: number
+  maxDiscountAmount?: number | null
+  minOrderSubtotal: number
+  usageLimit?: number | null
+  perUserLimit?: number | null
+  validUntil?: string | null
+}
+
+export interface UpdateCouponRequest {
+  title: string
+  description: string | null
+  discountPercent: number
+  maxDiscountAmount: number | null
+  minOrderSubtotal: number
+  usageLimit: number | null
+  perUserLimit: number | null
+  validUntil: string | null
+  isActive: boolean
+}
+
+export interface ApplyCouponPreviewResponse {
+  isValid: boolean
+  errorMessage: string | null
+  discountAmount: number
 }
 
 export interface AuditLogEntryDto {

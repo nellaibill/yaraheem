@@ -3,6 +3,9 @@ using Ecommerce.Modules.Audit;
 using Ecommerce.Modules.Audit.Endpoints;
 using Ecommerce.Modules.Audit.Infrastructure;
 using Ecommerce.Modules.Cart;
+using Ecommerce.Modules.Coupons;
+using Ecommerce.Modules.Coupons.Endpoints;
+using Ecommerce.Modules.Coupons.Infrastructure;
 using Ecommerce.Modules.Cart.Endpoints;
 using Ecommerce.Modules.Cart.Infrastructure;
 using Ecommerce.Modules.Catalog;
@@ -97,6 +100,7 @@ try
     builder.Services.AddCatalogModule(builder.Configuration);
     builder.Services.AddInventoryModule(builder.Configuration);
     builder.Services.AddCartModule(builder.Configuration);
+    builder.Services.AddCouponsModule(builder.Configuration);
     builder.Services.AddPaymentsModule(builder.Configuration);
     builder.Services.AddOrdersModule(builder.Configuration);
     builder.Services.AddLeadsModule(builder.Configuration);
@@ -165,6 +169,8 @@ try
     app.MapAdminDeliveryAssignmentEndpoints();
     app.MapDeliveryEndpoints();
     app.MapAdminAuditEndpoints();
+    app.MapCouponEndpoints();
+    app.MapAdminCouponEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -177,6 +183,7 @@ try
         await services.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<InventoryDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<CartDbContext>().Database.MigrateAsync();
+        await services.GetRequiredService<CouponsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<PaymentsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<LeadsDbContext>().Database.MigrateAsync();
@@ -197,6 +204,8 @@ try
             services.GetRequiredService<IdentityDbContext>(),
             services.GetRequiredService<CatalogDbContext>(),
             services.GetRequiredService<PaymentsDbContext>());
+
+        await CouponsSeeder.SeedAsync(services.GetRequiredService<CouponsDbContext>());
 
         await DeliverySeeder.SeedAsync(
             services.GetRequiredService<IdentityDbContext>(),

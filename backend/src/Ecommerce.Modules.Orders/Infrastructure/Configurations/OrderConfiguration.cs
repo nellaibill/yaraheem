@@ -20,6 +20,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.DiscountAmount).HasColumnType("numeric(12,2)").HasDefaultValue(0m);
         builder.Property(o => o.Total).HasColumnType("numeric(12,2)");
         builder.Property(o => o.IdempotencyKey).HasMaxLength(100);
+        builder.Property(o => o.CouponCode).HasMaxLength(30);
 
         builder.HasIndex(o => o.UserId);
         builder.HasIndex(o => o.Status);

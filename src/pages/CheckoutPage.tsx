@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Banknote, CreditCard, Plus, ShoppingBag, Smartphone } from 'lucide-react'
+import { Banknote, CreditCard, Plus, ShoppingBag, Smartphone, Tag, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -20,6 +21,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { formatCurrency } from '@/lib/utils'
 import { ApiError } from '@/lib/api/client'
 import { checkout } from '@/lib/api/ordersApi'
+import { previewCoupon } from '@/lib/api/couponApi'
 import { DEFAULT_RESTAURANT_SETTINGS, PAYMENT_METHOD_LABELS, STORAGE_KEYS } from '@/lib/constants'
 import type { Address, Order, PaymentMethod, RestaurantSettings } from '@/types'
 
@@ -52,15 +54,47 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [placing, setPlacing] = useState(false)
 
-  // Coupons are disabled: the backend checkout endpoint has no discount field, so any
-  // discount applied here would show the customer one total and charge them another.
-  // Re-enable once checkout accepts and honors a discount (see docs/STABILIZATION_ROADMAP.md).
-  const discount = 0
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [applyingCoupon, setApplyingCoupon] = useState(false)
+
+  const discount = appliedCoupon?.discountAmount ?? 0
+  const finalTotal = Math.max(grandTotal - discount, 0)
 
   // Generated once per checkout session (not per click) so repeated clicks of "Place Order"
   // — a double-click or a retried request after a dropped response — replay the same
   // idempotency key and the backend returns the original order instead of a duplicate.
   const [idempotencyKey] = useState(() => crypto.randomUUID())
+
+  async function handleApplyCoupon() {
+    const code = couponInput.trim()
+    if (!code) return
+
+    setApplyingCoupon(true)
+    setCouponError(null)
+    try {
+      const result = await previewCoupon(code, totalPrice)
+      if (!result.isValid) {
+        setCouponError(result.errorMessage ?? 'This coupon could not be applied.')
+        setAppliedCoupon(null)
+        return
+      }
+      setAppliedCoupon({ code: code.toUpperCase(), discountAmount: result.discountAmount })
+      toast.success(`Coupon "${code.toUpperCase()}" applied — -${formatCurrency(result.discountAmount)}`)
+    } catch (error) {
+      setCouponError(error instanceof ApiError ? error.message : 'Could not check that coupon — please try again.')
+      setAppliedCoupon(null)
+    } finally {
+      setApplyingCoupon(false)
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null)
+    setCouponInput('')
+    setCouponError(null)
+  }
 
   if (lines.length === 0) {
     return (
@@ -103,6 +137,7 @@ export default function CheckoutPage() {
             postalCode: address.pincode,
             country: 'India',
           },
+          couponCode: appliedCoupon?.code,
         },
         idempotencyKey,
       )
@@ -122,7 +157,7 @@ export default function CheckoutPage() {
         itemsTotal: totalPrice,
         discount,
         deliveryFee,
-        total: grandTotal,
+        total: finalTotal,
         address,
         paymentMethod,
         status: 'placed',
@@ -213,11 +248,39 @@ export default function CheckoutPage() {
 
             <Separator />
 
-            {settings.offersEnabled && (
-              <p className="text-muted-foreground bg-secondary/30 rounded-lg px-3 py-2 text-xs">
-                Coupon codes are coming soon.
-              </p>
-            )}
+            {settings.offersEnabled &&
+              (appliedCoupon ? (
+                <div className="bg-secondary/30 flex items-center justify-between rounded-lg px-3 py-2 text-xs">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Tag className="size-3.5" />
+                    {appliedCoupon.code} applied
+                  </span>
+                  <button onClick={handleRemoveCoupon} className="text-muted-foreground hover:text-destructive" aria-label="Remove coupon">
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Coupon code"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0"
+                      onClick={handleApplyCoupon}
+                      disabled={applyingCoupon || !couponInput.trim()}
+                    >
+                      {applyingCoupon ? 'Checking...' : 'Apply'}
+                    </Button>
+                  </div>
+                  {couponError && <p className="text-destructive text-xs">{couponError}</p>}
+                </div>
+              ))}
 
             <div className="text-muted-foreground flex justify-between text-sm">
               <span>Subtotal</span>
@@ -227,14 +290,20 @@ export default function CheckoutPage() {
               <span>Delivery Fee</span>
               <span>{deliveryFee === 0 ? 'Free' : formatCurrency(deliveryFee)}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Discount ({appliedCoupon?.code})</span>
+                <span>-{formatCurrency(discount)}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between text-base font-semibold">
               <span>Total</span>
-              <span>{formatCurrency(grandTotal)}</span>
+              <span>{formatCurrency(finalTotal)}</span>
             </div>
 
             <Button variant="gold" size="lg" className="mt-2 w-full" onClick={handlePlaceOrder} disabled={placing}>
-              {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(grandTotal)}`}
+              {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(finalTotal)}`}
             </Button>
           </CardContent>
         </Card>
@@ -244,7 +313,7 @@ export default function CheckoutPage() {
 
       <div className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur-md lg:hidden">
         <Button variant="gold" size="lg" className="w-full" onClick={handlePlaceOrder} disabled={placing}>
-          {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(grandTotal)}`}
+          {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(finalTotal)}`}
         </Button>
       </div>
     </div>
