@@ -166,6 +166,8 @@ export interface CheckoutResponse {
   orderNumber: string
   paymentStatus: string
   transactionReference: string
+  /** Present only when a real Razorpay gateway is configured on the backend and payment is still pending. */
+  razorpayKeyId: string | null
 }
 
 export interface ProblemDetails {

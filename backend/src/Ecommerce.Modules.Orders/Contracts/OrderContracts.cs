@@ -56,7 +56,7 @@ public sealed record CustomerSummaryDto(
 
 public sealed record CheckoutRequest(string PaymentMethod, ShippingAddressRequest ShippingAddress, string? CouponCode = null);
 
-public sealed record CheckoutResponse(Guid OrderId, string OrderNumber, PaymentStatus PaymentStatus, string TransactionReference);
+public sealed record CheckoutResponse(Guid OrderId, string OrderNumber, PaymentStatus PaymentStatus, string TransactionReference, string? RazorpayKeyId = null);
 
 public sealed record UpdateOrderStatusRequest(OrderStatus Status, string? Notes);
 

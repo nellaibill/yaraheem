@@ -202,7 +202,7 @@ public sealed class OrderService(
             $"Your Ya Raheem order #{order.OrderNumber} for {FormatInr(order.Total)} has been placed. We'll text you as it moves through the kitchen.",
             cancellationToken);
 
-        return new CheckoutResponse(order.Id, order.OrderNumber, paymentResult.Status, paymentResult.TransactionReference);
+        return new CheckoutResponse(order.Id, order.OrderNumber, paymentResult.Status, paymentResult.TransactionReference, paymentResult.GatewayKeyId);
     }
 
     private async Task<CheckoutResponse?> FindByIdempotencyKeyAsync(Guid userId, string idempotencyKey, CancellationToken cancellationToken)

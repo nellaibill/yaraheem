@@ -2,7 +2,7 @@ using Ecommerce.Modules.Payments.Domain;
 
 namespace Ecommerce.Modules.Payments.Contracts;
 
-public sealed record PaymentResult(bool IsSuccess, string TransactionReference, PaymentStatus Status, string Message);
+public sealed record PaymentResult(bool IsSuccess, string TransactionReference, PaymentStatus Status, string Message, string? GatewayKeyId = null);
 
 public sealed record PaymentTransactionDto(
     Guid OrderId,
