@@ -1,12 +1,13 @@
 using Ecommerce.Modules.Cart.Contracts;
 using Ecommerce.Modules.Cart.Infrastructure;
 using Ecommerce.Modules.Catalog.Infrastructure;
+using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.Modules.Cart.Application;
 
-public sealed class CartService(CartDbContext cartDb, CatalogDbContext catalogDb) : ICartService
+public sealed class CartService(CartDbContext cartDb, CatalogDbContext catalogDb, IDeliveryFeeCalculator deliveryFeeCalculator) : ICartService
 {
     public async Task<CartDto> GetCurrentCartAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -129,6 +130,8 @@ public sealed class CartService(CartDbContext cartDb, CatalogDbContext catalogDb
             return new CartItemDto(i.Id, i.ProductId, productName, i.ProductVariantId, variantName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity);
         }).ToList();
 
-        return new CartDto(cart.Id, itemDtos, itemDtos.Sum(i => i.LineTotal), itemDtos.Sum(i => i.Quantity));
+        var subtotal = itemDtos.Sum(i => i.LineTotal);
+        var deliveryFee = deliveryFeeCalculator.Calculate(subtotal);
+        return new CartDto(cart.Id, itemDtos, subtotal, deliveryFee, subtotal + deliveryFee, itemDtos.Sum(i => i.Quantity));
     }
 }

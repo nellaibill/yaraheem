@@ -20,13 +20,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { formatCurrency } from '@/lib/utils'
 import { ApiError } from '@/lib/api/client'
 import { checkout } from '@/lib/api/ordersApi'
-import {
-  DEFAULT_RESTAURANT_SETTINGS,
-  DELIVERY_FEE,
-  FREE_DELIVERY_THRESHOLD,
-  PAYMENT_METHOD_LABELS,
-  STORAGE_KEYS,
-} from '@/lib/constants'
+import { DEFAULT_RESTAURANT_SETTINGS, PAYMENT_METHOD_LABELS, STORAGE_KEYS } from '@/lib/constants'
 import type { Address, Order, PaymentMethod, RestaurantSettings } from '@/types'
 
 /** Backend DummyPaymentService: "ONLINE" settles immediately, anything else is treated as COD. */
@@ -44,7 +38,7 @@ const PAYMENT_ICONS: Record<PaymentMethod, typeof Banknote> = {
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { lines, totalPrice, clear } = useCart()
+  const { lines, totalPrice, deliveryFee, grandTotal, clear } = useCart()
   const { user } = useAuth()
   const { addresses, addAddress } = useAddresses()
   const { placeOrder } = useOrders()
@@ -62,8 +56,11 @@ export default function CheckoutPage() {
   // discount applied here would show the customer one total and charge them another.
   // Re-enable once checkout accepts and honors a discount (see docs/STABILIZATION_ROADMAP.md).
   const discount = 0
-  const deliveryFee = totalPrice - discount >= FREE_DELIVERY_THRESHOLD || totalPrice === 0 ? 0 : DELIVERY_FEE
-  const grandTotal = Math.max(totalPrice - discount + deliveryFee, 0)
+
+  // Generated once per checkout session (not per click) so repeated clicks of "Place Order"
+  // — a double-click or a retried request after a dropped response — replay the same
+  // idempotency key and the backend returns the original order instead of a duplicate.
+  const [idempotencyKey] = useState(() => crypto.randomUUID())
 
   if (lines.length === 0) {
     return (
@@ -93,19 +90,22 @@ export default function CheckoutPage() {
 
     setPlacing(true)
     try {
-      const result = await checkout({
-        paymentMethod: BACKEND_PAYMENT_METHOD[paymentMethod],
-        shippingAddress: {
-          fullName: user.name,
-          phoneNumber: user.mobile,
-          addressLine1: address.line1,
-          addressLine2: address.line2,
-          city: address.city,
-          state: address.state,
-          postalCode: address.pincode,
-          country: 'India',
+      const result = await checkout(
+        {
+          paymentMethod: BACKEND_PAYMENT_METHOD[paymentMethod],
+          shippingAddress: {
+            fullName: user.name,
+            phoneNumber: user.mobile,
+            addressLine1: address.line1,
+            addressLine2: address.line2,
+            city: address.city,
+            state: address.state,
+            postalCode: address.pincode,
+            country: 'India',
+          },
         },
-      })
+        idempotencyKey,
+      )
 
       // The backend order/cart are now authoritative; this mirror keeps the existing
       // local order-tracking/profile pages (out of scope for this change) working

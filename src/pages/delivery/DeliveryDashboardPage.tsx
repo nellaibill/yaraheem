@@ -10,8 +10,13 @@ import { fetchMyDeliveryOrders, updateMyDeliveryStatus } from '@/lib/api/deliver
 import { ApiError } from '@/lib/api/client'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
-import { DELIVERY_FEE } from '@/lib/constants'
 import type { DeliveryAssignmentStatus, MyDeliveryOrderDto } from '@/lib/api/types'
+
+/**
+ * Rough per-delivery payout estimate for the rider's own earnings widget — not the customer's
+ * delivery fee (partner payout isn't order-fee-linked in this model) and not persisted anywhere.
+ */
+const ESTIMATED_PAYOUT_PER_DELIVERY = 40
 
 function isToday(dateString: string) {
   return new Date(dateString).toDateString() === new Date().toDateString()
@@ -55,7 +60,7 @@ export default function DeliveryDashboardPage() {
   const active = orders.filter((o) => o.status !== 4)
   const completed = orders.filter((o) => o.status === 4)
   const deliveredToday = completed.filter((o) => isToday(o.assignedAt)).length
-  const mockEarnings = completed.length * DELIVERY_FEE
+  const mockEarnings = completed.length * ESTIMATED_PAYOUT_PER_DELIVERY
 
   async function handleAdvance(orderId: string, next: DeliveryAssignmentStatus) {
     try {

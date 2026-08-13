@@ -2,15 +2,20 @@ using Ecommerce.Modules.Cart.Application;
 using Ecommerce.Modules.Identity.Domain;
 using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory.Application;
+using Ecommerce.Modules.Inventory.Infrastructure;
 using Ecommerce.Modules.Orders.Contracts;
 using Ecommerce.Modules.Orders.Domain;
 using Ecommerce.Modules.Orders.Infrastructure;
 using Ecommerce.Modules.Payments.Application;
+using Ecommerce.Modules.Payments.Contracts;
 using Ecommerce.Modules.Payments.Domain;
 using Ecommerce.Modules.Payments.Infrastructure;
+using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Kernel;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Ecommerce.Modules.Orders.Application;
 
@@ -19,15 +24,25 @@ public sealed class OrderService(
     IdentityDbContext identityDb,
     PaymentsDbContext paymentsDb,
     ICartService cartService,
-    IInventoryService inventoryService,
     IPaymentService paymentService,
-    IPaymentTransactionService paymentTransactionService,
-    IOrderStatusTransitionService transitionService) : IOrderService
+    IOrderStatusTransitionService transitionService,
+    IDeliveryFeeCalculator deliveryFeeCalculator,
+    ILogger<OrderService> logger) : IOrderService
 {
     private const int MaxOrderNumberAttempts = 3;
 
-    public async Task<CheckoutResponse> CheckoutAsync(Guid userId, CheckoutRequest request, CancellationToken cancellationToken)
+    public async Task<CheckoutResponse> CheckoutAsync(Guid userId, CheckoutRequest request, string? idempotencyKey, CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            var replay = await FindByIdempotencyKeyAsync(userId, idempotencyKey, cancellationToken);
+            if (replay is not null)
+            {
+                logger.LogInformation("Checkout replay detected for user {UserId}, idempotency key {IdempotencyKey} — returning existing order {OrderId}.", userId, idempotencyKey, replay.OrderId);
+                return replay;
+            }
+        }
+
         var cart = await cartService.GetCurrentCartAsync(userId, cancellationToken);
         if (cart.Items.Count == 0)
         {
@@ -38,7 +53,10 @@ public sealed class OrderService(
             .GroupBy(i => i.ProductId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
-        await inventoryService.ValidateAndDeductForSaleAsync(productQuantities, reference: $"checkout:{userId}", cancellationToken);
+        // Backend is the sole source of truth for pricing — the frontend only ever displays
+        // what gets computed here, never supplies a delivery fee or discount of its own.
+        var deliveryFee = deliveryFeeCalculator.Calculate(cart.Subtotal);
+        const decimal discountAmount = 0m; // coupon engine not implemented yet; kept for schema/reporting completeness
 
         var order = new Order
         {
@@ -46,7 +64,10 @@ public sealed class OrderService(
             OrderNumber = string.Empty,
             Status = OrderStatus.Pending,
             Subtotal = cart.Subtotal,
-            Total = cart.Subtotal,
+            DeliveryFee = deliveryFee,
+            DiscountAmount = discountAmount,
+            Total = cart.Subtotal - discountAmount + deliveryFee,
+            IdempotencyKey = idempotencyKey,
             ShippingAddress = new Address
             {
                 FullName = request.ShippingAddress.FullName,
@@ -75,24 +96,102 @@ public sealed class OrderService(
 
         order.StatusHistory.Add(new OrderStatusHistory { PreviousStatus = null, NewStatus = OrderStatus.Pending, Notes = "Order created" });
 
-        await SaveWithOrderNumberAsync(order, cancellationToken);
+        var correlationId = Guid.NewGuid();
+        logger.LogInformation(
+            "Checkout starting. CorrelationId={CorrelationId} UserId={UserId} OrderId={OrderId} ProductCount={ProductCount} Total={Total}",
+            correlationId, userId, order.Id, productQuantities.Count, order.Total);
 
-        var paymentResult = await paymentService.ProcessPaymentAsync(order.Id, order.Total, request.PaymentMethod, cancellationToken);
+        // --- Transactional core -----------------------------------------------------------
+        // Inventory deduction, order creation, and the payment transaction record all live in
+        // different schemas/DbContexts but the same physical Postgres database. Sharing one
+        // NpgsqlConnection + real ADO.NET transaction across them gives full atomicity without
+        // a distributed transaction coordinator (TransactionScope across multiple connections
+        // would try to promote to MSDTC, which .NET doesn't support on non-Windows hosts). If
+        // any step fails, everything in this block — including the stock deduction — rolls back
+        // together, so a crash mid-checkout can never leave stock silently deducted for an
+        // order that doesn't exist.
+        var connectionString = db.Database.GetConnectionString()
+            ?? throw new InvalidOperationException("OrdersDbContext has no connection string configured.");
 
-        await paymentTransactionService.CreateAsync(
-            order.Id, provider: "Dummy", method: request.PaymentMethod, amount: order.Total, currency: "INR",
-            status: paymentResult.Status, transactionReference: paymentResult.TransactionReference,
-            providerResponse: paymentResult.Message, cancellationToken);
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var dbTransaction = await connection.BeginTransactionAsync(cancellationToken);
 
-        if (paymentResult.Status == PaymentStatus.Paid)
+        await using var txOrdersDb = new OrdersDbContext(new DbContextOptionsBuilder<OrdersDbContext>().UseNpgsql(connection).Options);
+        await txOrdersDb.Database.UseTransactionAsync(dbTransaction, cancellationToken);
+
+        await using var txInventoryDb = new InventoryDbContext(new DbContextOptionsBuilder<InventoryDbContext>().UseNpgsql(connection).Options);
+        await txInventoryDb.Database.UseTransactionAsync(dbTransaction, cancellationToken);
+
+        await using var txPaymentsDb = new PaymentsDbContext(new DbContextOptionsBuilder<PaymentsDbContext>().UseNpgsql(connection).Options);
+        await txPaymentsDb.Database.UseTransactionAsync(dbTransaction, cancellationToken);
+
+        PaymentResult paymentResult;
+        try
         {
-            ApplyStatusTransition(order, OrderStatus.Confirmed, changedByUserId: null, notes: "Payment received");
-            await db.SaveChangesAsync(cancellationToken);
-        }
+            // Row-level lock: hold every affected product's inventory row for the rest of this
+            // transaction so a concurrent checkout for the same product can't read stock before
+            // this one commits its deduction and oversell. Released automatically on commit/rollback.
+            var productIds = productQuantities.Keys.ToArray();
+            await txInventoryDb.Database.SqlQueryRaw<int>(
+                $"SELECT 1 FROM {InventoryDbContext.Schema}.inventory_items WHERE product_id = ANY(@p0) FOR UPDATE",
+                productIds).ToListAsync(cancellationToken);
 
+            await new InventoryService(txInventoryDb).ValidateAndDeductForSaleAsync(productQuantities, reference: $"checkout:{userId}", cancellationToken);
+
+            await SaveWithOrderNumberAsync(txOrdersDb, order, cancellationToken);
+
+            paymentResult = await paymentService.ProcessPaymentAsync(order.Id, order.Total, request.PaymentMethod, cancellationToken);
+
+            await new PaymentTransactionService(txPaymentsDb).CreateAsync(
+                order.Id, provider: "Dummy", method: request.PaymentMethod, amount: order.Total, currency: "INR",
+                status: paymentResult.Status, transactionReference: paymentResult.TransactionReference,
+                providerResponse: paymentResult.Message, cancellationToken);
+
+            if (paymentResult.Status == PaymentStatus.Paid)
+            {
+                ApplyStatusTransition(txOrdersDb, order, OrderStatus.Confirmed, changedByUserId: null, notes: "Payment received");
+                await txOrdersDb.SaveChangesAsync(cancellationToken);
+            }
+
+            await dbTransaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            await dbTransaction.RollbackAsync(cancellationToken);
+            logger.LogError(ex, "Checkout failed and was rolled back. CorrelationId={CorrelationId} UserId={UserId} OrderId={OrderId}", correlationId, userId, order.Id);
+            throw;
+        }
+        // -------------------------------------------------------------------------------------
+
+        logger.LogInformation(
+            "Checkout committed. CorrelationId={CorrelationId} OrderId={OrderId} OrderNumber={OrderNumber} PaymentStatus={PaymentStatus}",
+            correlationId, order.Id, order.OrderNumber, paymentResult.Status);
+
+        // Cart clearing is a best-effort side effect after the order is durably committed —
+        // if it fails, the customer keeps a stale cart, which is a UX nuisance, not a stock or
+        // money correctness issue, so it deliberately sits outside the transaction above.
         await cartService.ClearCartAsync(userId, cancellationToken);
 
         return new CheckoutResponse(order.Id, order.OrderNumber, paymentResult.Status, paymentResult.TransactionReference);
+    }
+
+    private async Task<CheckoutResponse?> FindByIdempotencyKeyAsync(Guid userId, string idempotencyKey, CancellationToken cancellationToken)
+    {
+        var existing = await db.Orders.AsNoTracking()
+            .FirstOrDefaultAsync(o => o.UserId == userId && o.IdempotencyKey == idempotencyKey, cancellationToken);
+
+        if (existing is null)
+        {
+            return null;
+        }
+
+        var existingPayment = await paymentsDb.PaymentTransactions.AsNoTracking()
+            .Where(t => t.OrderId == existing.Id)
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new CheckoutResponse(existing.Id, existing.OrderNumber, existingPayment?.Status ?? PaymentStatus.Pending, existingPayment?.TransactionReference ?? string.Empty);
     }
 
     public async Task<OrderDto> GetByIdAsync(Guid userId, bool isAdmin, Guid orderId, CancellationToken cancellationToken)
@@ -131,7 +230,7 @@ public sealed class OrderService(
         var order = await db.Orders.Include(o => o.StatusHistory).FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken)
                     ?? throw new NotFoundException("Order", orderId);
 
-        ApplyStatusTransition(order, request.Status, changedByUserId, request.Notes);
+        ApplyStatusTransition(db, order, request.Status, changedByUserId, request.Notes);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -212,7 +311,7 @@ public sealed class OrderService(
             return;
         }
 
-        ApplyStatusTransition(order, OrderStatus.Confirmed, changedByUserId: null, notes: "Payment received");
+        ApplyStatusTransition(db, order, OrderStatus.Confirmed, changedByUserId: null, notes: "Payment received");
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -246,7 +345,7 @@ public sealed class OrderService(
             .ToList();
     }
 
-    private void ApplyStatusTransition(Order order, OrderStatus newStatus, Guid? changedByUserId, string? notes)
+    private void ApplyStatusTransition(OrdersDbContext targetDb, Order order, OrderStatus newStatus, Guid? changedByUserId, string? notes)
     {
         transitionService.EnsureValidTransition(order.Status, newStatus);
 
@@ -264,36 +363,36 @@ public sealed class OrderService(
             ChangedByUserId = changedByUserId,
             Notes = notes,
         };
-        db.OrderStatusHistories.Add(historyEntry);
+        targetDb.OrderStatusHistories.Add(historyEntry);
         order.StatusHistory.Add(historyEntry);
 
         order.Status = newStatus;
     }
 
-    private async Task SaveWithOrderNumberAsync(Order order, CancellationToken cancellationToken)
+    private async Task SaveWithOrderNumberAsync(OrdersDbContext targetDb, Order order, CancellationToken cancellationToken)
     {
         for (var attempt = 1; attempt <= MaxOrderNumberAttempts; attempt++)
         {
-            order.OrderNumber = await GenerateOrderNumberAsync(cancellationToken);
-            db.Orders.Add(order);
+            order.OrderNumber = await GenerateOrderNumberAsync(targetDb, cancellationToken);
+            targetDb.Orders.Add(order);
 
             try
             {
-                await db.SaveChangesAsync(cancellationToken);
+                await targetDb.SaveChangesAsync(cancellationToken);
                 return;
             }
             catch (DbUpdateException) when (attempt < MaxOrderNumberAttempts)
             {
-                db.ChangeTracker.Clear();
+                targetDb.ChangeTracker.Clear();
             }
         }
     }
 
-    private async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken)
+    private static async Task<string> GenerateOrderNumberAsync(OrdersDbContext targetDb, CancellationToken cancellationToken)
     {
         var datePrefix = DateTimeOffset.UtcNow.ToString("yyyyMMdd");
         var prefix = $"ORD-{datePrefix}-";
-        var todayCount = await db.Orders.CountAsync(o => o.OrderNumber.StartsWith(prefix), cancellationToken);
+        var todayCount = await targetDb.Orders.CountAsync(o => o.OrderNumber.StartsWith(prefix), cancellationToken);
         return $"{prefix}{todayCount + 1:D4}";
     }
 
@@ -334,7 +433,7 @@ public sealed class OrderService(
             .AsSplitQuery();
 
     private static OrderDto ToDto(Order o, string? paymentMethod) => new(
-        o.Id, o.OrderNumber, o.UserId, o.Status, o.Subtotal, o.Total,
+        o.Id, o.OrderNumber, o.UserId, o.Status, o.Subtotal, o.DeliveryFee, o.DiscountAmount, o.Total,
         new AddressDto(o.ShippingAddress.FullName, o.ShippingAddress.PhoneNumber, o.ShippingAddress.AddressLine1, o.ShippingAddress.AddressLine2, o.ShippingAddress.City, o.ShippingAddress.State, o.ShippingAddress.PostalCode, o.ShippingAddress.Country),
         o.Items.Select(i => new OrderItemDto(i.Id, i.ProductId, i.ProductVariantId, i.ProductName, i.Quantity, i.UnitPrice, i.LineTotal)).ToList(),
         o.StatusHistory.OrderBy(h => h.ChangedAt).Select(h => new OrderStatusHistoryDto(h.PreviousStatus, h.NewStatus, h.Notes, h.ChangedAt)).ToList(),

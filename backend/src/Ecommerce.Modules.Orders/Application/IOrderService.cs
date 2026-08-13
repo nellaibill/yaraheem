@@ -5,7 +5,7 @@ namespace Ecommerce.Modules.Orders.Application;
 
 public interface IOrderService
 {
-    Task<CheckoutResponse> CheckoutAsync(Guid userId, CheckoutRequest request, CancellationToken cancellationToken);
+    Task<CheckoutResponse> CheckoutAsync(Guid userId, CheckoutRequest request, string? idempotencyKey, CancellationToken cancellationToken);
     Task<OrderDto> GetByIdAsync(Guid userId, bool isAdmin, Guid orderId, CancellationToken cancellationToken);
     Task<PagedResult<OrderDto>> GetMyOrdersAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken);
     Task<OrderDto> UpdateStatusAsync(Guid orderId, UpdateOrderStatusRequest request, Guid? changedByUserId, CancellationToken cancellationToken);

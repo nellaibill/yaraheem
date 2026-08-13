@@ -10,6 +10,10 @@ export interface CartContextValue {
   lines: CartLineWithItem[]
   totalItems: number
   totalPrice: number
+  /** Backend-computed delivery fee for the current cart — never derive this on the frontend. */
+  deliveryFee: number
+  /** Backend-computed grand total (subtotal + deliveryFee). */
+  grandTotal: number
   addItem: (itemId: string, quantity?: number) => Promise<void>
   removeItem: (itemId: string) => Promise<void>
   setQuantity: (itemId: string, quantity: number) => Promise<void>

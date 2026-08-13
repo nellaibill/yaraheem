@@ -1,10 +1,12 @@
 using System.Text;
 using Ecommerce.Shared.Infrastructure.Options;
+using Ecommerce.Shared.Infrastructure.Pricing;
 using Ecommerce.Shared.Infrastructure.Security;
 using Ecommerce.Shared.Kernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Ecommerce.Shared.Infrastructure.Extensions;
@@ -17,6 +19,9 @@ public static class SharedInfrastructureExtensions
         services.Configure<CorsOptions>(configuration.GetSection(CorsOptions.SectionName));
         services.Configure<SerilogOptions>(configuration.GetSection(SerilogOptions.SectionName));
         services.Configure<AdminSeedOptions>(configuration.GetSection(AdminSeedOptions.SectionName));
+        services.Configure<DeliveryPricingOptions>(configuration.GetSection(DeliveryPricingOptions.SectionName));
+
+        services.AddSingleton<IDeliveryFeeCalculator, DeliveryFeeCalculator>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
@@ -61,9 +66,35 @@ public static class SharedInfrastructureExtensions
         return services;
     }
 
-    public static IServiceCollection AddSharedCors(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddSharedCors(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var corsOptions = configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
+
+        if (!environment.IsDevelopment())
+        {
+            // Fail-closed at startup, not just at request time: a production deployment with
+            // no configured origins is almost always a missed env-var, not an intentional
+            // "no frontend" deployment. Refusing to boot surfaces that immediately instead of
+            // letting every cross-origin request silently 403 until someone notices.
+            if (corsOptions.AllowedOrigins.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "Cors:AllowedOrigins is empty outside Development. Set the Cors__AllowedOrigins__0 " +
+                    "(and __1, __2, ...) environment variable(s) to the real production frontend origin(s) " +
+                    "before starting. Refusing to boot with CORS unconfigured in a non-development environment.");
+            }
+
+            var invalidOrigins = corsOptions.AllowedOrigins
+                .Where(origin => !origin.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (invalidOrigins.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Cors:AllowedOrigins contains non-HTTPS origin(s) outside Development: {string.Join(", ", invalidOrigins)}. " +
+                    "Production origins must use https://.");
+            }
+        }
 
         services.AddCors(options =>
         {

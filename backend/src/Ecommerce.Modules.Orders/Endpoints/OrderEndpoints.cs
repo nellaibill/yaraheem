@@ -19,13 +19,18 @@ public static class OrderEndpoints
             IValidator<CheckoutRequest> validator,
             ICurrentUser currentUser,
             IOrderService service,
+            HttpRequest httpRequest,
             CancellationToken cancellationToken) =>
         {
             await validator.ValidateAndThrowAsync(request, cancellationToken);
-            var result = await service.CheckoutAsync(currentUser.UserId!.Value, request, cancellationToken);
+            var idempotencyKey = httpRequest.Headers.TryGetValue("Idempotency-Key", out var headerValue)
+                ? headerValue.ToString()
+                : null;
+            var result = await service.CheckoutAsync(currentUser.UserId!.Value, request, idempotencyKey, cancellationToken);
             return Results.Created($"/api/orders/{result.OrderId}", ApiResponse<CheckoutResponse>.SuccessResponse(result, "Order placed."));
         }).WithSummary("Create an order from the current cart, process payment, deduct stock, and clear the cart.")
-          .WithDescription("Example: { \"paymentMethod\": \"COD\", \"shippingAddress\": { \"fullName\": \"John Doe\", \"phoneNumber\": \"9876543210\", \"addressLine1\": \"123 Main Street\", \"city\": \"Chennai\", \"state\": \"Tamil Nadu\", \"postalCode\": \"600001\", \"country\": \"India\" } }");
+          .WithDescription("Example: { \"paymentMethod\": \"COD\", \"shippingAddress\": { \"fullName\": \"John Doe\", \"phoneNumber\": \"9876543210\", \"addressLine1\": \"123 Main Street\", \"city\": \"Chennai\", \"state\": \"Tamil Nadu\", \"postalCode\": \"600001\", \"country\": \"India\" } }. " +
+              "Optional 'Idempotency-Key' request header: a repeated request with the same key for the same user returns the original order instead of creating a duplicate.");
 
         group.MapGet("/my-orders", async (
             int page,

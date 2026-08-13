@@ -68,6 +68,8 @@ export default function AdminReportsPage() {
   const topSelling = getTopSellingItems(orders, 8)
   const paymentBreakdown = getPaymentMethodBreakdown(orders)
   const statusBreakdown = getStatusBreakdown(orders)
+  const productRevenue = orders.reduce((sum, o) => sum + o.subtotal, 0)
+  const deliveryRevenue = orders.reduce((sum, o) => sum + o.deliveryFee, 0)
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0)
 
   const paymentColors: Record<string, string> = {
@@ -83,9 +85,28 @@ export default function AdminReportsPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-display text-2xl font-bold">Reports</h1>
-        <p className="text-muted-foreground text-sm">
-          {orders.length} orders · {formatCurrency(totalRevenue)} lifetime revenue
-        </p>
+        <p className="text-muted-foreground text-sm">{orders.length} orders · {formatCurrency(totalRevenue)} lifetime revenue</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Product Revenue</p>
+            <p className="font-display mt-1 text-xl font-bold">{formatCurrency(productRevenue)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Delivery Revenue</p>
+            <p className="font-display mt-1 text-xl font-bold">{formatCurrency(deliveryRevenue)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Total Revenue</p>
+            <p className="font-display mt-1 text-xl font-bold">{formatCurrency(totalRevenue)}</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

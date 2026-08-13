@@ -6,11 +6,6 @@ import { PrintHeader } from '@/features/print/components/PrintHeader'
 import { fetchAdminOrder } from '@/lib/api/adminOrdersApi'
 import type { OrderDto } from '@/lib/api/types'
 
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  COD: 'Cash on Delivery',
-  ONLINE: 'Online Payment',
-}
-
 export default function KotPage() {
   const { id } = useParams()
   const [order, setOrder] = useState<OrderDto | null>(null)
@@ -106,7 +101,7 @@ export default function KotPage() {
         </table>
 
         <div className="mt-6 flex justify-between border-t-2 border-black pt-3 text-xs text-gray-600">
-          <span>Delivery · {order.paymentMethod ? (PAYMENT_METHOD_LABELS[order.paymentMethod] ?? order.paymentMethod) : 'Not recorded'}</span>
+          <span>Delivery</span>
           <span>Prepared by: ______________</span>
         </div>
       </div>

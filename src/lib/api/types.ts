@@ -129,6 +129,8 @@ export interface CartDto {
   cartId: string
   items: CartItemDto[]
   subtotal: number
+  deliveryFee: number
+  total: number
   totalItems: number
 }
 
@@ -210,6 +212,8 @@ export interface OrderDto {
   userId: string
   status: BackendOrderStatus
   subtotal: number
+  deliveryFee: number
+  discountAmount: number
   total: number
   shippingAddress: AddressDto
   items: OrderItemDto[]

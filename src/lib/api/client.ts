@@ -95,6 +95,7 @@ async function request<T>(
   body?: unknown,
   params?: Record<string, string | number | undefined>,
   _isRetry = false,
+  extraHeaders?: Record<string, string>,
 ): Promise<T> {
   const url = new URL(path, API_BASE_URL)
   if (params) {
@@ -104,7 +105,7 @@ async function request<T>(
   }
 
   const session = getApiSession()
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = { Accept: 'application/json', ...extraHeaders }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (session) headers.Authorization = `Bearer ${session.accessToken}`
 
@@ -116,7 +117,7 @@ async function request<T>(
 
   if (response.status === 401 && session && !_isRetry) {
     const refreshed = await refreshSession()
-    if (refreshed) return request<T>(method, path, body, params, true)
+    if (refreshed) return request<T>(method, path, body, params, true, extraHeaders)
   }
 
   if (!response.ok) {
@@ -137,8 +138,8 @@ export function apiGet<T>(path: string, params?: Record<string, string | number 
   return request<T>('GET', path, undefined, params)
 }
 
-export function apiPost<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>('POST', path, body)
+export function apiPost<T>(path: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
+  return request<T>('POST', path, body, undefined, false, extraHeaders)
 }
 
 export function apiPut<T>(path: string, body?: unknown): Promise<T> {

@@ -10,7 +10,7 @@ public sealed record CartItemDto(
     decimal UnitPrice,
     decimal LineTotal);
 
-public sealed record CartDto(Guid CartId, IReadOnlyList<CartItemDto> Items, decimal Subtotal, int TotalItems);
+public sealed record CartDto(Guid CartId, IReadOnlyList<CartItemDto> Items, decimal Subtotal, decimal DeliveryFee, decimal Total, int TotalItems);
 
 public sealed record AddCartItemRequest(Guid ProductId, Guid? ProductVariantId, int Quantity);
 
