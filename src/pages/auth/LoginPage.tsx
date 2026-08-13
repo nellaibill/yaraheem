@@ -12,8 +12,9 @@ export default function LoginPage() {
   const { requestOtp } = useAuth()
   const [mobile, setMobile] = useState('')
   const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     const digits = mobile.replace(/\D/g, '')
     if (digits.length !== 10) {
@@ -21,8 +22,13 @@ export default function LoginPage() {
       return
     }
     setError('')
-    requestOtp(digits)
-    navigate('/otp', { state: { mobile: digits } })
+    setSending(true)
+    try {
+      const devCode = await requestOtp(digits)
+      navigate('/otp', { state: { mobile: digits, devCode } })
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -62,15 +68,11 @@ export default function LoginPage() {
           {error && <p className="text-destructive text-xs">{error}</p>}
         </div>
 
-        <Button type="submit" variant="gold" size="lg" className="mt-2 gap-2">
+        <Button type="submit" variant="gold" size="lg" className="mt-2 gap-2" disabled={sending}>
           <Phone className="size-4" />
-          Send OTP
+          {sending ? 'Sending…' : 'Send OTP'}
         </Button>
       </form>
-
-      <p className="text-muted-foreground mt-6 text-center text-xs">
-        By continuing, you agree this is a demo — no real SMS is sent.
-      </p>
     </motion.div>
   )
 }

@@ -9,6 +9,7 @@ None of these are committed to source control. The app fails fast at startup if 
 | `AdminSeed:Password` | No | If left unset, `IdentitySeeder` skips seeding the admin account and logs a warning, rather than falling back to a hardcoded password. Set it once to seed the initial admin, then it's safe to leave configured or remove — seeding is idempotent (skipped if the account already exists). |
 | `Payments:WebhookSecret` | Yes (to receive webhooks) | Shared HMAC-SHA256 secret used to verify `POST /api/payments/webhook` calls. Requests without a valid `X-Webhook-Signature` header are rejected. |
 | `Email:SmtpHost` / `Email:SmtpUsername` / `Email:SmtpPassword` | No | Leave unset in dev/pilot — password-reset emails are written to the application log instead of sent (see `LoggingEmailSender`). Set all three (a real SMTP provider — SendGrid, SES, etc.) before go-live, or password reset never reaches a real inbox. |
+| `Sms:Msg91ApiKey` / `Sms:Msg91TemplateId` | No | Leave unset in dev/pilot — OTP codes and order-status texts are written to the application log instead of sent (see `LoggingSmsSender`). Set both (a DLT-registered MSG91 template is required for Indian transactional SMS) before go-live, or customers never receive OTPs/notifications by real SMS. |
 
 ## Local development
 

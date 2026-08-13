@@ -58,9 +58,6 @@ export const DEFAULT_PROMO_BANNER = {
   enabled: true,
 } as const
 
-/** Fake OTP used across the mock auth flow — this is a POC with no real SMS provider. */
-export const MOCK_OTP = '1234'
-
 /**
  * Display-only hint for the "add ₹X more for free delivery" nudge — must match the backend's
  * DeliveryPricing:FreeDeliveryThreshold (see appsettings.json), but the actual fee charged

@@ -19,6 +19,7 @@ public static class IdentityModule
                 .MigrationsAssembly("Ecommerce.Database.Migrations")));
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IOtpService, OtpService>();
         services.AddValidatorsFromAssemblyContaining(typeof(IdentityModule));
 
         return services;
