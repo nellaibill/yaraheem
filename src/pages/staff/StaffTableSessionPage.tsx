@@ -33,6 +33,7 @@ const PAYMENT_STATUS_LABEL: Record<number, string> = { 1: 'Pending', 2: 'Paid', 
 const PAYMENT_STATUS_BADGE: Record<number, 'secondary' | 'outline'> = { 1: 'outline', 2: 'secondary', 3: 'outline' }
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Card', 'Razorpay']
 const ROUND_STATUS_POLL_MS = 5000
+const ALL_CATEGORY_ID = ''
 
 function paidTotal(session: TableSessionDto): number {
   return session.payments.filter((p) => p.status === 2).reduce((sum, p) => sum + p.amount, 0)
@@ -54,7 +55,7 @@ export default function StaffTableSessionPage() {
   const [products, setProducts] = useState<ProductListResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState<DraftLine[]>([])
-  const [pickedProductId, setPickedProductId] = useState('')
+  const [selectedCategoryId, setSelectedCategoryId] = useState(ALL_CATEGORY_ID)
   const [firing, setFiring] = useState(false)
   const [busy, setBusy] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0])
@@ -95,9 +96,7 @@ export default function StaffTableSessionPage() {
     return () => clearInterval(interval)
   }, [id, session?.status])
 
-  function addDraftLine() {
-    const product = products.find((p) => p.id === pickedProductId)
-    if (!product) return
+  function addProductToDraft(product: ProductListResponse) {
     setDraft((prev) => {
       const existing = prev.find((l) => l.productId === product.id)
       if (existing) {
@@ -223,9 +222,12 @@ export default function StaffTableSessionPage() {
   }
 
   const draftTotal = draft.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0)
+  const remaining = session.total - paidTotal(session)
+  const categories = Array.from(new Map(products.map((p) => [p.categoryId, p.categoryName])).entries())
+  const visibleProducts = selectedCategoryId === ALL_CATEGORY_ID ? products : products.filter((p) => p.categoryId === selectedCategoryId)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-24">
       <div className="flex items-center justify-between">
         <div>
           <Link to="/staff" className="text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1 text-sm">
@@ -244,23 +246,50 @@ export default function StaffTableSessionPage() {
         <Card>
           <CardContent className="flex flex-col gap-4 p-5">
             <h2 className="font-display text-xl font-semibold">Fire a new round</h2>
-            <p className="text-muted-foreground -mt-2 text-sm">Build the list below, then send it to the kitchen.</p>
-            <div className="flex items-center gap-2">
-              <Select value={pickedProductId} onValueChange={setPickedProductId}>
-                <SelectTrigger className="h-12 flex-1 text-base">
-                  <SelectValue placeholder="Choose a dish..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id} className="py-2.5 text-base">
-                      {p.name} — {formatCurrency(p.price)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button size="lg" variant="outline" onClick={addDraftLine} disabled={!pickedProductId}>
-                Add
-              </Button>
+            <p className="text-muted-foreground -mt-2 text-sm">Tap a dish to add it, then send the round to the kitchen.</p>
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryId(ALL_CATEGORY_ID)}
+                className={cn(
+                  'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                  selectedCategoryId === ALL_CATEGORY_ID
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'text-muted-foreground hover:bg-secondary',
+                )}
+              >
+                All
+              </button>
+              {categories.map(([categoryId, categoryName]) => (
+                <button
+                  key={categoryId}
+                  type="button"
+                  onClick={() => setSelectedCategoryId(categoryId)}
+                  className={cn(
+                    'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                    selectedCategoryId === categoryId
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'text-muted-foreground hover:bg-secondary',
+                  )}
+                >
+                  {categoryName}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {visibleProducts.map((product) => (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => addProductToDraft(product)}
+                  className="hover:border-primary active:bg-secondary/50 flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors active:scale-[0.98]"
+                >
+                  <span className="text-sm leading-snug font-medium">{product.name}</span>
+                  <span className="text-muted-foreground text-sm">{formatCurrency(product.price)}</span>
+                </button>
+              ))}
             </div>
 
             {draft.length > 0 && (
@@ -294,10 +323,6 @@ export default function StaffTableSessionPage() {
                 </div>
               </div>
             )}
-
-            <Button size="lg" variant="gold" className="w-fit" disabled={draft.length === 0 || firing} onClick={handleFireRound}>
-              {firing ? 'Firing...' : 'Fire to Kitchen'}
-            </Button>
           </CardContent>
         </Card>
       )}
@@ -317,18 +342,19 @@ export default function StaffTableSessionPage() {
                       <Badge variant={isCancelled ? 'outline' : 'secondary'}>{ROUND_STATUS_LABEL[round.status]}</Badge>
                       {round.status === 1 && session.status === 1 && (
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive size-10"
-                          title="Cancel this round"
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive border-destructive/30 hover:bg-destructive/10 h-10 gap-1.5"
                           onClick={() => setRoundToCancel(round)}
                         >
                           <Ban className="size-4" />
+                          Cancel
                         </Button>
                       )}
                       <Link to={`/print/dinein-kot/${round.id}`} target="_blank">
-                        <Button variant="ghost" size="icon" className="size-10">
+                        <Button variant="outline" size="sm" className="h-10 gap-1.5">
                           <Printer className="size-4" />
+                          Print
                         </Button>
                       </Link>
                     </div>
@@ -349,12 +375,6 @@ export default function StaffTableSessionPage() {
           })
         )}
       </div>
-
-      {session.status === 1 && session.rounds.length > 0 && (
-        <Button size="lg" variant="outline" className="w-fit" disabled={busy} onClick={handleRequestBill}>
-          Request Bill
-        </Button>
-      )}
 
       {session.status === 2 && (
         <Card>
@@ -405,11 +425,11 @@ export default function StaffTableSessionPage() {
 
             <div className="flex items-center justify-between border-t pt-3 text-base font-semibold">
               <span>Remaining</span>
-              <span>{formatCurrency(session.total - paidTotal(session))}</span>
+              <span>{formatCurrency(remaining)}</span>
             </div>
 
             {splitCount === 1 ? (
-              session.total - paidTotal(session) > 0 && (
+              remaining > 0 && (
                 <div className="flex items-center gap-2">
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                     <SelectTrigger className="h-12 w-40 text-base">
@@ -428,11 +448,9 @@ export default function StaffTableSessionPage() {
                     variant="gold"
                     className="flex-1"
                     disabled={collectingPayment}
-                    onClick={() =>
-                      handleCollect('Full bill', session.total - paidTotal(session), paymentMethod, setCollectingPayment)
-                    }
+                    onClick={() => handleCollect('Full bill', remaining, paymentMethod, setCollectingPayment)}
                   >
-                    {collectingPayment ? 'Processing...' : `Collect ${formatCurrency(session.total - paidTotal(session))}`}
+                    {collectingPayment ? 'Processing...' : `Collect ${formatCurrency(remaining)}`}
                   </Button>
                 </div>
               )
@@ -479,12 +497,42 @@ export default function StaffTableSessionPage() {
                 })}
               </div>
             )}
-
-            <Button size="lg" variant="outline" disabled={session.total - paidTotal(session) > 0 || busy} onClick={handleClose}>
-              {busy ? 'Closing...' : 'Close Table'}
-            </Button>
           </CardContent>
         </Card>
+      )}
+
+      {session.status !== 3 && (
+        <div className="bg-background/95 fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
+          <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{session.tableLabel}</p>
+              <p className="text-muted-foreground text-xs">{formatCurrency(session.total)} total</p>
+            </div>
+            {session.status === 1 && draft.length > 0 && (
+              <Button size="lg" variant="gold" disabled={firing} onClick={handleFireRound}>
+                {firing ? 'Firing...' : `Fire to Kitchen · ${formatCurrency(draftTotal)}`}
+              </Button>
+            )}
+            {session.status === 1 && draft.length === 0 && session.rounds.length > 0 && (
+              <Button size="lg" variant="outline" disabled={busy} onClick={handleRequestBill}>
+                Request Bill
+              </Button>
+            )}
+            {session.status === 1 && draft.length === 0 && session.rounds.length === 0 && (
+              <span className="text-muted-foreground text-sm">Add items to fire a round</span>
+            )}
+            {session.status === 2 && remaining > 0 && (
+              <Badge variant="outline" className="text-sm">
+                Remaining {formatCurrency(remaining)}
+              </Badge>
+            )}
+            {session.status === 2 && remaining <= 0 && (
+              <Button size="lg" variant="gold" disabled={busy} onClick={handleClose}>
+                {busy ? 'Closing...' : 'Close Table'}
+              </Button>
+            )}
+          </div>
+        </div>
       )}
 
       <Dialog open={roundToCancel !== null} onOpenChange={(open) => !open && setRoundToCancel(null)}>

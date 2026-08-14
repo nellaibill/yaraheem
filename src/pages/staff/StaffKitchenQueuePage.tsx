@@ -2,27 +2,57 @@ import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { ChefHat, Flame } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { advanceRoundStatus, fetchKitchenQueue } from '@/lib/api/dineInApi'
 import { ApiError } from '@/lib/api/client'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { cn } from '@/lib/utils'
 import type { KitchenRoundDto } from '@/lib/api/types'
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
 }
 
-const STATUS_LABEL: Record<number, string> = { 1: 'Fired', 2: 'Preparing', 3: 'Ready' }
-const STATUS_BADGE: Record<number, 'gold' | 'secondary' | 'outline'> = { 1: 'gold', 2: 'secondary', 3: 'outline' }
-const NEXT_ACTION_LABEL: Record<number, string> = { 1: 'Start Preparing', 2: 'Mark Ready', 3: 'Mark Served' }
-
 const POLL_INTERVAL_MS = 5000
+
+type Urgency = 'normal' | 'amber' | 'red'
+
+function urgencyFor(firedAt: string): Urgency {
+  const minutes = (Date.now() - new Date(firedAt).getTime()) / 60000
+  if (minutes >= 20) return 'red'
+  if (minutes >= 10) return 'amber'
+  return 'normal'
+}
+
+const URGENCY_CARD_CLASS: Record<Urgency, string> = {
+  normal: '',
+  amber: 'border-amber-400 bg-amber-50 dark:bg-amber-950/30',
+  red: 'border-red-400 bg-red-50 dark:bg-red-950/30 animate-pulse motion-reduce:animate-none',
+}
+
+const URGENCY_TIME_CLASS: Record<Urgency, string> = {
+  normal: 'text-muted-foreground',
+  amber: 'text-amber-700 dark:text-amber-400 font-semibold',
+  red: 'text-red-700 dark:text-red-400 font-semibold',
+}
 
 function minutesAgo(isoDate: string) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(isoDate).getTime()) / 60000))
   return minutes === 0 ? 'just now' : `${minutes} min ago`
 }
+
+interface Lane {
+  status: 1 | 2 | 3
+  title: string
+  actionLabel: string
+  headerClass: string
+}
+
+const LANES: Lane[] = [
+  { status: 1, title: 'New', actionLabel: 'Start Preparing', headerClass: 'text-foreground' },
+  { status: 2, title: 'Preparing', actionLabel: 'Mark Ready', headerClass: 'text-foreground' },
+  { status: 3, title: 'Ready to Serve', actionLabel: 'Mark Served', headerClass: 'text-primary' },
+]
 
 export default function StaffKitchenQueuePage() {
   useDocumentTitle('Kitchen')
@@ -71,38 +101,60 @@ export default function StaffKitchenQueuePage() {
       ) : rounds.length === 0 ? (
         <p className="text-muted-foreground py-12 text-center text-base">Nothing fired right now — the queue is clear.</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {rounds.map((round) => (
-            <Card key={round.id}>
-              <CardContent className="flex flex-col gap-3 p-5">
-                <div className="flex items-center justify-between">
-                  <p className="font-display text-xl font-semibold">{round.tableLabel}</p>
-                  <Badge variant={STATUS_BADGE[round.status]}>{STATUS_LABEL[round.status]}</Badge>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {LANES.map((lane) => {
+            const laneRounds = rounds.filter((r) => r.status === lane.status)
+            return (
+              <div key={lane.status} className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <h2 className={cn('font-display text-lg font-semibold', lane.headerClass)}>{lane.title}</h2>
+                  <span className="bg-secondary text-secondary-foreground flex size-6 items-center justify-center rounded-full text-xs font-semibold">
+                    {laneRounds.length}
+                  </span>
                 </div>
-                <p className="text-muted-foreground -mt-2 flex items-center gap-1.5 text-sm">
-                  <Flame className="size-3.5" />
-                  Round {round.roundNumber} · fired {minutesAgo(round.firedAt)}
-                </p>
-                <div className="flex flex-col gap-1 text-base">
-                  {round.items.map((item) => (
-                    <div key={item.id} className="flex justify-between">
-                      <span className="font-medium">{item.productName}</span>
-                      <span className="text-muted-foreground">×{item.quantity}</span>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  size="lg"
-                  variant="gold"
-                  className="mt-1 w-full"
-                  disabled={advancingId === round.id}
-                  onClick={() => handleAdvance(round)}
-                >
-                  {advancingId === round.id ? 'Updating...' : NEXT_ACTION_LABEL[round.status]}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+
+                {laneRounds.length === 0 ? (
+                  <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">Nothing here</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {laneRounds.map((round) => {
+                      const urgency = urgencyFor(round.firedAt)
+                      return (
+                        <Card key={round.id} className={cn('transition-colors', URGENCY_CARD_CLASS[urgency])}>
+                          <CardContent className="flex flex-col gap-3 p-5">
+                            <div className="flex items-center justify-between">
+                              <p className="font-display text-xl font-semibold">{round.tableLabel}</p>
+                            </div>
+                            <p className={cn('-mt-2 flex items-center gap-1.5 text-sm', URGENCY_TIME_CLASS[urgency])}>
+                              <Flame className="size-3.5" />
+                              Round {round.roundNumber} · fired {minutesAgo(round.firedAt)}
+                            </p>
+                            <div className="flex flex-col gap-1 text-base">
+                              {round.items.map((item) => (
+                                <div key={item.id} className="flex justify-between">
+                                  <span className="font-medium">{item.productName}</span>
+                                  <span className="text-muted-foreground">×{item.quantity}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <Button
+                              size="lg"
+                              variant="gold"
+                              className="mt-1 w-full"
+                              disabled={advancingId === round.id}
+                              onClick={() => handleAdvance(round)}
+                            >
+                              {advancingId === round.id ? 'Updating...' : lane.actionLabel}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
