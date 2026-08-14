@@ -41,6 +41,12 @@ public static class AdminDiningTableEndpoints
             return Results.Ok(ApiResponse<DiningTableDto>.SuccessResponse(result, "Table updated."));
         }).WithSummary("Update a dining table's label, capacity, or status.");
 
+        app.MapGet("/api/admin/dinein/sessions", async (ITableSessionService service, CancellationToken cancellationToken) =>
+            Results.Ok(ApiResponse<List<TableSessionDto>>.SuccessResponse(await service.GetSessionsForAdminAsync(cancellationToken))))
+            .WithTags("Admin")
+            .RequireAuthorization("AdminOnly")
+            .WithSummary("Every dine-in table session (most recent 200), for the admin's own dine-in revenue view — kept separate from GET /api/admin/orders (online/delivery) so the two never get summed together by mistake.");
+
         return app;
     }
 }

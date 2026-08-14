@@ -66,6 +66,14 @@ public static class DineInStaffEndpoints
             Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.RequestBillAsync(sessionId, cancellationToken), "Bill requested.")))
             .WithSummary("Lock the tab from further rounds — guests are ready to pay.");
 
+        group.MapPost("/sessions/{sessionId:guid}/rounds/{roundId:guid}/cancel", async (
+            Guid sessionId,
+            Guid roundId,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.CancelRoundAsync(sessionId, roundId, cancellationToken), "Round cancelled — stock restored.")))
+            .WithSummary("Cancel a round that hasn't been started by the kitchen yet, restoring the deducted stock.");
+
         group.MapGet("/rounds/{roundId:guid}", async (
             Guid roundId,
             ITableSessionService service,

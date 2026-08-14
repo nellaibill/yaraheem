@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { Bike, ClipboardCheck, IndianRupee, PackageX, Receipt, TrendingUp, Users, XCircle } from 'lucide-react'
+import { Bike, ClipboardCheck, IndianRupee, PackageX, Receipt, TrendingUp, Users, UtensilsCrossed, XCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { StatCard } from '@/features/admin/components/StatCard'
 import { RevenueChart } from '@/features/admin/components/RevenueChart'
@@ -27,11 +27,18 @@ import {
 import { fetchAdminOrders, updateAdminOrderStatus } from '@/lib/api/adminOrdersApi'
 import { fetchAdminCustomers } from '@/lib/api/adminCustomersApi'
 import { fetchAdminDeliveryPartners } from '@/lib/api/adminDeliveryApi'
+import { fetchAdminDineInSessions } from '@/lib/api/adminDineInApi'
 import { ApiError } from '@/lib/api/client'
 import { useMenuData } from '@/features/menu/hooks/useMenuData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency, cn } from '@/lib/utils'
-import type { BackendOrderStatus, CustomerSummaryDto, DeliveryPartnerDto, OrderDto } from '@/lib/api/types'
+import type { BackendOrderStatus, CustomerSummaryDto, DeliveryPartnerDto, OrderDto, TableSessionDto } from '@/lib/api/types'
+
+function isToday(isoDate: string) {
+  const date = new Date(isoDate)
+  const now = new Date()
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
+}
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
@@ -43,18 +50,20 @@ export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<OrderDto[]>([])
   const [customers, setCustomers] = useState<CustomerSummaryDto[]>([])
   const [partners, setPartners] = useState<DeliveryPartnerDto[]>([])
+  const [dineInSessions, setDineInSessions] = useState<TableSessionDto[]>([])
   const [loading, setLoading] = useState(true)
   const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    Promise.all([fetchAdminOrders({ pageSize: 100 }), fetchAdminCustomers(), fetchAdminDeliveryPartners()])
-      .then(([orderResult, customerResult, partnerResult]) => {
+    Promise.all([fetchAdminOrders({ pageSize: 100 }), fetchAdminCustomers(), fetchAdminDeliveryPartners(), fetchAdminDineInSessions()])
+      .then(([orderResult, customerResult, partnerResult, dineInResult]) => {
         if (cancelled) return
         setOrders(orderResult.items)
         setCustomers(customerResult)
         setPartners(partnerResult)
+        setDineInSessions(dineInResult)
       })
       .catch((error) => {
         if (!cancelled) toast.error('Could not load dashboard data', { description: errorMessage(error) })
@@ -80,6 +89,10 @@ export default function AdminDashboardPage() {
   const kitchenQueue = getKitchenQueue(orders)
   const activePartners = partners.filter((p) => p.status !== 3).length
   const recentOrders = orders.slice(0, 6)
+  const dineInRevenueToday = dineInSessions
+    .filter((s) => s.status === 3 && s.closedAt && isToday(s.closedAt))
+    .reduce((sum, s) => sum + s.total, 0)
+  const dineInActiveCount = dineInSessions.filter((s) => s.status !== 3).length
 
   async function handleKitchenAdvance(orderId: string, next: BackendOrderStatus) {
     try {
@@ -102,15 +115,33 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground text-sm">Overview of today's performance</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        <StatCard icon={IndianRupee} label="Today's Revenue" value={formatCurrency(todayRevenue)} accent="gold" />
-        <StatCard icon={Receipt} label="Today's Orders" value={String(todayOrders.length)} />
-        <StatCard icon={ClipboardCheck} label="Pending Orders" value={String(getPendingOrdersCount(orders))} accent="gold" />
-        <StatCard icon={Receipt} label="Completed Orders" value={String(getCompletedOrdersCount(orders))} />
-        <StatCard icon={XCircle} label="Cancelled Orders" value={String(getCancelledOrdersCount(orders))} />
-        <StatCard icon={Bike} label="Active Delivery Partners" value={String(activePartners)} accent="gold" />
-        <StatCard icon={Users} label="Total Customers" value={String(customers.length)} />
-        <StatCard icon={TrendingUp} label="Avg Order Value" value={formatCurrency(avgOrderValue)} />
+      <div>
+        <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-widest uppercase">
+          Online &amp; Delivery Orders
+        </p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <StatCard icon={IndianRupee} label="Online Orders Revenue (Today)" value={formatCurrency(todayRevenue)} accent="gold" />
+          <StatCard icon={Receipt} label="Today's Orders" value={String(todayOrders.length)} />
+          <StatCard icon={ClipboardCheck} label="Pending Orders" value={String(getPendingOrdersCount(orders))} accent="gold" />
+          <StatCard icon={Receipt} label="Completed Orders" value={String(getCompletedOrdersCount(orders))} />
+          <StatCard icon={XCircle} label="Cancelled Orders" value={String(getCancelledOrdersCount(orders))} />
+          <StatCard icon={Bike} label="Active Delivery Partners" value={String(activePartners)} accent="gold" />
+          <StatCard icon={Users} label="Total Customers" value={String(customers.length)} />
+          <StatCard icon={TrendingUp} label="Avg Order Value" value={formatCurrency(avgOrderValue)} />
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">Dine-In (Restaurant Floor)</p>
+          <Link to="/admin/dinein" className="text-primary text-xs font-medium hover:underline">
+            View all
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <StatCard icon={IndianRupee} label="Dine-In Revenue (Today)" value={formatCurrency(dineInRevenueToday)} accent="gold" />
+          <StatCard icon={UtensilsCrossed} label="Tables Currently Active" value={String(dineInActiveCount)} />
+        </div>
       </div>
 
       <Card>

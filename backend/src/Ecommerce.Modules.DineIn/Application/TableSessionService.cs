@@ -4,6 +4,8 @@ using Ecommerce.Modules.DineIn.Contracts;
 using Ecommerce.Modules.DineIn.Domain;
 using Ecommerce.Modules.DineIn.Infrastructure;
 using Ecommerce.Modules.Inventory.Application;
+using Ecommerce.Modules.Inventory.Contracts;
+using Ecommerce.Modules.Inventory.Domain;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -245,6 +247,57 @@ public sealed class TableSessionService(
             session.TotalAmount ?? ComputeSessionTotal(session));
     }
 
+    public async Task<TableSessionDto> CancelRoundAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken)
+    {
+        var session = await db.TableSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
+                      ?? throw new NotFoundException("TableSession", sessionId);
+
+        if (session.Status != TableSessionStatus.Open)
+        {
+            throw new ConflictException("This table's bill has already been requested — cannot cancel a round now.");
+        }
+
+        var round = await db.DineInRounds.Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.Id == roundId && r.TableSessionId == sessionId, cancellationToken)
+            ?? throw new NotFoundException("DineInRound", roundId);
+
+        if (round.Status != DineInRoundStatus.Fired)
+        {
+            throw new ConflictException($"Round {round.RoundNumber} is already {round.Status} — the kitchen has already started on it, it can't be cancelled from here.");
+        }
+
+        // Reverse the deduction made when the round was fired — same mechanism an admin uses
+        // for any other stock correction, just triggered automatically instead of by hand.
+        foreach (var item in round.Items)
+        {
+            await inventoryService.AdjustAsync(
+                new AdjustInventoryRequest(item.ProductId, item.Quantity, InventoryTransactionType.Adjustment, $"DineIn-Cancel-{sessionId}-R{round.RoundNumber}"),
+                cancellationToken);
+        }
+
+        round.Status = DineInRoundStatus.Cancelled;
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DineInRound.Cancelled", "TableSession", sessionId.ToString(), $"Round {round.RoundNumber} cancelled, stock reversed", cancellationToken);
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
+    }
+
+    public async Task<List<TableSessionDto>> GetSessionsForAdminAsync(CancellationToken cancellationToken)
+    {
+        var sessionIds = await db.TableSessions.AsNoTracking()
+            .OrderByDescending(s => s.CreatedAt)
+            .Take(200)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<TableSessionDto>(sessionIds.Count);
+        foreach (var id in sessionIds)
+        {
+            result.Add(await BuildSessionDtoAsync(id, cancellationToken));
+        }
+        return result;
+    }
+
     private static decimal ComputeSessionTotal(TableSession session) =>
-        session.Rounds.SelectMany(r => r.Items).Sum(i => i.UnitPrice * i.Quantity);
+        session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled).SelectMany(r => r.Items).Sum(i => i.UnitPrice * i.Quantity);
 }

@@ -21,6 +21,10 @@ export function fireRound(sessionId: string, items: { productId: string; quantit
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/rounds`, { items })
 }
 
+export function cancelRound(sessionId: string, roundId: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/rounds/${roundId}/cancel`)
+}
+
 export function requestBill(sessionId: string): Promise<TableSessionDto> {
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/request-bill`)
 }

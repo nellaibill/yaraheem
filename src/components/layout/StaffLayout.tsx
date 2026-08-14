@@ -28,7 +28,7 @@ export function StaffLayout() {
               {staff && <p className="text-primary-foreground/70 mt-1 text-[11px]">{staff.email}</p>}
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5" onClick={handleLogout}>
+          <Button variant="ghost" size="lg" className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5" onClick={handleLogout}>
             <LogOut className="size-4" />
             Logout
           </Button>
