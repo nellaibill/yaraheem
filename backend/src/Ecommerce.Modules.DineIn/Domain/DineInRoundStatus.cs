@@ -6,4 +6,5 @@ public enum DineInRoundStatus
     Preparing = 2,
     Ready = 3,
     Served = 4,
+    Cancelled = 5,
 }

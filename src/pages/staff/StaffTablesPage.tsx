@@ -75,18 +75,18 @@ export default function StaffTablesPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-display text-2xl font-bold">Tables</h1>
-        <p className="text-muted-foreground text-sm">Tap a table to seat guests or view its running tab.</p>
+        <h1 className="font-display text-3xl font-bold">Tables</h1>
+        <p className="text-muted-foreground text-base">Tap a table to seat guests or view its running tab.</p>
       </div>
 
       {loading ? (
         <p className="text-muted-foreground py-12 text-center text-sm">Loading...</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {tables.map((table) => (
             <Card
               key={table.id}
-              className="cursor-pointer transition-shadow hover:shadow-md"
+              className="cursor-pointer transition-shadow hover:shadow-md active:scale-[0.98]"
               onClick={() => {
                 if (table.activeSessionId) navigate(`/staff/sessions/${table.activeSessionId}`)
                 else if (table.status === 1) {
@@ -95,19 +95,21 @@ export default function StaffTablesPage() {
                 }
               }}
             >
-              <CardContent className="flex flex-col items-center gap-2 p-5 text-center">
-                <p className="font-display text-lg font-semibold">{table.label}</p>
-                <Badge variant={STATUS_BADGE[table.status]}>{STATUS_LABEL[table.status]}</Badge>
-                <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                  <Users className="size-3.5" />
+              <CardContent className="flex flex-col items-center gap-2.5 p-6 text-center">
+                <p className="font-display text-xl font-semibold">{table.label}</p>
+                <Badge variant={STATUS_BADGE[table.status]} className="px-3 py-1 text-sm">
+                  {STATUS_LABEL[table.status]}
+                </Badge>
+                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                  <Users className="size-4" />
                   {table.capacity} seats
                 </p>
                 {table.runningTotal !== null && (
-                  <p className="text-sm font-semibold">{formatCurrency(table.runningTotal)}</p>
+                  <p className="text-base font-semibold">{formatCurrency(table.runningTotal)}</p>
                 )}
                 {table.status === 3 && (
                   <Button
-                    size="sm"
+                    size="lg"
                     variant="gold"
                     className="mt-1 w-full"
                     disabled={cleaningTableId === table.id}
@@ -139,13 +141,14 @@ export default function StaffTablesPage() {
               value={guestCount}
               onChange={(e) => setGuestCount(e.target.value)}
               autoFocus
+              className="h-12 text-base"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSeatingTable(null)}>
+            <Button size="lg" variant="outline" onClick={() => setSeatingTable(null)}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={handleSeat} disabled={opening}>
+            <Button size="lg" variant="gold" onClick={handleSeat} disabled={opening}>
               {opening ? 'Opening...' : 'Open Table'}
             </Button>
           </DialogFooter>

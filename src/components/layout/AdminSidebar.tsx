@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { BarChart3, Bike, History, Inbox, KeyRound, LayoutDashboard, LogOut, Receipt, Settings, Tag, UtensilsCrossed, Users } from 'lucide-react'
+import { BarChart3, Bike, History, Inbox, KeyRound, LayoutDashboard, LayoutGrid, LogOut, Receipt, Settings, Tag, UtensilsCrossed, Users } from 'lucide-react'
 import { useAdminAuth } from '@/features/admin/hooks/useAdminAuth'
 import { cn } from '@/lib/utils'
 
@@ -7,6 +7,7 @@ const ADMIN_NAV = [
   { label: 'Dashboard', to: '/admin', end: true, icon: LayoutDashboard },
   { label: 'Menu', to: '/admin/menu', icon: UtensilsCrossed },
   { label: 'Orders', to: '/admin/orders', icon: Receipt },
+  { label: 'Dine-In', to: '/admin/dinein', icon: LayoutGrid },
   { label: 'Customers', to: '/admin/customers', icon: Users },
   { label: 'Inquiries', to: '/admin/inquiries', icon: Inbox },
   { label: 'Delivery Partners', to: '/admin/delivery-partners', icon: Bike },

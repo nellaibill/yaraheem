@@ -292,7 +292,7 @@ export interface IntegrationSettingsResponse {
 
 export type DiningTableStatus = 1 | 2 | 3 // Available | Occupied | NeedsCleaning
 export type TableSessionStatus = 1 | 2 | 3 // Open | BillRequested | Closed
-export type DineInRoundStatus = 1 | 2 | 3 | 4 // Fired | Preparing | Ready | Served
+export type DineInRoundStatus = 1 | 2 | 3 | 4 | 5 // Fired | Preparing | Ready | Served | Cancelled
 
 export interface DiningTableDto {
   id: string
