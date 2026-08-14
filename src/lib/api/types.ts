@@ -290,6 +290,56 @@ export interface IntegrationSettingsResponse {
   groups: IntegrationSettingsGroupDto[]
 }
 
+export type DiningTableStatus = 1 | 2 | 3 // Available | Occupied | NeedsCleaning
+export type TableSessionStatus = 1 | 2 | 3 // Open | BillRequested | Closed
+export type DineInRoundStatus = 1 | 2 | 3 | 4 // Fired | Preparing | Ready | Served
+
+export interface DiningTableDto {
+  id: string
+  label: string
+  capacity: number
+  status: DiningTableStatus
+  activeSessionId: string | null
+  runningTotal: number | null
+}
+
+export interface DineInRoundItemDto {
+  id: string
+  productId: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  lineTotal: number
+}
+
+export interface DineInRoundDto {
+  id: string
+  roundNumber: number
+  status: DineInRoundStatus
+  firedAt: string
+  items: DineInRoundItemDto[]
+  roundTotal: number
+}
+
+export interface DineInRoundPrintDto {
+  tableLabel: string
+  round: DineInRoundDto
+}
+
+export interface TableSessionDto {
+  id: string
+  tableId: string
+  tableLabel: string
+  openedByUserId: string
+  guestCount: number
+  status: TableSessionStatus
+  openedAt: string
+  closedAt: string | null
+  paymentMethod: string | null
+  rounds: DineInRoundDto[]
+  total: number
+}
+
 export interface AuditLogEntryDto {
   id: string
   actorUserId: string | null

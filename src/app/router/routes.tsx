@@ -4,11 +4,13 @@ import { Layout } from '@/components/layout/Layout'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { DeliveryLayout } from '@/components/layout/DeliveryLayout'
+import { StaffLayout } from '@/components/layout/StaffLayout'
 import { PageLoader } from '@/components/common/PageLoader'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { RedirectIfAuthed } from '@/features/auth/components/RedirectIfAuthed'
 import { RequireAdminAuth } from '@/features/admin/components/RequireAdminAuth'
 import { RequireDeliveryAuth } from '@/features/delivery/components/RequireDeliveryAuth'
+import { RequireStaffAuth } from '@/features/staff/components/RequireStaffAuth'
 
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const MenuPage = lazy(() => import('@/pages/MenuPage'))
@@ -47,9 +49,14 @@ const AdminIntegrationSettingsPage = lazy(() => import('@/pages/admin/AdminInteg
 
 const KotPage = lazy(() => import('@/pages/print/KotPage'))
 const InvoicePage = lazy(() => import('@/pages/print/InvoicePage'))
+const DineInKotPage = lazy(() => import('@/pages/print/DineInKotPage'))
 
 const DeliveryLoginPage = lazy(() => import('@/pages/delivery/DeliveryLoginPage'))
 const DeliveryDashboardPage = lazy(() => import('@/pages/delivery/DeliveryDashboardPage'))
+
+const StaffLoginPage = lazy(() => import('@/pages/staff/StaffLoginPage'))
+const StaffTablesPage = lazy(() => import('@/pages/staff/StaffTablesPage'))
+const StaffTableSessionPage = lazy(() => import('@/pages/staff/StaffTableSessionPage'))
 
 const ErrorPage = lazy(() => import('@/pages/ErrorPage'))
 
@@ -148,6 +155,21 @@ const router = createBrowserRouter(
               path: '/delivery',
               element: <DeliveryLayout />,
               children: [{ index: true, element: withSuspense(<DeliveryDashboardPage />) }],
+            },
+          ],
+        },
+        { path: '/staff/login', element: withSuspense(<StaffLoginPage />) },
+        {
+          element: <RequireStaffAuth />,
+          children: [
+            { path: '/print/dinein-kot/:id', element: withSuspense(<DineInKotPage />) },
+            {
+              path: '/staff',
+              element: <StaffLayout />,
+              children: [
+                { index: true, element: withSuspense(<StaffTablesPage />) },
+                { path: 'sessions/:id', element: withSuspense(<StaffTableSessionPage />) },
+              ],
             },
           ],
         },

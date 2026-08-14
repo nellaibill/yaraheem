@@ -14,6 +14,9 @@ using Ecommerce.Modules.Catalog.Infrastructure;
 using Ecommerce.Modules.Delivery;
 using Ecommerce.Modules.Delivery.Endpoints;
 using Ecommerce.Modules.Delivery.Infrastructure;
+using Ecommerce.Modules.DineIn;
+using Ecommerce.Modules.DineIn.Endpoints;
+using Ecommerce.Modules.DineIn.Infrastructure;
 using Ecommerce.Modules.Identity;
 using Ecommerce.Modules.Identity.Endpoints;
 using Ecommerce.Modules.Identity.Infrastructure;
@@ -96,7 +99,8 @@ try
 
     builder.Services.AddAuthorizationBuilder()
         .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
-        .AddPolicy("DeliveryOnly", policy => policy.RequireRole("DeliveryPartner"));
+        .AddPolicy("DeliveryOnly", policy => policy.RequireRole("DeliveryPartner"))
+        .AddPolicy("DineInStaff", policy => policy.RequireRole("Admin", "Waiter"));
 
     builder.Services.AddAuditModule(builder.Configuration);
     builder.Services.AddSettingsModule(builder.Configuration);
@@ -109,6 +113,7 @@ try
     builder.Services.AddOrdersModule(builder.Configuration);
     builder.Services.AddLeadsModule(builder.Configuration);
     builder.Services.AddDeliveryModule(builder.Configuration);
+    builder.Services.AddDineInModule(builder.Configuration);
 
     var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
                             ?? throw new InvalidOperationException("Connection string 'PostgreSql' is not configured.");
@@ -177,6 +182,8 @@ try
     app.MapCouponEndpoints();
     app.MapAdminCouponEndpoints();
     app.MapAdminIntegrationSettingsEndpoints();
+    app.MapDineInStaffEndpoints();
+    app.MapAdminDiningTableEndpoints();
 
     app.MapHealthChecks("/health");
 
@@ -195,6 +202,7 @@ try
         await services.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<LeadsDbContext>().Database.MigrateAsync();
         await services.GetRequiredService<DeliveryDbContext>().Database.MigrateAsync();
+        await services.GetRequiredService<DineInDbContext>().Database.MigrateAsync();
 
         await IdentitySeeder.SeedAsync(
             services.GetRequiredService<IdentityDbContext>(),
@@ -217,6 +225,12 @@ try
         await DeliverySeeder.SeedAsync(
             services.GetRequiredService<IdentityDbContext>(),
             services.GetRequiredService<DeliveryDbContext>(),
+            services.GetRequiredService<IPasswordHasher>(),
+            app.Logger);
+
+        await DineInSeeder.SeedAsync(
+            services.GetRequiredService<IdentityDbContext>(),
+            services.GetRequiredService<DineInDbContext>(),
             services.GetRequiredService<IPasswordHasher>(),
             app.Logger);
 
