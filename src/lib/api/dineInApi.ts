@@ -5,6 +5,10 @@ export function fetchTables(): Promise<DiningTableDto[]> {
   return staffApiGet<DiningTableDto[]>('/api/staff/dinein/tables')
 }
 
+export function markTableCleaned(tableId: string): Promise<DiningTableDto> {
+  return staffApiPost<DiningTableDto>(`/api/staff/dinein/tables/${tableId}/mark-clean`)
+}
+
 export function openTableSession(tableId: string, guestCount: number): Promise<TableSessionDto> {
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/tables/${tableId}/sessions`, { guestCount })
 }

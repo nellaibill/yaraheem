@@ -7,6 +7,7 @@ public interface ITableSessionService
     Task<List<DiningTableDto>> GetTablesAsync(CancellationToken cancellationToken);
     Task<DiningTableDto> CreateTableAsync(CreateDiningTableRequest request, CancellationToken cancellationToken);
     Task<DiningTableDto> UpdateTableAsync(Guid tableId, UpdateDiningTableRequest request, CancellationToken cancellationToken);
+    Task<DiningTableDto> MarkTableCleanedAsync(Guid tableId, CancellationToken cancellationToken);
 
     Task<TableSessionDto> OpenSessionAsync(Guid tableId, Guid waiterUserId, OpenTableSessionRequest request, CancellationToken cancellationToken);
     Task<TableSessionDto> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken);

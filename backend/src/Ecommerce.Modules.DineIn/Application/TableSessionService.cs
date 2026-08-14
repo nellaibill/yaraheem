@@ -56,6 +56,23 @@ public sealed class TableSessionService(
         return new DiningTableDto(table.Id, table.Label, table.Capacity, table.Status, null, null);
     }
 
+    public async Task<DiningTableDto> MarkTableCleanedAsync(Guid tableId, CancellationToken cancellationToken)
+    {
+        var table = await db.DiningTables.FirstOrDefaultAsync(t => t.Id == tableId, cancellationToken)
+                    ?? throw new NotFoundException("DiningTable", tableId);
+
+        if (table.Status != DiningTableStatus.NeedsCleaning)
+        {
+            throw new ConflictException($"Table '{table.Label}' is not awaiting cleaning (currently {table.Status}).");
+        }
+
+        table.Status = DiningTableStatus.Available;
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DiningTable.Cleaned", "DiningTable", table.Id.ToString(), table.Label, cancellationToken);
+
+        return new DiningTableDto(table.Id, table.Label, table.Capacity, table.Status, null, null);
+    }
+
     public async Task<TableSessionDto> OpenSessionAsync(Guid tableId, Guid waiterUserId, OpenTableSessionRequest request, CancellationToken cancellationToken)
     {
         var table = await db.DiningTables.FirstOrDefaultAsync(t => t.Id == tableId, cancellationToken)
