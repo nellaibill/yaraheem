@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Ban, ChevronLeft, Minus, Plus, Printer, Trash2 } from 'lucide-react'
+import { Ban, Check, ChevronLeft, Minus, Plus, Printer, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   requestBill,
   closeTableSession,
   cancelRound,
+  markRoundServed,
   createDineInPayment,
   verifyDineInPayment,
 } from '@/lib/api/dineInApi'
@@ -65,6 +66,7 @@ export default function StaffTableSessionPage() {
   const [collectingSplitIndex, setCollectingSplitIndex] = useState<number | null>(null)
   const [roundToCancel, setRoundToCancel] = useState<DineInRoundDto | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  const [servingRoundId, setServingRoundId] = useState<string | null>(null)
 
   function load() {
     if (!id) return
@@ -200,6 +202,20 @@ export default function StaffTableSessionPage() {
     const base = Math.floor((session.total / splitCount) * 100) / 100
     if (index < splitCount - 1) return base
     return Math.round((session.total - base * (splitCount - 1)) * 100) / 100
+  }
+
+  async function handleMarkServed(round: DineInRoundDto) {
+    if (!session) return
+    setServingRoundId(round.id)
+    try {
+      const updated = await markRoundServed(session.id, round.id)
+      setSession(updated)
+      toast.success(`Round ${round.roundNumber} served`)
+    } catch (error) {
+      toast.error('Could not mark round served', { description: errorMessage(error) })
+    } finally {
+      setServingRoundId(null)
+    }
   }
 
   async function handleConfirmCancel() {
@@ -349,6 +365,18 @@ export default function StaffTableSessionPage() {
                         >
                           <Ban className="size-4" />
                           Cancel
+                        </Button>
+                      )}
+                      {round.status === 3 && (
+                        <Button
+                          variant="gold"
+                          size="sm"
+                          className="h-10 gap-1.5"
+                          disabled={servingRoundId === round.id}
+                          onClick={() => handleMarkServed(round)}
+                        >
+                          <Check className="size-4" />
+                          {servingRoundId === round.id ? 'Serving...' : 'Mark Served'}
                         </Button>
                       )}
                       <Link to={`/print/dinein-kot/${round.id}`} target="_blank">

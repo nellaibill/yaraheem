@@ -401,16 +401,17 @@ public sealed class TableSessionService(
             .FirstOrDefaultAsync(r => r.Id == roundId, cancellationToken)
             ?? throw new NotFoundException("DineInRound", roundId);
 
+        // Fired -> Preparing -> Ready is as far as the kitchen's own action goes: once a round
+        // is plated and Ready, it's the waiter who actually delivers it and knows it's been
+        // served — see MarkRoundServedAsync, which the kitchen has no access to.
         var next = round.Status switch
         {
             DineInRoundStatus.Fired => DineInRoundStatus.Preparing,
             DineInRoundStatus.Preparing => DineInRoundStatus.Ready,
-            DineInRoundStatus.Ready => DineInRoundStatus.Served,
-            _ => throw new ConflictException($"Round {round.RoundNumber} is {round.Status} and can't be advanced further."),
+            _ => throw new ConflictException($"Round {round.RoundNumber} is {round.Status} and can't be advanced further from the kitchen."),
         };
 
         round.Status = next;
-        if (next == DineInRoundStatus.Served) round.ServedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         await auditLog.LogAsync("DineInRound.StatusAdvanced", "TableSession", round.TableSessionId.ToString(), $"Round {round.RoundNumber} -> {next}", cancellationToken);
 
@@ -418,6 +419,24 @@ public sealed class TableSessionService(
         var table = await db.DiningTables.AsNoTracking().FirstAsync(t => t.Id == session.TableId, cancellationToken);
 
         return ToKitchenDto(round, session.Id, table.Label);
+    }
+
+    public async Task<TableSessionDto> MarkRoundServedAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken)
+    {
+        var round = await db.DineInRounds.FirstOrDefaultAsync(r => r.Id == roundId && r.TableSessionId == sessionId, cancellationToken)
+                    ?? throw new NotFoundException("DineInRound", roundId);
+
+        if (round.Status != DineInRoundStatus.Ready)
+        {
+            throw new ConflictException($"Round {round.RoundNumber} is {round.Status} — it can only be marked served once the kitchen has it ready.");
+        }
+
+        round.Status = DineInRoundStatus.Served;
+        round.ServedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DineInRound.Served", "TableSession", sessionId.ToString(), $"Round {round.RoundNumber} served", cancellationToken);
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
     }
 
     private static KitchenRoundDto ToKitchenDto(DineInRound round, Guid sessionId, string tableLabel)

@@ -15,6 +15,7 @@ public interface ITableSessionService
     Task<TableSessionDto> RequestBillAsync(Guid sessionId, CancellationToken cancellationToken);
     Task<TableSessionDto> CloseSessionAsync(Guid sessionId, CancellationToken cancellationToken);
     Task<TableSessionDto> CancelRoundAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken);
+    Task<TableSessionDto> MarkRoundServedAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken);
 
     Task<DineInPaymentDto> RecordPaymentAsync(Guid sessionId, string label, decimal amount, string method, string? razorpayOrderId, CancellationToken cancellationToken);
     Task<TableSessionDto> MarkPaymentPaidAsync(Guid sessionId, Guid paymentId, string? razorpayPaymentId, CancellationToken cancellationToken);
