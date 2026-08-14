@@ -368,10 +368,18 @@ public sealed class TableSessionService(
 
     public async Task<List<KitchenRoundDto>> GetKitchenQueueAsync(CancellationToken cancellationToken)
     {
+        // A round can be left behind at Ready if its session was closed without ever being
+        // marked served (e.g. the guest left before the waiter caught up) — exclude those, or
+        // the kitchen keeps seeing "ready" tickets for tables that have already been reset.
         var activeStatuses = new[] { DineInRoundStatus.Fired, DineInRoundStatus.Preparing, DineInRoundStatus.Ready };
+        var openSessionIds = await db.TableSessions.AsNoTracking()
+            .Where(s => s.Status != TableSessionStatus.Closed)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+
         var rounds = await db.DineInRounds.AsNoTracking()
             .Include(r => r.Items)
-            .Where(r => activeStatuses.Contains(r.Status))
+            .Where(r => activeStatuses.Contains(r.Status) && openSessionIds.Contains(r.TableSessionId))
             .OrderBy(r => r.FiredAt)
             .ToListAsync(cancellationToken);
 
