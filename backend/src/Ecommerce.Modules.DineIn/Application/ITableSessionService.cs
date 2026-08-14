@@ -17,4 +17,7 @@ public interface ITableSessionService
     Task<TableSessionDto> CancelRoundAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken);
     Task<DineInRoundPrintDto> GetRoundForPrintAsync(Guid roundId, CancellationToken cancellationToken);
     Task<List<TableSessionDto>> GetSessionsForAdminAsync(CancellationToken cancellationToken);
+
+    Task<List<KitchenRoundDto>> GetKitchenQueueAsync(CancellationToken cancellationToken);
+    Task<KitchenRoundDto> AdvanceRoundStatusAsync(Guid roundId, CancellationToken cancellationToken);
 }

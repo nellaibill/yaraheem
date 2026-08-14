@@ -8,6 +8,7 @@ function sessionToStaff(session: StoredStaffSession | null): StaffAuthUser | nul
     id: session.user.id,
     name: `${session.user.firstName} ${session.user.lastName}`.trim(),
     email: session.user.email,
+    roles: session.user.roles,
   }
 }
 

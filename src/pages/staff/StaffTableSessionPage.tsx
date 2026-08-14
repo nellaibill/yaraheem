@@ -21,6 +21,7 @@ function errorMessage(error: unknown): string {
 const SESSION_STATUS_LABEL: Record<number, string> = { 1: 'Open', 2: 'Bill Requested', 3: 'Closed' }
 const ROUND_STATUS_LABEL: Record<number, string> = { 1: 'Fired', 2: 'Preparing', 3: 'Ready', 4: 'Served', 5: 'Cancelled' }
 const PAYMENT_METHODS = ['Cash', 'UPI', 'Card']
+const ROUND_STATUS_POLL_MS = 5000
 
 interface DraftLine {
   productId: string
@@ -59,6 +60,21 @@ export default function StaffTableSessionPage() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(load, [id])
+
+  // Quietly refreshes round statuses (Fired/Preparing/Ready/Served) as the kitchen advances
+  // them, without touching the loading spinner or re-fetching the product list.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!id || !session || session.status === 3) return
+    const interval = setInterval(() => {
+      fetchTableSession(id)
+        .then(setSession)
+        .catch(() => {
+          // silent — a missed poll tick isn't worth interrupting the waiter with a toast
+        })
+    }, ROUND_STATUS_POLL_MS)
+    return () => clearInterval(interval)
+  }, [id, session?.status])
 
   function addDraftLine() {
     const product = products.find((p) => p.id === pickedProductId)

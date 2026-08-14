@@ -5,8 +5,10 @@ import type { ApiResponse, AuthResponse, ProblemDetails, UserDto } from '@/lib/a
 
 /**
  * A fourth, isolated JWT session — same pattern as client.ts/adminClient.ts/deliveryClient.ts —
- * for the waiter/floor-staff portal. Accepts Waiter or Admin roles (an admin can run the floor
- * too), rejecting Customer/DeliveryPartner-only accounts.
+ * for the waiter/floor-staff portal. Accepts Waiter, Kitchen, or Admin roles (an admin can run
+ * the floor or the kitchen too), rejecting Customer/DeliveryPartner-only accounts. Waiter and
+ * Kitchen share this one portal/login screen rather than getting a separate app — StaffLayout
+ * routes each role to the view relevant to it.
  */
 export interface StoredStaffSession {
   accessToken: string
@@ -49,7 +51,8 @@ export async function staffLogin(email: string, password: string): Promise<boole
   if (!response.ok) return false
 
   const body = (await response.json()) as ApiResponse<AuthResponse>
-  if (!body.data.user.roles.includes('Waiter') && !body.data.user.roles.includes('Admin')) return false
+  const roles = body.data.user.roles
+  if (!roles.includes('Waiter') && !roles.includes('Kitchen') && !roles.includes('Admin')) return false
 
   setStaffSession({
     accessToken: body.data.accessToken,

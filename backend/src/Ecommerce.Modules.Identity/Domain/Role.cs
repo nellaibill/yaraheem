@@ -15,5 +15,6 @@ public class Role : BaseEntity
         public const string Customer = "Customer";
         public const string DeliveryPartner = "DeliveryPartner";
         public const string Waiter = "Waiter";
+        public const string Kitchen = "Kitchen";
     }
 }

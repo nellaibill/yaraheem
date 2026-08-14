@@ -300,4 +300,64 @@ public sealed class TableSessionService(
 
     private static decimal ComputeSessionTotal(TableSession session) =>
         session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled).SelectMany(r => r.Items).Sum(i => i.UnitPrice * i.Quantity);
+
+    public async Task<List<KitchenRoundDto>> GetKitchenQueueAsync(CancellationToken cancellationToken)
+    {
+        var activeStatuses = new[] { DineInRoundStatus.Fired, DineInRoundStatus.Preparing, DineInRoundStatus.Ready };
+        var rounds = await db.DineInRounds.AsNoTracking()
+            .Include(r => r.Items)
+            .Where(r => activeStatuses.Contains(r.Status))
+            .OrderBy(r => r.FiredAt)
+            .ToListAsync(cancellationToken);
+
+        if (rounds.Count == 0) return [];
+
+        var sessionIds = rounds.Select(r => r.TableSessionId).Distinct().ToList();
+        var sessions = await db.TableSessions.AsNoTracking()
+            .Where(s => sessionIds.Contains(s.Id))
+            .ToDictionaryAsync(s => s.Id, cancellationToken);
+
+        var tableIds = sessions.Values.Select(s => s.TableId).Distinct().ToList();
+        var tables = await db.DiningTables.AsNoTracking()
+            .Where(t => tableIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+
+        return rounds.Select(r =>
+        {
+            var session = sessions[r.TableSessionId];
+            var table = tables[session.TableId];
+            return ToKitchenDto(r, session.Id, table.Label);
+        }).ToList();
+    }
+
+    public async Task<KitchenRoundDto> AdvanceRoundStatusAsync(Guid roundId, CancellationToken cancellationToken)
+    {
+        var round = await db.DineInRounds.Include(r => r.Items)
+            .FirstOrDefaultAsync(r => r.Id == roundId, cancellationToken)
+            ?? throw new NotFoundException("DineInRound", roundId);
+
+        var next = round.Status switch
+        {
+            DineInRoundStatus.Fired => DineInRoundStatus.Preparing,
+            DineInRoundStatus.Preparing => DineInRoundStatus.Ready,
+            DineInRoundStatus.Ready => DineInRoundStatus.Served,
+            _ => throw new ConflictException($"Round {round.RoundNumber} is {round.Status} and can't be advanced further."),
+        };
+
+        round.Status = next;
+        if (next == DineInRoundStatus.Served) round.ServedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DineInRound.StatusAdvanced", "TableSession", round.TableSessionId.ToString(), $"Round {round.RoundNumber} -> {next}", cancellationToken);
+
+        var session = await db.TableSessions.AsNoTracking().FirstAsync(s => s.Id == round.TableSessionId, cancellationToken);
+        var table = await db.DiningTables.AsNoTracking().FirstAsync(t => t.Id == session.TableId, cancellationToken);
+
+        return ToKitchenDto(round, session.Id, table.Label);
+    }
+
+    private static KitchenRoundDto ToKitchenDto(DineInRound round, Guid sessionId, string tableLabel)
+    {
+        var itemDtos = round.Items.Select(i => new DineInRoundItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity)).ToList();
+        return new KitchenRoundDto(round.Id, sessionId, tableLabel, round.RoundNumber, round.Status, round.FiredAt, itemDtos);
+    }
 }

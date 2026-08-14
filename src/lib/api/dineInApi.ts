@@ -1,5 +1,5 @@
 import { staffApiGet, staffApiPost } from '@/lib/api/staffClient'
-import type { DineInRoundPrintDto, DiningTableDto, TableSessionDto } from '@/lib/api/types'
+import type { DineInRoundPrintDto, DiningTableDto, KitchenRoundDto, TableSessionDto } from '@/lib/api/types'
 
 export function fetchTables(): Promise<DiningTableDto[]> {
   return staffApiGet<DiningTableDto[]>('/api/staff/dinein/tables')
@@ -35,4 +35,12 @@ export function closeTableSession(sessionId: string, paymentMethod: string): Pro
 
 export function fetchDineInRoundForPrint(roundId: string): Promise<DineInRoundPrintDto> {
   return staffApiGet<DineInRoundPrintDto>(`/api/staff/dinein/rounds/${roundId}`)
+}
+
+export function fetchKitchenQueue(): Promise<KitchenRoundDto[]> {
+  return staffApiGet<KitchenRoundDto[]>('/api/staff/dinein/kitchen/rounds')
+}
+
+export function advanceRoundStatus(roundId: string): Promise<KitchenRoundDto> {
+  return staffApiPost<KitchenRoundDto>(`/api/staff/dinein/kitchen/rounds/${roundId}/advance`)
 }

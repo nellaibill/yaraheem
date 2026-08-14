@@ -1,13 +1,24 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { LogOut, UtensilsCrossed } from 'lucide-react'
+import { ChefHat, LogOut, UtensilsCrossed } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { useStaffAuth } from '@/features/staff/hooks/useStaffAuth'
+import { cn } from '@/lib/utils'
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+    isActive ? 'bg-primary-foreground text-primary' : 'text-primary-foreground/80 hover:bg-primary-foreground/10',
+  )
 
 export function StaffLayout() {
   const { staff, logout } = useStaffAuth()
   const navigate = useNavigate()
+
+  const canRunFloor = staff?.roles.some((r) => r === 'Waiter' || r === 'Admin') ?? false
+  const canRunKitchen = staff?.roles.some((r) => r === 'Kitchen' || r === 'Admin') ?? false
+  const showNav = canRunFloor && canRunKitchen
 
   function handleLogout() {
     logout()
@@ -33,6 +44,22 @@ export function StaffLayout() {
             Logout
           </Button>
         </div>
+        {showNav && (
+          <nav className="mx-auto flex max-w-5xl gap-2 px-4 pb-3">
+            <NavLink to="/staff" end className={navLinkClass}>
+              <span className="flex items-center gap-1.5">
+                <UtensilsCrossed className="size-4" />
+                Tables
+              </span>
+            </NavLink>
+            <NavLink to="/staff/kitchen" className={navLinkClass}>
+              <span className="flex items-center gap-1.5">
+                <ChefHat className="size-4" />
+                Kitchen
+              </span>
+            </NavLink>
+          </nav>
+        )}
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6">
         <Outlet />

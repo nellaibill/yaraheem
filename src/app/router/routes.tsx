@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { useStaffAuth } from '@/features/staff/hooks/useStaffAuth'
 import { Layout } from '@/components/layout/Layout'
 import { AuthLayout } from '@/components/layout/AuthLayout'
 import { AdminLayout } from '@/components/layout/AdminLayout'
@@ -58,6 +59,7 @@ const DeliveryDashboardPage = lazy(() => import('@/pages/delivery/DeliveryDashbo
 const StaffLoginPage = lazy(() => import('@/pages/staff/StaffLoginPage'))
 const StaffTablesPage = lazy(() => import('@/pages/staff/StaffTablesPage'))
 const StaffTableSessionPage = lazy(() => import('@/pages/staff/StaffTableSessionPage'))
+const StaffKitchenQueuePage = lazy(() => import('@/pages/staff/StaffKitchenQueuePage'))
 
 const ErrorPage = lazy(() => import('@/pages/ErrorPage'))
 
@@ -69,6 +71,16 @@ const AuthSuccessPage = lazy(() => import('@/pages/auth/AuthSuccessPage'))
 
 function withSuspense(node: ReactNode) {
   return <Suspense fallback={<PageLoader />}>{node}</Suspense>
+}
+
+// Waiter and Kitchen share one portal. A Kitchen-only account has no reason to land on the
+// table grid (it would 403 — that endpoint requires the Waiter/Admin-only DineInStaff policy),
+// so route it straight to the queue it can actually use.
+function StaffIndexRoute() {
+  const { staff } = useStaffAuth()
+  const canRunFloor = staff?.roles.some((r) => r === 'Waiter' || r === 'Admin') ?? false
+  if (!canRunFloor) return <Navigate to="/staff/kitchen" replace />
+  return withSuspense(<StaffTablesPage />)
 }
 
 const router = createBrowserRouter(
@@ -169,7 +181,8 @@ const router = createBrowserRouter(
               path: '/staff',
               element: <StaffLayout />,
               children: [
-                { index: true, element: withSuspense(<StaffTablesPage />) },
+                { index: true, element: <StaffIndexRoute /> },
+                { path: 'kitchen', element: withSuspense(<StaffKitchenQueuePage />) },
                 { path: 'sessions/:id', element: withSuspense(<StaffTableSessionPage />) },
               ],
             },

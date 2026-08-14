@@ -34,6 +34,15 @@ public sealed record DineInRoundDto(
 
 public sealed record DineInRoundPrintDto(string TableLabel, DineInRoundDto Round);
 
+public sealed record KitchenRoundDto(
+    Guid Id,
+    Guid SessionId,
+    string TableLabel,
+    int RoundNumber,
+    DineInRoundStatus Status,
+    DateTimeOffset FiredAt,
+    List<DineInRoundItemDto> Items);
+
 public sealed record TableSessionDto(
     Guid Id,
     Guid TableId,

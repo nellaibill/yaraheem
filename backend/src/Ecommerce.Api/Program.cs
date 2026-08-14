@@ -100,7 +100,8 @@ try
     builder.Services.AddAuthorizationBuilder()
         .AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"))
         .AddPolicy("DeliveryOnly", policy => policy.RequireRole("DeliveryPartner"))
-        .AddPolicy("DineInStaff", policy => policy.RequireRole("Admin", "Waiter"));
+        .AddPolicy("DineInStaff", policy => policy.RequireRole("Admin", "Waiter"))
+        .AddPolicy("DineInKitchen", policy => policy.RequireRole("Admin", "Kitchen"));
 
     builder.Services.AddAuditModule(builder.Configuration);
     builder.Services.AddSettingsModule(builder.Configuration);
@@ -183,6 +184,7 @@ try
     app.MapAdminCouponEndpoints();
     app.MapAdminIntegrationSettingsEndpoints();
     app.MapDineInStaffEndpoints();
+    app.MapDineInKitchenEndpoints();
     app.MapAdminDiningTableEndpoints();
 
     app.MapHealthChecks("/health");
