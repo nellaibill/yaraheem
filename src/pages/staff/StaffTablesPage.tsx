@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchTables, openTableSession } from '@/lib/api/dineInApi'
+import { fetchTables, markTableCleaned, openTableSession } from '@/lib/api/dineInApi'
 import { ApiError } from '@/lib/api/client'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { formatCurrency } from '@/lib/utils'
@@ -29,6 +29,7 @@ export default function StaffTablesPage() {
   const [seatingTable, setSeatingTable] = useState<DiningTableDto | null>(null)
   const [guestCount, setGuestCount] = useState('2')
   const [opening, setOpening] = useState(false)
+  const [cleaningTableId, setCleaningTableId] = useState<string | null>(null)
 
   function load() {
     setLoading(true)
@@ -56,6 +57,18 @@ export default function StaffTablesPage() {
       toast.error('Could not open table', { description: errorMessage(error) })
     } finally {
       setOpening(false)
+    }
+  }
+
+  async function handleMarkCleaned(tableId: string) {
+    setCleaningTableId(tableId)
+    try {
+      await markTableCleaned(tableId)
+      load()
+    } catch (error) {
+      toast.error('Could not update table', { description: errorMessage(error) })
+    } finally {
+      setCleaningTableId(null)
     }
   }
 
@@ -91,6 +104,20 @@ export default function StaffTablesPage() {
                 </p>
                 {table.runningTotal !== null && (
                   <p className="text-sm font-semibold">{formatCurrency(table.runningTotal)}</p>
+                )}
+                {table.status === 3 && (
+                  <Button
+                    size="sm"
+                    variant="gold"
+                    className="mt-1 w-full"
+                    disabled={cleaningTableId === table.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleMarkCleaned(table.id)
+                    }}
+                  >
+                    {cleaningTableId === table.id ? 'Updating...' : 'Mark as Cleaned'}
+                  </Button>
                 )}
               </CardContent>
             </Card>

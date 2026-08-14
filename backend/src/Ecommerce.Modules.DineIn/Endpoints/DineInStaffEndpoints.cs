@@ -20,6 +20,13 @@ public static class DineInStaffEndpoints
             Results.Ok(ApiResponse<List<DiningTableDto>>.SuccessResponse(await service.GetTablesAsync(cancellationToken))))
             .WithSummary("Table grid: every table's status and, if occupied, its running total.");
 
+        group.MapPost("/tables/{tableId:guid}/mark-clean", async (
+            Guid tableId,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(ApiResponse<DiningTableDto>.SuccessResponse(await service.MarkTableCleanedAsync(tableId, cancellationToken), "Table is available again.")))
+            .WithSummary("Bussed and reset — bring a table back into rotation after Needs Cleaning.");
+
         group.MapPost("/tables/{tableId:guid}/sessions", async (
             Guid tableId,
             OpenTableSessionRequest request,
