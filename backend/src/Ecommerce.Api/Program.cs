@@ -187,6 +187,7 @@ try
     app.MapDineInKitchenEndpoints();
     app.MapDineInPaymentEndpoints();
     app.MapAdminDiningTableEndpoints();
+    app.MapDemoDataEndpoints();
 
     app.MapHealthChecks("/health");
 
