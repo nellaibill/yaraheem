@@ -49,6 +49,7 @@ export const STORAGE_KEYS = {
   adminApiSession: 'yaraheem:api:admin-session',
   adminOrderDeliveryAssignments: 'yaraheem:admin:order-delivery-assignments',
   deliveryApiSession: 'yaraheem:api:delivery-session',
+  staffApiSession: 'yaraheem:api:staff-session',
 } as const
 
 export const DEFAULT_PROMO_BANNER = {

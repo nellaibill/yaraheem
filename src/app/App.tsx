@@ -4,6 +4,7 @@ import { AuthProvider } from '@/features/auth/context/AuthProvider'
 import { AdminAuthProvider } from '@/features/admin/context/AdminAuthProvider'
 import { CartProvider } from '@/features/cart/context/CartProvider'
 import { DeliveryAuthProvider } from '@/features/delivery/context/DeliveryAuthProvider'
+import { StaffAuthProvider } from '@/features/staff/context/StaffAuthProvider'
 import { AppRouter } from '@/app/router/routes'
 
 export function App() {
@@ -13,9 +14,11 @@ export function App() {
         <AuthProvider>
           <AdminAuthProvider>
             <DeliveryAuthProvider>
-              <CartProvider>
-                <AppRouter />
-              </CartProvider>
+              <StaffAuthProvider>
+                <CartProvider>
+                  <AppRouter />
+                </CartProvider>
+              </StaffAuthProvider>
             </DeliveryAuthProvider>
           </AdminAuthProvider>
         </AuthProvider>

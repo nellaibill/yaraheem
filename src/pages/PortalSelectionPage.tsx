@@ -51,6 +51,21 @@ const PORTALS = [
     to: '/delivery/login',
     gradient: 'from-gold via-[#b8842a] to-[#8a5a1e]',
   },
+  {
+    key: 'staff',
+    icon: UtensilsCrossed,
+    title: 'Floor Staff Portal',
+    subtitle: 'Dine-In Table Service',
+    description: 'For waiters running the floor — seat guests, fire rounds to the kitchen, and close out the bill.',
+    features: [
+      { label: 'Table Grid', icon: LayoutDashboard },
+      { label: 'Fire Rounds to Kitchen', icon: ClipboardCheck },
+      { label: 'Print KOTs', icon: Receipt },
+      { label: 'Close Out Bills', icon: UtensilsCrossed },
+    ],
+    to: '/staff/login',
+    gradient: 'from-[#2f6b4f] via-[#255640] to-[#173628]',
+  },
 ]
 
 export default function PortalSelectionPage() {

@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Ecommerce.Modules.Leads\Ecommerce.Modules.Leads.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Delivery\Ecommerce.Modules.Delivery.csproj" />
     <ProjectReference Include="..\Ecommerce.Modules.Settings\Ecommerce.Modules.Settings.csproj" />
+    <ProjectReference Include="..\Ecommerce.Modules.DineIn\Ecommerce.Modules.DineIn.csproj" />
   </ItemGroup>
 
   <ItemGroup>
