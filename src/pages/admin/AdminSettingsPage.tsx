@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -5,11 +6,18 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { DEFAULT_PROMO_BANNER, DEFAULT_RESTAURANT_SETTINGS, MENU_SECTION_LABELS, STORAGE_KEYS } from '@/lib/constants'
+import { resetDemoData } from '@/lib/api/adminDemoApi'
+import { ApiError } from '@/lib/api/client'
 import type { MenuSectionKey, PromoBanner, RestaurantSettings } from '@/types'
 
 const SECTION_OPTIONS = Object.keys(MENU_SECTION_LABELS) as MenuSectionKey[]
+
+function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
+}
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useLocalStorage<RestaurantSettings>(
@@ -17,6 +25,21 @@ export default function AdminSettingsPage() {
     DEFAULT_RESTAURANT_SETTINGS,
   )
   const [banner, setBanner] = useLocalStorage<PromoBanner>(STORAGE_KEYS.promoBanner, DEFAULT_PROMO_BANNER)
+  const [confirmingReset, setConfirmingReset] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
+  async function handleResetDemoData() {
+    setResetting(true)
+    try {
+      await resetDemoData()
+      toast.success('Demo data reset', { description: 'Orders, dine-in, and delivery data now show a fresh curated demo.' })
+      setConfirmingReset(false)
+    } catch (error) {
+      toast.error('Could not reset demo data', { description: errorMessage(error) })
+    } finally {
+      setResetting(false)
+    }
+  }
 
   function update<K extends keyof RestaurantSettings>(key: K, value: RestaurantSettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }))
@@ -163,6 +186,41 @@ export default function AdminSettingsPage() {
       >
         Save Changes
       </Button>
+
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 p-5">
+          <div>
+            <p className="text-sm font-medium">Demo Data</p>
+            <p className="text-muted-foreground text-xs">
+              Wipes orders, dine-in sessions, and delivery assignments, then reseeds a fresh curated demo — run this right
+              before showing the app to someone.
+            </p>
+          </div>
+          <Button variant="destructive" className="shrink-0" onClick={() => setConfirmingReset(true)}>
+            Reset Demo Data
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={confirmingReset} onOpenChange={(open) => !resetting && setConfirmingReset(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset demo data?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes every order, dine-in session, and delivery assignment, then reseeds a fresh curated
+              demo dataset. Product catalog and accounts are untouched. This can't be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmingReset(false)} disabled={resetting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleResetDemoData} disabled={resetting}>
+              {resetting ? 'Resetting...' : 'Reset Demo Data'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

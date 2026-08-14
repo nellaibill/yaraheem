@@ -11,8 +11,12 @@ public static class DineInSeeder
 {
     public static async Task SeedAsync(IdentityDbContext identityDb, DineInDbContext dineInDb, IPasswordHasher passwordHasher, ILogger logger, CancellationToken cancellationToken = default)
     {
-        await SeedDemoUserAsync(identityDb, passwordHasher, logger, Role.WellKnown.Waiter, "waiter1@ecommerce.local", "Demo", "Waiter", cancellationToken);
-        await SeedDemoUserAsync(identityDb, passwordHasher, logger, Role.WellKnown.Kitchen, "kitchen1@ecommerce.local", "Demo", "Kitchen", cancellationToken);
+        await SeedDemoUserAsync(identityDb, passwordHasher, logger, [Role.WellKnown.Waiter], "waiter1@ecommerce.local", "Demo", "Waiter", cancellationToken);
+        await SeedDemoUserAsync(identityDb, passwordHasher, logger, [Role.WellKnown.Kitchen], "kitchen1@ecommerce.local", "Demo", "Kitchen", cancellationToken);
+        // Combined account for smaller operations where one person runs both the floor and the
+        // kitchen — the Tables/Kitchen tab switcher in StaffLayout already supports any account
+        // holding both roles (it was built for Admin), so this only needs the role assignment.
+        await SeedDemoUserAsync(identityDb, passwordHasher, logger, [Role.WellKnown.Waiter, Role.WellKnown.Kitchen], "supervisor1@ecommerce.local", "Demo", "Supervisor", cancellationToken);
 
         if (!await dineInDb.DiningTables.AnyAsync(cancellationToken))
         {
@@ -30,16 +34,17 @@ public static class DineInSeeder
         IdentityDbContext identityDb,
         IPasswordHasher passwordHasher,
         ILogger logger,
-        string roleName,
+        string[] roleNames,
         string email,
         string firstName,
         string lastName,
         CancellationToken cancellationToken)
     {
-        var role = await identityDb.Roles.FirstOrDefaultAsync(r => r.NormalizedName == roleName.ToUpperInvariant(), cancellationToken);
-        if (role is null)
+        var normalizedNames = roleNames.Select(r => r.ToUpperInvariant()).ToList();
+        var roles = await identityDb.Roles.Where(r => normalizedNames.Contains(r.NormalizedName)).ToListAsync(cancellationToken);
+        if (roles.Count != roleNames.Length)
         {
-            logger.LogWarning("{Role} role is not seeded — skipping demo {Role} seeding.", roleName, roleName);
+            logger.LogWarning("One or more roles ({Roles}) are not seeded — skipping demo user {Email}.", string.Join(", ", roleNames), email);
             return;
         }
 
@@ -53,7 +58,10 @@ public static class DineInSeeder
             FirstName = firstName,
             LastName = lastName,
         };
-        user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+        foreach (var role in roles)
+        {
+            user.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+        }
         identityDb.Users.Add(user);
         await identityDb.SaveChangesAsync(cancellationToken);
     }
