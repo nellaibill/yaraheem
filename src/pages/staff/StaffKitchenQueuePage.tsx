@@ -44,14 +44,15 @@ function minutesAgo(isoDate: string) {
 interface Lane {
   status: 1 | 2 | 3
   title: string
-  actionLabel: string
+  /** null means this lane is a display-only hand-off shelf — the waiter, not the kitchen, closes it out. */
+  actionLabel: string | null
   headerClass: string
 }
 
 const LANES: Lane[] = [
   { status: 1, title: 'New', actionLabel: 'Start Preparing', headerClass: 'text-foreground' },
   { status: 2, title: 'Preparing', actionLabel: 'Mark Ready', headerClass: 'text-foreground' },
-  { status: 3, title: 'Ready to Serve', actionLabel: 'Mark Served', headerClass: 'text-primary' },
+  { status: 3, title: 'Ready to Serve', actionLabel: null, headerClass: 'text-primary' },
 ]
 
 export default function StaffKitchenQueuePage() {
@@ -137,15 +138,19 @@ export default function StaffKitchenQueuePage() {
                                 </div>
                               ))}
                             </div>
-                            <Button
-                              size="lg"
-                              variant="gold"
-                              className="mt-1 w-full"
-                              disabled={advancingId === round.id}
-                              onClick={() => handleAdvance(round)}
-                            >
-                              {advancingId === round.id ? 'Updating...' : lane.actionLabel}
-                            </Button>
+                            {lane.actionLabel ? (
+                              <Button
+                                size="lg"
+                                variant="gold"
+                                className="mt-1 w-full"
+                                disabled={advancingId === round.id}
+                                onClick={() => handleAdvance(round)}
+                              >
+                                {advancingId === round.id ? 'Updating...' : lane.actionLabel}
+                              </Button>
+                            ) : (
+                              <p className="text-muted-foreground mt-1 text-center text-sm">Waiting for the waiter to pick up</p>
+                            )}
                           </CardContent>
                         </Card>
                       )

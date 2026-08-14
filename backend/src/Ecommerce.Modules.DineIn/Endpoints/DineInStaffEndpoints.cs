@@ -74,6 +74,14 @@ public static class DineInStaffEndpoints
             Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.CancelRoundAsync(sessionId, roundId, cancellationToken), "Round cancelled — stock restored.")))
             .WithSummary("Cancel a round that hasn't been started by the kitchen yet, restoring the deducted stock.");
 
+        group.MapPost("/sessions/{sessionId:guid}/rounds/{roundId:guid}/serve", async (
+            Guid sessionId,
+            Guid roundId,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.MarkRoundServedAsync(sessionId, roundId, cancellationToken), "Round marked as served.")))
+            .WithSummary("Mark a Ready round as served once it's actually been delivered to the table.");
+
         group.MapGet("/rounds/{roundId:guid}", async (
             Guid roundId,
             ITableSessionService service,

@@ -25,6 +25,10 @@ export function cancelRound(sessionId: string, roundId: string): Promise<TableSe
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/rounds/${roundId}/cancel`)
 }
 
+export function markRoundServed(sessionId: string, roundId: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/rounds/${roundId}/serve`)
+}
+
 export function requestBill(sessionId: string): Promise<TableSessionDto> {
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/request-bill`)
 }
