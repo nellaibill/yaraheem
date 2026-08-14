@@ -11,7 +11,7 @@ public static class IdentitySeeder
 {
     public static async Task SeedAsync(IdentityDbContext db, IPasswordHasher passwordHasher, IOptions<AdminSeedOptions> adminSeedOptions, ILogger logger, CancellationToken cancellationToken = default)
     {
-        var roles = new[] { Role.WellKnown.Admin, Role.WellKnown.Customer, Role.WellKnown.DeliveryPartner, Role.WellKnown.Waiter };
+        var roles = new[] { Role.WellKnown.Admin, Role.WellKnown.Customer, Role.WellKnown.DeliveryPartner, Role.WellKnown.Waiter, Role.WellKnown.Kitchen };
         foreach (var roleName in roles)
         {
             var normalized = roleName.ToUpperInvariant();

@@ -326,6 +326,16 @@ export interface DineInRoundPrintDto {
   round: DineInRoundDto
 }
 
+export interface KitchenRoundDto {
+  id: string
+  sessionId: string
+  tableLabel: string
+  roundNumber: number
+  status: DineInRoundStatus
+  firedAt: string
+  items: DineInRoundItemDto[]
+}
+
 export interface TableSessionDto {
   id: string
   tableId: string
