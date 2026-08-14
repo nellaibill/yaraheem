@@ -20,8 +20,6 @@ public sealed record FireRoundItemRequest(Guid ProductId, int Quantity);
 
 public sealed record FireRoundRequest(List<FireRoundItemRequest> Items);
 
-public sealed record CloseTableSessionRequest(string PaymentMethod);
-
 public sealed record DineInRoundItemDto(Guid Id, Guid ProductId, string ProductName, int Quantity, decimal UnitPrice, decimal LineTotal);
 
 public sealed record DineInRoundDto(
@@ -33,6 +31,22 @@ public sealed record DineInRoundDto(
     decimal RoundTotal);
 
 public sealed record DineInRoundPrintDto(string TableLabel, DineInRoundDto Round);
+
+public sealed record DineInPaymentDto(
+    Guid Id,
+    Guid TableSessionId,
+    string Label,
+    decimal Amount,
+    string Method,
+    DineInPaymentStatus Status,
+    string? RazorpayOrderId,
+    DateTimeOffset? PaidAt);
+
+public sealed record CreateDineInPaymentRequest(decimal Amount, string Method, string? Label);
+
+public sealed record CreateDineInPaymentResponse(DineInPaymentDto Payment, string? RazorpayKeyId, long? RazorpayAmountInPaise);
+
+public sealed record VerifyDineInPaymentRequest(string RazorpayPaymentId, string RazorpaySignature);
 
 public sealed record KitchenRoundDto(
     Guid Id,
@@ -54,4 +68,5 @@ public sealed record TableSessionDto(
     DateTimeOffset? ClosedAt,
     string? PaymentMethod,
     List<DineInRoundDto> Rounds,
+    List<DineInPaymentDto> Payments,
     decimal Total);

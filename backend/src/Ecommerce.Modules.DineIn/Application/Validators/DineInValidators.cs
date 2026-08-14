@@ -43,10 +43,23 @@ public sealed class FireRoundRequestValidator : AbstractValidator<FireRoundReque
     }
 }
 
-public sealed class CloseTableSessionRequestValidator : AbstractValidator<CloseTableSessionRequest>
+public sealed class CreateDineInPaymentRequestValidator : AbstractValidator<CreateDineInPaymentRequest>
 {
-    public CloseTableSessionRequestValidator()
+    private static readonly string[] AllowedMethods = ["Cash", "UPI", "Card", "Razorpay"];
+
+    public CreateDineInPaymentRequestValidator()
     {
-        RuleFor(x => x.PaymentMethod).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.Method).NotEmpty().Must(AllowedMethods.Contains)
+            .WithMessage("Method must be one of Cash, UPI, Card, Razorpay.");
+    }
+}
+
+public sealed class VerifyDineInPaymentRequestValidator : AbstractValidator<VerifyDineInPaymentRequest>
+{
+    public VerifyDineInPaymentRequestValidator()
+    {
+        RuleFor(x => x.RazorpayPaymentId).NotEmpty();
+        RuleFor(x => x.RazorpaySignature).NotEmpty();
     }
 }

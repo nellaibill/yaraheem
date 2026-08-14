@@ -26,6 +26,7 @@ public sealed class TableSessionConfiguration : IEntityTypeConfiguration<TableSe
 
         builder.HasOne<DiningTable>().WithMany().HasForeignKey(e => e.TableId).OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(e => e.Rounds).WithOne().HasForeignKey(r => r.TableSessionId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(e => e.Payments).WithOne().HasForeignKey(p => p.TableSessionId).OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(e => e.TableId);
         builder.HasIndex(e => e.Status);
@@ -52,5 +53,20 @@ public sealed class DineInRoundItemConfiguration : IEntityTypeConfiguration<Dine
         builder.Property(e => e.ProductName).IsRequired().HasMaxLength(200);
         builder.Property(e => e.UnitPrice).HasPrecision(10, 2);
         builder.HasIndex(e => e.DineInRoundId);
+    }
+}
+
+public sealed class DineInPaymentConfiguration : IEntityTypeConfiguration<DineInPayment>
+{
+    public void Configure(EntityTypeBuilder<DineInPayment> builder)
+    {
+        builder.ToTable("dine_in_payments");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Label).IsRequired().HasMaxLength(50);
+        builder.Property(e => e.Amount).HasPrecision(10, 2);
+        builder.Property(e => e.Method).IsRequired().HasMaxLength(20);
+        builder.Property(e => e.RazorpayOrderId).HasMaxLength(100);
+        builder.Property(e => e.RazorpayPaymentId).HasMaxLength(100);
+        builder.HasIndex(e => e.TableSessionId);
     }
 }

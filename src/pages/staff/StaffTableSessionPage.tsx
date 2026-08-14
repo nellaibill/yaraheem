@@ -7,8 +7,17 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { fetchTableSession, fireRound, requestBill, closeTableSession, cancelRound } from '@/lib/api/dineInApi'
+import {
+  fetchTableSession,
+  fireRound,
+  requestBill,
+  closeTableSession,
+  cancelRound,
+  createDineInPayment,
+  verifyDineInPayment,
+} from '@/lib/api/dineInApi'
 import { fetchProducts } from '@/lib/api/catalogApi'
+import { openRazorpayCheckout } from '@/lib/razorpay'
 import { ApiError } from '@/lib/api/client'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -20,8 +29,14 @@ function errorMessage(error: unknown): string {
 
 const SESSION_STATUS_LABEL: Record<number, string> = { 1: 'Open', 2: 'Bill Requested', 3: 'Closed' }
 const ROUND_STATUS_LABEL: Record<number, string> = { 1: 'Fired', 2: 'Preparing', 3: 'Ready', 4: 'Served', 5: 'Cancelled' }
-const PAYMENT_METHODS = ['Cash', 'UPI', 'Card']
+const PAYMENT_STATUS_LABEL: Record<number, string> = { 1: 'Pending', 2: 'Paid', 3: 'Failed' }
+const PAYMENT_STATUS_BADGE: Record<number, 'secondary' | 'outline'> = { 1: 'outline', 2: 'secondary', 3: 'outline' }
+const PAYMENT_METHODS = ['Cash', 'UPI', 'Card', 'Razorpay']
 const ROUND_STATUS_POLL_MS = 5000
+
+function paidTotal(session: TableSessionDto): number {
+  return session.payments.filter((p) => p.status === 2).reduce((sum, p) => sum + p.amount, 0)
+}
 
 interface DraftLine {
   productId: string
@@ -43,6 +58,10 @@ export default function StaffTableSessionPage() {
   const [firing, setFiring] = useState(false)
   const [busy, setBusy] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0])
+  const [collectingPayment, setCollectingPayment] = useState(false)
+  const [splitCount, setSplitCount] = useState(1)
+  const [splitMethods, setSplitMethods] = useState<Record<number, string>>({})
+  const [collectingSplitIndex, setCollectingSplitIndex] = useState<number | null>(null)
   const [roundToCancel, setRoundToCancel] = useState<DineInRoundDto | null>(null)
   const [cancelling, setCancelling] = useState(false)
 
@@ -129,7 +148,7 @@ export default function StaffTableSessionPage() {
     if (!session) return
     setBusy(true)
     try {
-      await closeTableSession(session.id, paymentMethod)
+      await closeTableSession(session.id)
       toast.success('Table closed out')
       navigate('/staff')
     } catch (error) {
@@ -137,6 +156,51 @@ export default function StaffTableSessionPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function handleCollect(label: string, amount: number, method: string, setBusyFlag: (value: boolean) => void) {
+    if (!session) return
+    setBusyFlag(true)
+    try {
+      const { payment, razorpayKeyId, razorpayAmountInPaise } = await createDineInPayment(session.id, amount, method, label)
+
+      if (method !== 'Razorpay') {
+        setSession(await fetchTableSession(session.id))
+        toast.success(`${label} recorded (${method})`)
+        return
+      }
+
+      if (!razorpayKeyId || !payment.razorpayOrderId || razorpayAmountInPaise === null) {
+        toast.error('Razorpay is not configured on this server', { description: 'Use Cash, UPI, or Card instead.' })
+        return
+      }
+
+      try {
+        const result = await openRazorpayCheckout({
+          keyId: razorpayKeyId,
+          razorpayOrderId: payment.razorpayOrderId,
+          amountInPaise: razorpayAmountInPaise,
+          customerName: label === 'Full bill' ? session.tableLabel : `${session.tableLabel} — ${label}`,
+          customerPhone: '',
+        })
+        setSession(await verifyDineInPayment(session.id, payment.id, result.razorpay_payment_id, result.razorpay_signature))
+        toast.success(`${label} verified`)
+      } catch (razorpayError) {
+        toast.error('Payment not completed', {
+          description: razorpayError instanceof Error ? razorpayError.message : 'You can retry from here.',
+        })
+      }
+    } catch (error) {
+      toast.error(`Could not record ${label}`, { description: errorMessage(error) })
+    } finally {
+      setBusyFlag(false)
+    }
+  }
+
+  function splitShareAmount(session: TableSessionDto, splitCount: number, index: number): number {
+    const base = Math.floor((session.total / splitCount) * 100) / 100
+    if (index < splitCount - 1) return base
+    return Math.round((session.total - base * (splitCount - 1)) * 100) / 100
   }
 
   async function handleConfirmCancel() {
@@ -294,24 +358,130 @@ export default function StaffTableSessionPage() {
 
       {session.status === 2 && (
         <Card>
-          <CardContent className="flex items-center justify-between gap-4 p-5">
-            <div className="grid gap-1.5">
-              <p className="text-sm font-medium">Payment method</p>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="h-12 w-40 text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((method) => (
-                    <SelectItem key={method} value={method} className="text-base">
-                      {method}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <CardContent className="flex flex-col gap-4 p-5">
+            <h2 className="font-display text-xl font-semibold">Payment</h2>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Split evenly</p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-9"
+                  disabled={splitCount <= 1 || session.payments.length > 0}
+                  onClick={() => setSplitCount((n) => Math.max(1, n - 1))}
+                >
+                  <Minus className="size-4" />
+                </Button>
+                <span className="w-6 text-center text-base font-semibold">{splitCount}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-9"
+                  disabled={splitCount >= 8 || session.payments.length > 0}
+                  onClick={() => setSplitCount((n) => Math.min(8, n + 1))}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
             </div>
-            <Button size="lg" variant="gold" disabled={busy} onClick={handleClose}>
-              {busy ? 'Closing...' : `Collect ${formatCurrency(session.total)} & Close`}
+
+            {session.payments.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {session.payments.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-base">
+                    <div>
+                      <p className="font-medium">{payment.label}</p>
+                      <p className="text-muted-foreground text-sm">{payment.method}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={PAYMENT_STATUS_BADGE[payment.status]}>{PAYMENT_STATUS_LABEL[payment.status]}</Badge>
+                      <span className="w-24 text-right font-semibold">{formatCurrency(payment.amount)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between border-t pt-3 text-base font-semibold">
+              <span>Remaining</span>
+              <span>{formatCurrency(session.total - paidTotal(session))}</span>
+            </div>
+
+            {splitCount === 1 ? (
+              session.total - paidTotal(session) > 0 && (
+                <div className="flex items-center gap-2">
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger className="h-12 w-40 text-base">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((method) => (
+                        <SelectItem key={method} value={method} className="text-base">
+                          {method}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="lg"
+                    variant="gold"
+                    className="flex-1"
+                    disabled={collectingPayment}
+                    onClick={() =>
+                      handleCollect('Full bill', session.total - paidTotal(session), paymentMethod, setCollectingPayment)
+                    }
+                  >
+                    {collectingPayment ? 'Processing...' : `Collect ${formatCurrency(session.total - paidTotal(session))}`}
+                  </Button>
+                </div>
+              )
+            ) : (
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: splitCount }).map((_, index) => {
+                  const label = `Split ${index + 1}`
+                  const alreadyPaid = session.payments.some((p) => p.label === label && p.status === 2)
+                  const amount = splitShareAmount(session, splitCount, index)
+                  if (alreadyPaid) return null
+                  return (
+                    <div key={label} className="flex items-center gap-2">
+                      <span className="w-20 text-sm font-medium">{label}</span>
+                      <Select
+                        value={splitMethods[index] ?? PAYMENT_METHODS[0]}
+                        onValueChange={(value) => setSplitMethods((prev) => ({ ...prev, [index]: value }))}
+                      >
+                        <SelectTrigger className="h-12 w-36 text-base">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAYMENT_METHODS.map((method) => (
+                            <SelectItem key={method} value={method} className="text-base">
+                              {method}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="lg"
+                        variant="gold"
+                        className="flex-1"
+                        disabled={collectingSplitIndex === index}
+                        onClick={() =>
+                          handleCollect(label, amount, splitMethods[index] ?? PAYMENT_METHODS[0], (busyValue) =>
+                            setCollectingSplitIndex(busyValue ? index : null),
+                          )
+                        }
+                      >
+                        {collectingSplitIndex === index ? 'Processing...' : `Collect ${formatCurrency(amount)}`}
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <Button size="lg" variant="outline" disabled={session.total - paidTotal(session) > 0 || busy} onClick={handleClose}>
+              {busy ? 'Closing...' : 'Close Table'}
             </Button>
           </CardContent>
         </Card>

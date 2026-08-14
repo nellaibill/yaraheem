@@ -1,5 +1,5 @@
 import { staffApiGet, staffApiPost } from '@/lib/api/staffClient'
-import type { DineInRoundPrintDto, DiningTableDto, KitchenRoundDto, TableSessionDto } from '@/lib/api/types'
+import type { CreateDineInPaymentResponse, DineInRoundPrintDto, DiningTableDto, KitchenRoundDto, TableSessionDto } from '@/lib/api/types'
 
 export function fetchTables(): Promise<DiningTableDto[]> {
   return staffApiGet<DiningTableDto[]>('/api/staff/dinein/tables')
@@ -29,8 +29,24 @@ export function requestBill(sessionId: string): Promise<TableSessionDto> {
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/request-bill`)
 }
 
-export function closeTableSession(sessionId: string, paymentMethod: string): Promise<TableSessionDto> {
-  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/close`, { paymentMethod })
+export function closeTableSession(sessionId: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/close`)
+}
+
+export function createDineInPayment(sessionId: string, amount: number, method: string, label?: string): Promise<CreateDineInPaymentResponse> {
+  return staffApiPost<CreateDineInPaymentResponse>(`/api/staff/dinein/sessions/${sessionId}/payments`, { amount, method, label })
+}
+
+export function verifyDineInPayment(
+  sessionId: string,
+  paymentId: string,
+  razorpayPaymentId: string,
+  razorpaySignature: string,
+): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/payments/${paymentId}/verify`, {
+    razorpayPaymentId,
+    razorpaySignature,
+  })
 }
 
 export function fetchDineInRoundForPrint(roundId: string): Promise<DineInRoundPrintDto> {

@@ -176,10 +176,11 @@ public sealed class TableSessionService(
         return await BuildSessionDtoAsync(sessionId, cancellationToken);
     }
 
-    public async Task<TableSessionDto> CloseSessionAsync(Guid sessionId, CloseTableSessionRequest request, CancellationToken cancellationToken)
+    public async Task<TableSessionDto> CloseSessionAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         var session = await db.TableSessions
             .Include(s => s.Rounds).ThenInclude(r => r.Items)
+            .Include(s => s.Payments)
             .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
             ?? throw new NotFoundException("TableSession", sessionId);
 
@@ -188,19 +189,79 @@ public sealed class TableSessionService(
             throw new ConflictException("This session is already closed.");
         }
 
+        var total = ComputeSessionTotal(session);
+        var amountPaid = session.Payments.Where(p => p.Status == DineInPaymentStatus.Paid).Sum(p => p.Amount);
+        if (amountPaid < total)
+        {
+            throw new ConflictException($"Only {amountPaid:C} of {total:C} has been collected — record the remaining payment before closing.");
+        }
+
         var table = await db.DiningTables.FirstAsync(t => t.Id == session.TableId, cancellationToken);
+        var paymentMethodSummary = string.Join(" + ", session.Payments.Where(p => p.Status == DineInPaymentStatus.Paid).Select(p => p.Method).Distinct());
 
         session.Status = TableSessionStatus.Closed;
-        session.PaymentMethod = request.PaymentMethod;
-        session.TotalAmount = ComputeSessionTotal(session);
+        session.PaymentMethod = paymentMethodSummary;
+        session.TotalAmount = total;
         session.ClosedAt = DateTimeOffset.UtcNow;
         table.Status = DiningTableStatus.NeedsCleaning;
 
         await db.SaveChangesAsync(cancellationToken);
-        await auditLog.LogAsync("TableSession.Closed", "TableSession", sessionId.ToString(), $"{request.PaymentMethod}, total {session.TotalAmount:C}", cancellationToken);
+        await auditLog.LogAsync("TableSession.Closed", "TableSession", sessionId.ToString(), $"{paymentMethodSummary}, total {session.TotalAmount:C}", cancellationToken);
 
         return await BuildSessionDtoAsync(sessionId, cancellationToken);
     }
+
+    public async Task<DineInPaymentDto> RecordPaymentAsync(Guid sessionId, string label, decimal amount, string method, string? razorpayOrderId, CancellationToken cancellationToken)
+    {
+        var session = await db.TableSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
+                      ?? throw new NotFoundException("TableSession", sessionId);
+
+        if (session.Status != TableSessionStatus.BillRequested)
+        {
+            throw new ConflictException("Payments can only be recorded once the bill has been requested.");
+        }
+
+        var payment = new DineInPayment
+        {
+            TableSessionId = sessionId,
+            Label = label,
+            Amount = amount,
+            Method = method,
+            RazorpayOrderId = razorpayOrderId,
+        };
+
+        if (razorpayOrderId is null)
+        {
+            payment.Status = DineInPaymentStatus.Paid;
+            payment.PaidAt = DateTimeOffset.UtcNow;
+        }
+
+        db.DineInPayments.Add(payment);
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DineInPayment.Recorded", "TableSession", sessionId.ToString(), $"{payment.Label}: {payment.Method} {payment.Amount:C} ({payment.Status})", cancellationToken);
+
+        return ToPaymentDto(payment);
+    }
+
+    public async Task<TableSessionDto> MarkPaymentPaidAsync(Guid sessionId, Guid paymentId, string? razorpayPaymentId, CancellationToken cancellationToken)
+    {
+        var payment = await db.DineInPayments.FirstOrDefaultAsync(p => p.Id == paymentId && p.TableSessionId == sessionId, cancellationToken)
+                      ?? throw new NotFoundException("DineInPayment", paymentId);
+
+        if (payment.Status != DineInPaymentStatus.Paid)
+        {
+            payment.Status = DineInPaymentStatus.Paid;
+            payment.RazorpayPaymentId = razorpayPaymentId;
+            payment.PaidAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            await auditLog.LogAsync("DineInPayment.Verified", "TableSession", sessionId.ToString(), $"{payment.Label}: {payment.Amount:C}", cancellationToken);
+        }
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
+    }
+
+    private static DineInPaymentDto ToPaymentDto(DineInPayment p) =>
+        new(p.Id, p.TableSessionId, p.Label, p.Amount, p.Method, p.Status, p.RazorpayOrderId, p.PaidAt);
 
     public async Task<DineInRoundPrintDto> GetRoundForPrintAsync(Guid roundId, CancellationToken cancellationToken)
     {
@@ -222,6 +283,7 @@ public sealed class TableSessionService(
     {
         var session = await db.TableSessions.AsNoTracking()
             .Include(s => s.Rounds).ThenInclude(r => r.Items)
+            .Include(s => s.Payments)
             .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
             ?? throw new NotFoundException("TableSession", sessionId);
 
@@ -232,6 +294,8 @@ public sealed class TableSessionService(
             var itemDtos = r.Items.Select(i => new DineInRoundItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity)).ToList();
             return new DineInRoundDto(r.Id, r.RoundNumber, r.Status, r.FiredAt, itemDtos, itemDtos.Sum(i => i.LineTotal));
         }).ToList();
+
+        var paymentDtos = session.Payments.OrderBy(p => p.CreatedAt).Select(ToPaymentDto).ToList();
 
         return new TableSessionDto(
             session.Id,
@@ -244,6 +308,7 @@ public sealed class TableSessionService(
             session.ClosedAt,
             session.PaymentMethod,
             roundDtos,
+            paymentDtos,
             session.TotalAmount ?? ComputeSessionTotal(session));
     }
 

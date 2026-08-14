@@ -12,6 +12,7 @@ public class DineInDbContext(DbContextOptions<DineInDbContext> options) : Audita
     public DbSet<TableSession> TableSessions => Set<TableSession>();
     public DbSet<DineInRound> DineInRounds => Set<DineInRound>();
     public DbSet<DineInRoundItem> DineInRoundItems => Set<DineInRoundItem>();
+    public DbSet<DineInPayment> DineInPayments => Set<DineInPayment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -185,6 +185,7 @@ try
     app.MapAdminIntegrationSettingsEndpoints();
     app.MapDineInStaffEndpoints();
     app.MapDineInKitchenEndpoints();
+    app.MapDineInPaymentEndpoints();
     app.MapAdminDiningTableEndpoints();
 
     app.MapHealthChecks("/health");
