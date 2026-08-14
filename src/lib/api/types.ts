@@ -293,6 +293,7 @@ export interface IntegrationSettingsResponse {
 export type DiningTableStatus = 1 | 2 | 3 // Available | Occupied | NeedsCleaning
 export type TableSessionStatus = 1 | 2 | 3 // Open | BillRequested | Closed
 export type DineInRoundStatus = 1 | 2 | 3 | 4 | 5 // Fired | Preparing | Ready | Served | Cancelled
+export type DineInPaymentStatus = 1 | 2 | 3 // Pending | Paid | Failed
 
 export interface DiningTableDto {
   id: string
@@ -326,6 +327,23 @@ export interface DineInRoundPrintDto {
   round: DineInRoundDto
 }
 
+export interface DineInPaymentDto {
+  id: string
+  tableSessionId: string
+  label: string
+  amount: number
+  method: string
+  status: DineInPaymentStatus
+  razorpayOrderId: string | null
+  paidAt: string | null
+}
+
+export interface CreateDineInPaymentResponse {
+  payment: DineInPaymentDto
+  razorpayKeyId: string | null
+  razorpayAmountInPaise: number | null
+}
+
 export interface KitchenRoundDto {
   id: string
   sessionId: string
@@ -347,6 +365,7 @@ export interface TableSessionDto {
   closedAt: string | null
   paymentMethod: string | null
   rounds: DineInRoundDto[]
+  payments: DineInPaymentDto[]
   total: number
 }
 

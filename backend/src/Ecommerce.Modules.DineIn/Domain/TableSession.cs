@@ -19,4 +19,5 @@ public class TableSession : BaseEntity
     public DateTimeOffset? ClosedAt { get; set; }
 
     public ICollection<DineInRound> Rounds { get; set; } = [];
+    public ICollection<DineInPayment> Payments { get; set; } = [];
 }

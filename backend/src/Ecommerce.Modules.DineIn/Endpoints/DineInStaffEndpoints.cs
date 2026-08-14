@@ -83,15 +83,10 @@ public static class DineInStaffEndpoints
 
         group.MapPost("/sessions/{sessionId:guid}/close", async (
             Guid sessionId,
-            CloseTableSessionRequest request,
-            IValidator<CloseTableSessionRequest> validator,
             ITableSessionService service,
             CancellationToken cancellationToken) =>
-        {
-            await validator.ValidateAndThrowAsync(request, cancellationToken);
-            var result = await service.CloseSessionAsync(sessionId, request, cancellationToken);
-            return Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(result, "Table closed out."));
-        }).WithSummary("Record payment and close the tab — the table becomes available again after cleaning.");
+            Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.CloseSessionAsync(sessionId, cancellationToken), "Table closed out.")))
+            .WithSummary("Close the tab once fully paid — the table becomes available again after cleaning.");
 
         return app;
     }
