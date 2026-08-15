@@ -1,4 +1,5 @@
 import { MotionConfig } from 'framer-motion'
+import { DemoModeBanner } from '@/components/common/DemoModeBanner'
 import { ThemeProvider } from '@/app/providers/ThemeProvider'
 import { AuthProvider } from '@/features/auth/context/AuthProvider'
 import { AdminAuthProvider } from '@/features/admin/context/AdminAuthProvider'
@@ -10,6 +11,7 @@ import { AppRouter } from '@/app/router/routes'
 export function App() {
   return (
     <MotionConfig reducedMotion="user">
+      <DemoModeBanner />
       <ThemeProvider>
         <AuthProvider>
           <AdminAuthProvider>

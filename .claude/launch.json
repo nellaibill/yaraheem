@@ -12,6 +12,12 @@
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "backend/src/Ecommerce.Api"],
       "port": 5247
+    },
+    {
+      "name": "yaraheem-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview"],
+      "port": 4173
     }
   ]
 }
