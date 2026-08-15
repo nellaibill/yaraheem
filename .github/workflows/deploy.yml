@@ -33,6 +33,12 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Runs the app against the in-browser mock backend (src/mocks) instead of a real API —
+          # GitHub Pages only ever hosts static files, so there's no server for it to talk to.
+          # This flag is dead-code-eliminated from every other build (local dev, the real
+          # Docker/VM deployment) since it's never set anywhere else.
+          VITE_DEMO_MODE: 'true'
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
