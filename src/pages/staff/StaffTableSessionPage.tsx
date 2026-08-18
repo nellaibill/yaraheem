@@ -407,7 +407,36 @@ export default function StaffTableSessionPage() {
       {session.status === 2 && (
         <Card>
           <CardContent className="flex flex-col gap-4 p-5">
-            <h2 className="font-display text-xl font-semibold">Payment</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold">Payment</h2>
+              <Link to={`/print/dinein-bill/${session.id}`} target="_blank">
+                <Button variant="outline" size="sm" className="h-10 gap-1.5">
+                  <Printer className="size-4" />
+                  Print Bill
+                </Button>
+              </Link>
+            </div>
+
+            <div className="flex flex-col gap-1 rounded-lg border p-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>{formatCurrency(session.subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tax ({session.taxRatePercent}%)</span>
+                <span>{formatCurrency(session.taxAmount)}</span>
+              </div>
+              {session.serviceChargeAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Service Charge ({session.serviceChargePercent}%)</span>
+                  <span>{formatCurrency(session.serviceChargeAmount)}</span>
+                </div>
+              )}
+              <div className="mt-1 flex justify-between border-t pt-1.5 text-base font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(session.total)}</span>
+              </div>
+            </div>
 
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Split evenly</p>

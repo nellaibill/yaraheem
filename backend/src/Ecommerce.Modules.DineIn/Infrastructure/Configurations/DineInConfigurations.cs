@@ -22,6 +22,9 @@ public sealed class TableSessionConfiguration : IEntityTypeConfiguration<TableSe
         builder.ToTable("table_sessions");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.PaymentMethod).HasMaxLength(20);
+        builder.Property(e => e.Subtotal).HasPrecision(10, 2);
+        builder.Property(e => e.TaxAmount).HasPrecision(10, 2);
+        builder.Property(e => e.ServiceChargeAmount).HasPrecision(10, 2);
         builder.Property(e => e.TotalAmount).HasPrecision(10, 2);
 
         builder.HasOne<DiningTable>().WithMany().HasForeignKey(e => e.TableId).OnDelete(DeleteBehavior.Restrict);

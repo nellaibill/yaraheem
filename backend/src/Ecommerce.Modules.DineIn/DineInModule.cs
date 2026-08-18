@@ -1,5 +1,6 @@
 using Ecommerce.Modules.DineIn.Application;
 using Ecommerce.Modules.DineIn.Infrastructure;
+using Ecommerce.Modules.DineIn.Options;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ public static class DineInModule
                 .MigrationsHistoryTable("__ef_migrations_history", DineInDbContext.Schema)
                 .MigrationsAssembly("Ecommerce.Database.Migrations")));
 
+        services.Configure<DineInBillingOptions>(configuration.GetSection(DineInBillingOptions.SectionName));
         services.AddScoped<ITableSessionService, TableSessionService>();
         services.AddValidatorsFromAssemblyContaining(typeof(DineInModule));
 

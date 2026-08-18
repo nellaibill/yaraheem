@@ -366,6 +366,11 @@ export interface TableSessionDto {
   paymentMethod: string | null
   rounds: DineInRoundDto[]
   payments: DineInPaymentDto[]
+  subtotal: number
+  taxRatePercent: number
+  taxAmount: number
+  serviceChargePercent: number
+  serviceChargeAmount: number
   total: number
 }
 

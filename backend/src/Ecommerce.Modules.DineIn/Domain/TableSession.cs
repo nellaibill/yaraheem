@@ -15,6 +15,13 @@ public class TableSession : BaseEntity
     public required int GuestCount { get; set; }
     public TableSessionStatus Status { get; set; } = TableSessionStatus.Open;
     public string? PaymentMethod { get; set; }
+
+    // Null while the session is still Open/BillRequested — the bill is computed live from
+    // current items and the current DineInBillingOptions rates. Frozen at CloseSessionAsync so a
+    // closed bill still shows what was actually charged even if the rates change afterward.
+    public decimal? Subtotal { get; set; }
+    public decimal? TaxAmount { get; set; }
+    public decimal? ServiceChargeAmount { get; set; }
     public decimal? TotalAmount { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
 

@@ -52,6 +52,7 @@ const AdminIntegrationSettingsPage = lazy(() => import('@/pages/admin/AdminInteg
 const KotPage = lazy(() => import('@/pages/print/KotPage'))
 const InvoicePage = lazy(() => import('@/pages/print/InvoicePage'))
 const DineInKotPage = lazy(() => import('@/pages/print/DineInKotPage'))
+const DineInBillPage = lazy(() => import('@/pages/print/DineInBillPage'))
 
 const DeliveryLoginPage = lazy(() => import('@/pages/delivery/DeliveryLoginPage'))
 const DeliveryDashboardPage = lazy(() => import('@/pages/delivery/DeliveryDashboardPage'))
@@ -177,6 +178,7 @@ const router = createBrowserRouter(
           element: <RequireStaffAuth />,
           children: [
             { path: '/print/dinein-kot/:id', element: withSuspense(<DineInKotPage />) },
+            { path: '/print/dinein-bill/:id', element: withSuspense(<DineInBillPage />) },
             {
               path: '/staff',
               element: <StaffLayout />,

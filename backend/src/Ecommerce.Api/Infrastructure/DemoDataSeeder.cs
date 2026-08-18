@@ -4,6 +4,7 @@ using Ecommerce.Modules.Delivery.Domain;
 using Ecommerce.Modules.Delivery.Infrastructure;
 using Ecommerce.Modules.DineIn.Domain;
 using Ecommerce.Modules.DineIn.Infrastructure;
+using Ecommerce.Modules.DineIn.Options;
 using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Orders.Domain;
@@ -11,6 +12,7 @@ using Ecommerce.Modules.Orders.Infrastructure;
 using Ecommerce.Modules.Payments.Domain;
 using Ecommerce.Modules.Payments.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Ecommerce.Api.Infrastructure;
 
@@ -30,8 +32,10 @@ public static class DemoDataSeeder
         IdentityDbContext identityDb,
         CatalogDbContext catalogDb,
         IInventoryService inventoryService,
+        IOptions<DineInBillingOptions> billingOptions,
         CancellationToken cancellationToken)
     {
+        var rates = billingOptions.Value;
         // Cross-module references have no DB-level FK/cascade (different schemas), so each has
         // to be cleared explicitly. Orders itself cascades to its own OrderItems/
         // OrderStatusHistory/Address; TableSessions cascades to its own Rounds/Items/Payments.
@@ -72,7 +76,7 @@ public static class DemoDataSeeder
         var partner2 = partner2User is null ? null : await deliveryDb.DeliveryPartners.FirstOrDefaultAsync(p => p.UserId == partner2User.Id, cancellationToken);
 
         await SeedOrdersAsync(ordersDb, paymentsDb, deliveryDb, customer1.Id, customer2.Id, partner1?.Id, partner2?.Id, products, cancellationToken);
-        await SeedDineInAsync(dineInDb, waiter.Id, products, cancellationToken);
+        await SeedDineInAsync(dineInDb, waiter.Id, products, rates, cancellationToken);
     }
 
     private static async Task SeedOrdersAsync(
@@ -170,7 +174,7 @@ public static class DemoDataSeeder
         }
     }
 
-    private static async Task SeedDineInAsync(DineInDbContext dineInDb, Guid waiterUserId, List<Product> products, CancellationToken cancellationToken)
+    private static async Task SeedDineInAsync(DineInDbContext dineInDb, Guid waiterUserId, List<Product> products, DineInBillingOptions rates, CancellationToken cancellationToken)
     {
         var tables = await dineInDb.DiningTables.OrderBy(t => t.Label).Take(3).ToListAsync(cancellationToken);
         if (tables.Count < 3)
@@ -202,7 +206,10 @@ public static class DemoDataSeeder
         };
         AddRoundItems(roundA, products, 0, 1);
         closedA.Rounds.Add(roundA);
-        var totalA = roundA.Items.Sum(i => i.UnitPrice * i.Quantity);
+        var subtotalA = roundA.Items.Sum(i => i.UnitPrice * i.Quantity);
+        var taxA = Math.Round(subtotalA * rates.TaxRatePercent / 100m, 2);
+        var serviceChargeA = Math.Round(subtotalA * rates.ServiceChargePercent / 100m, 2);
+        var totalA = subtotalA + taxA + serviceChargeA;
         closedA.Payments.Add(new DineInPayment
         {
             TableSessionId = closedA.Id,
@@ -212,6 +219,9 @@ public static class DemoDataSeeder
             Status = DineInPaymentStatus.Paid,
             PaidAt = now.AddMinutes(-46),
         });
+        closedA.Subtotal = subtotalA;
+        closedA.TaxAmount = taxA;
+        closedA.ServiceChargeAmount = serviceChargeA;
         closedA.TotalAmount = totalA;
         closedA.PaymentMethod = "Cash";
         dineInDb.TableSessions.Add(closedA);
@@ -257,10 +267,16 @@ public static class DemoDataSeeder
         };
         AddRoundItems(roundC, products, 6, 2);
         closedC.Rounds.Add(roundC);
-        var totalC = roundC.Items.Sum(i => i.UnitPrice * i.Quantity);
+        var subtotalC = roundC.Items.Sum(i => i.UnitPrice * i.Quantity);
+        var taxC = Math.Round(subtotalC * rates.TaxRatePercent / 100m, 2);
+        var serviceChargeC = Math.Round(subtotalC * rates.ServiceChargePercent / 100m, 2);
+        var totalC = subtotalC + taxC + serviceChargeC;
         var shareC = Math.Round(totalC / 2, 2);
         closedC.Payments.Add(new DineInPayment { TableSessionId = closedC.Id, Label = "Split 1", Amount = shareC, Method = "Cash", Status = DineInPaymentStatus.Paid, PaidAt = now.AddMinutes(-21) });
         closedC.Payments.Add(new DineInPayment { TableSessionId = closedC.Id, Label = "Split 2", Amount = totalC - shareC, Method = "UPI", Status = DineInPaymentStatus.Paid, PaidAt = now.AddMinutes(-20) });
+        closedC.Subtotal = subtotalC;
+        closedC.TaxAmount = taxC;
+        closedC.ServiceChargeAmount = serviceChargeC;
         closedC.TotalAmount = totalC;
         closedC.PaymentMethod = "Cash + UPI";
         dineInDb.TableSessions.Add(closedC);
