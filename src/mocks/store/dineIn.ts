@@ -119,6 +119,24 @@ function computeSessionTotal(session: Session): number {
     .reduce((sum, r) => sum + computeRoundTotal(r.items), 0)
 }
 
+// Mirrors the real backend's DineInBillingOptions defaults (TaxRatePercent 5, ServiceChargePercent 0).
+const TAX_RATE_PERCENT = 5
+const SERVICE_CHARGE_PERCENT = 0
+
+interface BillBreakdown {
+  subtotal: number
+  taxAmount: number
+  serviceChargeAmount: number
+  total: number
+}
+
+function computeBillBreakdown(session: Session): BillBreakdown {
+  const subtotal = session.totalAmount ?? computeSessionTotal(session)
+  const taxAmount = Math.round(((subtotal * TAX_RATE_PERCENT) / 100) * 100) / 100
+  const serviceChargeAmount = Math.round(((subtotal * SERVICE_CHARGE_PERCENT) / 100) * 100) / 100
+  return { subtotal, taxAmount, serviceChargeAmount, total: subtotal + taxAmount + serviceChargeAmount }
+}
+
 function toRoundItemDto(item: RoundItem): DineInRoundItemDto {
   return {
     id: item.id,
@@ -162,6 +180,7 @@ function tableOf(session: Session): Table {
 }
 
 function toSessionDto(session: Session): TableSessionDto {
+  const breakdown = computeBillBreakdown(session)
   return {
     id: session.id,
     tableId: session.tableId,
@@ -177,7 +196,12 @@ function toSessionDto(session: Session): TableSessionDto {
       .sort((a, b) => a.roundNumber - b.roundNumber)
       .map(toRoundDto),
     payments: session.payments.map(toPaymentDto),
-    total: session.totalAmount ?? computeSessionTotal(session),
+    subtotal: breakdown.subtotal,
+    taxRatePercent: TAX_RATE_PERCENT,
+    taxAmount: breakdown.taxAmount,
+    serviceChargePercent: SERVICE_CHARGE_PERCENT,
+    serviceChargeAmount: breakdown.serviceChargeAmount,
+    total: breakdown.total,
   }
 }
 
@@ -189,7 +213,7 @@ function toTableDto(table: Table): DiningTableDto {
     capacity: table.capacity,
     status: table.status,
     activeSessionId: activeSession?.id ?? null,
-    runningTotal: activeSession ? computeSessionTotal(activeSession) : null,
+    runningTotal: activeSession ? computeBillBreakdown(activeSession).total : null,
   }
 }
 
@@ -461,12 +485,12 @@ export function closeSession(sessionId: string): TableSessionDto {
   const session = findSession(sessionId)
   if (session.status === 3) throw new DemoError(409, 'This session is already closed.')
 
-  const total = computeSessionTotal(session)
+  const breakdown = computeBillBreakdown(session)
   const paid = session.payments.filter((p) => p.status === 2).reduce((sum, p) => sum + p.amount, 0)
-  if (paid < total) {
+  if (paid < breakdown.total) {
     throw new DemoError(
       409,
-      `Only Rs. ${paid.toFixed(2)} of Rs. ${total.toFixed(2)} has been collected — record the remaining payment before closing.`,
+      `Only Rs. ${paid.toFixed(2)} of Rs. ${breakdown.total.toFixed(2)} has been collected — record the remaining payment before closing.`,
     )
   }
 
@@ -475,7 +499,7 @@ export function closeSession(sessionId: string): TableSessionDto {
   session.paymentMethod = Array.from(
     new Set(session.payments.filter((p) => p.status === 2).map((p) => p.method)),
   ).join(' + ')
-  session.totalAmount = total
+  session.totalAmount = breakdown.subtotal
   session.closedAt = new Date().toISOString()
   table.status = 3
   return toSessionDto(session)
