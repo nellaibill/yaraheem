@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Yaraheem Catering Services | Premium Biryani &amp; Catering</title>
+    <script type="text/javascript">
+      // GitHub Pages serves this file for any URL that isn't a real static asset — which,
+      // for a client-side-routed app, is every deep link (e.g. a "Print Bill" tab opened
+      // directly at /yaraheem/print/dinein-bill/:id). Standard workaround: redirect back to
+      // index.html with the intended path packed into the query string, then index.html's
+      // matching script (see index.html) unpacks it via history.replaceState before the
+      // router reads the URL. https://github.com/rafgraham/spa-github-pages
+      var pathSegmentsToKeep = 1 // keep the '/yaraheem' base path segment
+
+      var l = window.location
+      l.replace(
+        l.protocol +
+          '//' +
+          l.hostname +
+          (l.port ? ':' + l.port : '') +
+          l.pathname
+            .split('/')
+            .slice(0, 1 + pathSegmentsToKeep)
+            .join('/') +
+          '/?/' +
+          l.pathname
+            .slice(1)
+            .split('/')
+            .slice(pathSegmentsToKeep)
+            .join('/')
+            .replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash,
+      )
+    </script>
+  </head>
+  <body></body>
+</html>
