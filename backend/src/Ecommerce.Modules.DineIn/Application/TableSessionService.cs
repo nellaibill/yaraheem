@@ -20,7 +20,7 @@ public sealed class TableSessionService(
     IAuditLogService auditLog,
     IOptions<DineInBillingOptions> billingOptions) : ITableSessionService
 {
-    private sealed record BillBreakdown(decimal Subtotal, decimal TaxAmount, decimal ServiceChargeAmount, decimal Total);
+    private sealed record BillBreakdown(decimal Subtotal, decimal DiscountAmount, decimal TaxAmount, decimal ServiceChargeAmount, decimal Total);
 
     public async Task<List<DiningTableDto>> GetTablesAsync(CancellationToken cancellationToken)
     {
@@ -181,6 +181,54 @@ public sealed class TableSessionService(
         return await BuildSessionDtoAsync(sessionId, cancellationToken);
     }
 
+    public async Task<TableSessionDto> ApplySessionDiscountAsync(Guid sessionId, decimal amount, string reason, CancellationToken cancellationToken)
+    {
+        var session = await db.TableSessions
+            .Include(s => s.Rounds).ThenInclude(r => r.Items)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
+            ?? throw new NotFoundException("TableSession", sessionId);
+
+        if (session.Status == TableSessionStatus.Closed)
+        {
+            throw new ConflictException("This session is already closed — a discount can't be applied now.");
+        }
+
+        var subtotal = session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled)
+            .SelectMany(r => r.Items)
+            .Where(i => !i.IsComped)
+            .Sum(i => i.UnitPrice * i.Quantity);
+
+        if (amount > subtotal)
+        {
+            throw new ConflictException($"Discount of {amount:C} exceeds the bill's subtotal of {subtotal:C}.");
+        }
+
+        session.DiscountAmount = amount;
+        session.DiscountReason = reason.Trim();
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("TableSession.DiscountApplied", "TableSession", sessionId.ToString(), $"{amount:C} — {session.DiscountReason}", cancellationToken);
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
+    }
+
+    public async Task<TableSessionDto> RemoveSessionDiscountAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var session = await db.TableSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
+                      ?? throw new NotFoundException("TableSession", sessionId);
+
+        if (session.Status == TableSessionStatus.Closed)
+        {
+            throw new ConflictException("This session is already closed — the discount can't be changed now.");
+        }
+
+        session.DiscountAmount = null;
+        session.DiscountReason = null;
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("TableSession.DiscountRemoved", "TableSession", sessionId.ToString(), null, cancellationToken);
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
+    }
+
     public async Task<TableSessionDto> CloseSessionAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         var session = await db.TableSessions
@@ -281,8 +329,8 @@ public sealed class TableSessionService(
         var session = await db.TableSessions.AsNoTracking().FirstAsync(s => s.Id == round.TableSessionId, cancellationToken);
         var table = await db.DiningTables.AsNoTracking().FirstAsync(t => t.Id == session.TableId, cancellationToken);
 
-        var itemDtos = round.Items.Select(i => new DineInRoundItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity)).ToList();
-        var roundDto = new DineInRoundDto(round.Id, round.RoundNumber, round.Status, round.FiredAt, itemDtos, itemDtos.Sum(i => i.LineTotal));
+        var itemDtos = round.Items.Select(ToItemDto).ToList();
+        var roundDto = new DineInRoundDto(round.Id, round.RoundNumber, round.Status, round.FiredAt, itemDtos, itemDtos.Where(i => !i.IsComped).Sum(i => i.LineTotal));
 
         return new DineInRoundPrintDto(table.Label, roundDto);
     }
@@ -299,15 +347,15 @@ public sealed class TableSessionService(
 
         var roundDtos = session.Rounds.OrderBy(r => r.RoundNumber).Select(r =>
         {
-            var itemDtos = r.Items.Select(i => new DineInRoundItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity)).ToList();
-            return new DineInRoundDto(r.Id, r.RoundNumber, r.Status, r.FiredAt, itemDtos, itemDtos.Sum(i => i.LineTotal));
+            var itemDtos = r.Items.Select(ToItemDto).ToList();
+            return new DineInRoundDto(r.Id, r.RoundNumber, r.Status, r.FiredAt, itemDtos, itemDtos.Where(i => !i.IsComped).Sum(i => i.LineTotal));
         }).ToList();
 
         var paymentDtos = session.Payments.OrderBy(p => p.CreatedAt).Select(ToPaymentDto).ToList();
 
         var breakdown = session.TotalAmount is null
             ? ComputeBillBreakdown(session)
-            : new BillBreakdown(session.Subtotal ?? 0m, session.TaxAmount ?? 0m, session.ServiceChargeAmount ?? 0m, session.TotalAmount.Value);
+            : new BillBreakdown(session.Subtotal ?? 0m, session.DiscountAmount ?? 0m, session.TaxAmount ?? 0m, session.ServiceChargeAmount ?? 0m, session.TotalAmount.Value);
         var rates = billingOptions.Value;
 
         return new TableSessionDto(
@@ -323,6 +371,8 @@ public sealed class TableSessionService(
             roundDtos,
             paymentDtos,
             breakdown.Subtotal,
+            breakdown.DiscountAmount,
+            session.DiscountReason,
             rates.TaxRatePercent,
             breakdown.TaxAmount,
             rates.ServiceChargePercent,
@@ -365,6 +415,52 @@ public sealed class TableSessionService(
         return await BuildSessionDtoAsync(sessionId, cancellationToken);
     }
 
+    public async Task<TableSessionDto> CompRoundItemAsync(Guid sessionId, Guid roundId, Guid itemId, string reason, CancellationToken cancellationToken)
+    {
+        var item = await FindRoundItemAsync(sessionId, roundId, itemId, cancellationToken);
+
+        item.IsComped = true;
+        item.CompReason = reason.Trim();
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DineInRoundItem.Comped", "TableSession", sessionId.ToString(), $"{item.ProductName} — {item.CompReason}", cancellationToken);
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
+    }
+
+    public async Task<TableSessionDto> UncompRoundItemAsync(Guid sessionId, Guid roundId, Guid itemId, CancellationToken cancellationToken)
+    {
+        var item = await FindRoundItemAsync(sessionId, roundId, itemId, cancellationToken);
+
+        item.IsComped = false;
+        item.CompReason = null;
+        await db.SaveChangesAsync(cancellationToken);
+        await auditLog.LogAsync("DineInRoundItem.Uncomped", "TableSession", sessionId.ToString(), item.ProductName, cancellationToken);
+
+        return await BuildSessionDtoAsync(sessionId, cancellationToken);
+    }
+
+    private async Task<DineInRoundItem> FindRoundItemAsync(Guid sessionId, Guid roundId, Guid itemId, CancellationToken cancellationToken)
+    {
+        var session = await db.TableSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken)
+                      ?? throw new NotFoundException("TableSession", sessionId);
+
+        if (session.Status == TableSessionStatus.Closed)
+        {
+            throw new ConflictException("This session is already closed — items can't be comped now.");
+        }
+
+        var round = await db.DineInRounds.FirstOrDefaultAsync(r => r.Id == roundId && r.TableSessionId == sessionId, cancellationToken)
+                    ?? throw new NotFoundException("DineInRound", roundId);
+
+        if (round.Status == DineInRoundStatus.Cancelled)
+        {
+            throw new ConflictException($"Round {round.RoundNumber} is cancelled — its items can't be comped.");
+        }
+
+        return await db.DineInRoundItems.FirstOrDefaultAsync(i => i.Id == itemId && i.DineInRoundId == roundId, cancellationToken)
+               ?? throw new NotFoundException("DineInRoundItem", itemId);
+    }
+
     public async Task<List<TableSessionDto>> GetSessionsForAdminAsync(CancellationToken cancellationToken)
     {
         var sessionIds = await db.TableSessions.AsNoTracking()
@@ -383,12 +479,24 @@ public sealed class TableSessionService(
 
     private BillBreakdown ComputeBillBreakdown(TableSession session)
     {
-        var subtotal = session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled).SelectMany(r => r.Items).Sum(i => i.UnitPrice * i.Quantity);
+        var subtotal = session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled)
+            .SelectMany(r => r.Items)
+            .Where(i => !i.IsComped)
+            .Sum(i => i.UnitPrice * i.Quantity);
+
+        // Clamped so a discount that was applied against a larger subtotal (e.g. before a round
+        // was later cancelled) can never push the bill negative.
+        var discountAmount = Math.Min(session.DiscountAmount ?? 0m, subtotal);
+        var discountedSubtotal = subtotal - discountAmount;
+
         var rates = billingOptions.Value;
-        var taxAmount = Math.Round(subtotal * rates.TaxRatePercent / 100m, 2);
-        var serviceChargeAmount = Math.Round(subtotal * rates.ServiceChargePercent / 100m, 2);
-        return new BillBreakdown(subtotal, taxAmount, serviceChargeAmount, subtotal + taxAmount + serviceChargeAmount);
+        var taxAmount = Math.Round(discountedSubtotal * rates.TaxRatePercent / 100m, 2);
+        var serviceChargeAmount = Math.Round(discountedSubtotal * rates.ServiceChargePercent / 100m, 2);
+        return new BillBreakdown(subtotal, discountAmount, taxAmount, serviceChargeAmount, discountedSubtotal + taxAmount + serviceChargeAmount);
     }
+
+    private static DineInRoundItemDto ToItemDto(DineInRoundItem i) =>
+        new(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity, i.IsComped, i.CompReason);
 
     public async Task<List<KitchenRoundDto>> GetKitchenQueueAsync(CancellationToken cancellationToken)
     {
@@ -473,7 +581,7 @@ public sealed class TableSessionService(
 
     private static KitchenRoundDto ToKitchenDto(DineInRound round, Guid sessionId, string tableLabel)
     {
-        var itemDtos = round.Items.Select(i => new DineInRoundItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.UnitPrice * i.Quantity)).ToList();
+        var itemDtos = round.Items.Select(ToItemDto).ToList();
         return new KitchenRoundDto(round.Id, sessionId, tableLabel, round.RoundNumber, round.Status, round.FiredAt, itemDtos);
     }
 }

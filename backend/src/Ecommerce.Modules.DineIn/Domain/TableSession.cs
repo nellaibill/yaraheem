@@ -25,6 +25,12 @@ public class TableSession : BaseEntity
     public decimal? TotalAmount { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
 
+    // Manual, staff-applied discount on the whole bill (e.g. a VIP discount) — separate from
+    // per-item comps below. Applied before tax/service charge. Stays in place until removed or
+    // the session closes, at which point it's naturally frozen since nothing else can edit it.
+    public decimal? DiscountAmount { get; set; }
+    public string? DiscountReason { get; set; }
+
     public ICollection<DineInRound> Rounds { get; set; } = [];
     public ICollection<DineInPayment> Payments { get; set; } = [];
 }

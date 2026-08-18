@@ -19,6 +19,8 @@ interface RoundItem {
   productName: string
   quantity: number
   unitPrice: number
+  isComped: boolean
+  compReason: string | null
 }
 
 interface Round {
@@ -50,6 +52,8 @@ interface Session {
   closedAt: string | null
   paymentMethod: string | null
   totalAmount: number | null
+  discountAmount: number | null
+  discountReason: string | null
   rounds: Round[]
   payments: Payment[]
 }
@@ -106,6 +110,8 @@ function roundItem(productId: string, quantity: number): RoundItem {
     productName: product.name,
     quantity,
     unitPrice: product.price,
+    isComped: false,
+    compReason: null,
   }
 }
 
@@ -113,10 +119,12 @@ function computeRoundTotal(items: RoundItem[]): number {
   return items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
 }
 
-function computeSessionTotal(session: Session): number {
+function computeSessionSubtotal(session: Session): number {
   return session.rounds
     .filter((r) => r.status !== 5)
-    .reduce((sum, r) => sum + computeRoundTotal(r.items), 0)
+    .flatMap((r) => r.items)
+    .filter((i) => !i.isComped)
+    .reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
 }
 
 // Mirrors the real backend's DineInBillingOptions defaults (TaxRatePercent 5, ServiceChargePercent 0).
@@ -125,16 +133,19 @@ const SERVICE_CHARGE_PERCENT = 0
 
 interface BillBreakdown {
   subtotal: number
+  discountAmount: number
   taxAmount: number
   serviceChargeAmount: number
   total: number
 }
 
 function computeBillBreakdown(session: Session): BillBreakdown {
-  const subtotal = session.totalAmount ?? computeSessionTotal(session)
-  const taxAmount = Math.round(((subtotal * TAX_RATE_PERCENT) / 100) * 100) / 100
-  const serviceChargeAmount = Math.round(((subtotal * SERVICE_CHARGE_PERCENT) / 100) * 100) / 100
-  return { subtotal, taxAmount, serviceChargeAmount, total: subtotal + taxAmount + serviceChargeAmount }
+  const subtotal = session.totalAmount ?? computeSessionSubtotal(session)
+  const discountAmount = Math.min(session.discountAmount ?? 0, subtotal)
+  const discountedSubtotal = subtotal - discountAmount
+  const taxAmount = Math.round(((discountedSubtotal * TAX_RATE_PERCENT) / 100) * 100) / 100
+  const serviceChargeAmount = Math.round(((discountedSubtotal * SERVICE_CHARGE_PERCENT) / 100) * 100) / 100
+  return { subtotal, discountAmount, taxAmount, serviceChargeAmount, total: discountedSubtotal + taxAmount + serviceChargeAmount }
 }
 
 function toRoundItemDto(item: RoundItem): DineInRoundItemDto {
@@ -145,6 +156,8 @@ function toRoundItemDto(item: RoundItem): DineInRoundItemDto {
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.unitPrice * item.quantity,
+    isComped: item.isComped,
+    compReason: item.compReason,
   }
 }
 
@@ -156,7 +169,7 @@ function toRoundDto(round: Round): DineInRoundDto {
     status: round.status,
     firedAt: round.firedAt,
     items,
-    roundTotal: items.reduce((s, i) => s + i.lineTotal, 0),
+    roundTotal: items.filter((i) => !i.isComped).reduce((s, i) => s + i.lineTotal, 0),
   }
 }
 
@@ -197,6 +210,8 @@ function toSessionDto(session: Session): TableSessionDto {
       .map(toRoundDto),
     payments: session.payments.map(toPaymentDto),
     subtotal: breakdown.subtotal,
+    discountAmount: breakdown.discountAmount,
+    discountReason: session.discountReason,
     taxRatePercent: TAX_RATE_PERCENT,
     taxAmount: breakdown.taxAmount,
     serviceChargePercent: SERVICE_CHARGE_PERCENT,
@@ -252,6 +267,8 @@ function seedDemoDineIn() {
     closedAt: iso(45),
     paymentMethod: 'Cash',
     totalAmount: null,
+    discountAmount: null,
+    discountReason: null,
     rounds: [
       {
         id: genId('round'),
@@ -288,6 +305,8 @@ function seedDemoDineIn() {
     closedAt: null,
     paymentMethod: null,
     totalAmount: null,
+    discountAmount: null,
+    discountReason: null,
     rounds: [
       {
         id: genId('round'),
@@ -330,6 +349,8 @@ function seedDemoDineIn() {
     closedAt: iso(20),
     paymentMethod: 'Cash + UPI',
     totalAmount: total3,
+    discountAmount: null,
+    discountReason: null,
     rounds: [
       { id: genId('round'), roundNumber: 1, status: 4, firedAt: iso(55), items: round3Items },
     ],
@@ -394,6 +415,8 @@ export function openSession(
     closedAt: null,
     paymentMethod: null,
     totalAmount: null,
+    discountAmount: null,
+    discountReason: null,
     rounds: [],
     payments: [],
   }
@@ -427,6 +450,8 @@ export function fireRound(
       productName: product.name,
       quantity: i.quantity,
       unitPrice: product.price,
+      isComped: false,
+      compReason: null,
     }
   })
 
@@ -479,6 +504,56 @@ export function requestBill(sessionId: string): TableSessionDto {
     throw new DemoError(409, `Session is already ${SESSION_STATUS_LABEL[session.status]}.`)
   session.status = 2
   return toSessionDto(session)
+}
+
+export function applySessionDiscount(sessionId: string, amount: number, reason: string): TableSessionDto {
+  const session = findSession(sessionId)
+  if (session.status === 3) throw new DemoError(409, "This session is already closed — a discount can't be applied now.")
+
+  const subtotal = computeSessionSubtotal(session)
+  if (amount > subtotal) {
+    throw new DemoError(409, `Discount of Rs. ${amount.toFixed(2)} exceeds the bill's subtotal of Rs. ${subtotal.toFixed(2)}.`)
+  }
+
+  session.discountAmount = amount
+  session.discountReason = reason.trim()
+  return toSessionDto(session)
+}
+
+export function removeSessionDiscount(sessionId: string): TableSessionDto {
+  const session = findSession(sessionId)
+  if (session.status === 3) throw new DemoError(409, "This session is already closed — the discount can't be changed now.")
+
+  session.discountAmount = null
+  session.discountReason = null
+  return toSessionDto(session)
+}
+
+export function compRoundItem(sessionId: string, roundId: string, itemId: string, reason: string): TableSessionDto {
+  const item = findRoundItem(sessionId, roundId, itemId)
+  item.isComped = true
+  item.compReason = reason.trim()
+  return toSessionDto(findSession(sessionId))
+}
+
+export function uncompRoundItem(sessionId: string, roundId: string, itemId: string): TableSessionDto {
+  const item = findRoundItem(sessionId, roundId, itemId)
+  item.isComped = false
+  item.compReason = null
+  return toSessionDto(findSession(sessionId))
+}
+
+function findRoundItem(sessionId: string, roundId: string, itemId: string): RoundItem {
+  const session = findSession(sessionId)
+  if (session.status === 3) throw new DemoError(409, "This session is already closed — items can't be comped now.")
+
+  const round = session.rounds.find((r) => r.id === roundId)
+  if (!round) throw new DemoError(404, 'Round not found.')
+  if (round.status === 5) throw new DemoError(409, `Round ${round.roundNumber} is cancelled — its items can't be comped.`)
+
+  const item = round.items.find((i) => i.id === itemId)
+  if (!item) throw new DemoError(404, 'Item not found.')
+  return item
 }
 
 export function closeSession(sessionId: string): TableSessionDto {

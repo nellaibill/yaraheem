@@ -311,6 +311,8 @@ export interface DineInRoundItemDto {
   quantity: number
   unitPrice: number
   lineTotal: number
+  isComped: boolean
+  compReason: string | null
 }
 
 export interface DineInRoundDto {
@@ -367,6 +369,8 @@ export interface TableSessionDto {
   rounds: DineInRoundDto[]
   payments: DineInPaymentDto[]
   subtotal: number
+  discountAmount: number
+  discountReason: string | null
   taxRatePercent: number
   taxAmount: number
   serviceChargePercent: number

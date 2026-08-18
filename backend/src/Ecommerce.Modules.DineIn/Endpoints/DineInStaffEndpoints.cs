@@ -66,6 +66,48 @@ public static class DineInStaffEndpoints
             Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.RequestBillAsync(sessionId, cancellationToken), "Bill requested.")))
             .WithSummary("Lock the tab from further rounds — guests are ready to pay.");
 
+        group.MapPost("/sessions/{sessionId:guid}/discount", async (
+            Guid sessionId,
+            ApplySessionDiscountRequest request,
+            IValidator<ApplySessionDiscountRequest> validator,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+        {
+            await validator.ValidateAndThrowAsync(request, cancellationToken);
+            var result = await service.ApplySessionDiscountAsync(sessionId, request.Amount, request.Reason, cancellationToken);
+            return Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(result, "Discount applied."));
+        }).WithSummary("Apply (or update) a manual discount on the whole bill, with a required reason.");
+
+        group.MapPost("/sessions/{sessionId:guid}/discount/remove", async (
+            Guid sessionId,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.RemoveSessionDiscountAsync(sessionId, cancellationToken), "Discount removed.")))
+            .WithSummary("Remove the manual discount from this bill.");
+
+        group.MapPost("/sessions/{sessionId:guid}/rounds/{roundId:guid}/items/{itemId:guid}/comp", async (
+            Guid sessionId,
+            Guid roundId,
+            Guid itemId,
+            CompRoundItemRequest request,
+            IValidator<CompRoundItemRequest> validator,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+        {
+            await validator.ValidateAndThrowAsync(request, cancellationToken);
+            var result = await service.CompRoundItemAsync(sessionId, roundId, itemId, request.Reason, cancellationToken);
+            return Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(result, "Item comped."));
+        }).WithSummary("Comp a single item — still shown on the bill, excluded from the charge — with a required reason.");
+
+        group.MapPost("/sessions/{sessionId:guid}/rounds/{roundId:guid}/items/{itemId:guid}/uncomp", async (
+            Guid sessionId,
+            Guid roundId,
+            Guid itemId,
+            ITableSessionService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(ApiResponse<TableSessionDto>.SuccessResponse(await service.UncompRoundItemAsync(sessionId, roundId, itemId, cancellationToken), "Comp removed.")))
+            .WithSummary("Undo a comp on a single item, restoring it to the charge.");
+
         group.MapPost("/sessions/{sessionId:guid}/rounds/{roundId:guid}/cancel", async (
             Guid sessionId,
             Guid roundId,

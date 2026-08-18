@@ -37,6 +37,22 @@ export function closeTableSession(sessionId: string): Promise<TableSessionDto> {
   return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/close`)
 }
 
+export function applySessionDiscount(sessionId: string, amount: number, reason: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/discount`, { amount, reason })
+}
+
+export function removeSessionDiscount(sessionId: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/discount/remove`)
+}
+
+export function compRoundItem(sessionId: string, roundId: string, itemId: string, reason: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/rounds/${roundId}/items/${itemId}/comp`, { reason })
+}
+
+export function uncompRoundItem(sessionId: string, roundId: string, itemId: string): Promise<TableSessionDto> {
+  return staffApiPost<TableSessionDto>(`/api/staff/dinein/sessions/${sessionId}/rounds/${roundId}/items/${itemId}/uncomp`)
+}
+
 export function createDineInPayment(sessionId: string, amount: number, method: string, label?: string): Promise<CreateDineInPaymentResponse> {
   return staffApiPost<CreateDineInPaymentResponse>(`/api/staff/dinein/sessions/${sessionId}/payments`, { amount, method, label })
 }

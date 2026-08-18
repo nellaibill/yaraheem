@@ -43,6 +43,23 @@ public sealed class FireRoundRequestValidator : AbstractValidator<FireRoundReque
     }
 }
 
+public sealed class ApplySessionDiscountRequestValidator : AbstractValidator<ApplySessionDiscountRequest>
+{
+    public ApplySessionDiscountRequestValidator()
+    {
+        RuleFor(x => x.Amount).GreaterThan(0);
+        RuleFor(x => x.Reason).NotEmpty().MaximumLength(200);
+    }
+}
+
+public sealed class CompRoundItemRequestValidator : AbstractValidator<CompRoundItemRequest>
+{
+    public CompRoundItemRequestValidator()
+    {
+        RuleFor(x => x.Reason).NotEmpty().MaximumLength(200);
+    }
+}
+
 public sealed class CreateDineInPaymentRequestValidator : AbstractValidator<CreateDineInPaymentRequest>
 {
     private static readonly string[] AllowedMethods = ["Cash", "UPI", "Card", "Razorpay"];

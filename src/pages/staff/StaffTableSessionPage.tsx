@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Ban, Check, ChevronLeft, Minus, Plus, Printer, Trash2 } from 'lucide-react'
+import { Ban, Check, ChevronLeft, Gift, Minus, Plus, Printer, Trash2, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   fetchTableSession,
   fireRound,
@@ -16,13 +18,17 @@ import {
   markRoundServed,
   createDineInPayment,
   verifyDineInPayment,
+  applySessionDiscount,
+  removeSessionDiscount,
+  compRoundItem,
+  uncompRoundItem,
 } from '@/lib/api/dineInApi'
 import { fetchProducts } from '@/lib/api/catalogApi'
 import { openRazorpayCheckout } from '@/lib/razorpay'
 import { ApiError } from '@/lib/api/client'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { cn, formatCurrency } from '@/lib/utils'
-import type { DineInRoundDto, ProductListResponse, TableSessionDto } from '@/lib/api/types'
+import type { DineInRoundDto, DineInRoundItemDto, ProductListResponse, TableSessionDto } from '@/lib/api/types'
 
 function errorMessage(error: unknown): string {
   return error instanceof ApiError ? error.message : 'Something went wrong — please try again.'
@@ -67,6 +73,15 @@ export default function StaffTableSessionPage() {
   const [roundToCancel, setRoundToCancel] = useState<DineInRoundDto | null>(null)
   const [cancelling, setCancelling] = useState(false)
   const [servingRoundId, setServingRoundId] = useState<string | null>(null)
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false)
+  const [discountAmount, setDiscountAmount] = useState('')
+  const [discountReason, setDiscountReason] = useState('')
+  const [applyingDiscount, setApplyingDiscount] = useState(false)
+  const [removingDiscount, setRemovingDiscount] = useState(false)
+  const [compTarget, setCompTarget] = useState<{ roundId: string; item: DineInRoundItemDto } | null>(null)
+  const [compReason, setCompReason] = useState('')
+  const [comping, setComping] = useState(false)
+  const [uncompingItemId, setUncompingItemId] = useState<string | null>(null)
 
   function load() {
     if (!id) return
@@ -233,6 +248,66 @@ export default function StaffTableSessionPage() {
     }
   }
 
+  async function handleApplyDiscount() {
+    if (!session) return
+    const amount = Number(discountAmount)
+    if (!amount || amount <= 0 || !discountReason.trim()) return
+    setApplyingDiscount(true)
+    try {
+      setSession(await applySessionDiscount(session.id, amount, discountReason.trim()))
+      toast.success('Discount applied')
+      setDiscountDialogOpen(false)
+      setDiscountAmount('')
+      setDiscountReason('')
+    } catch (error) {
+      toast.error('Could not apply discount', { description: errorMessage(error) })
+    } finally {
+      setApplyingDiscount(false)
+    }
+  }
+
+  async function handleRemoveDiscount() {
+    if (!session) return
+    setRemovingDiscount(true)
+    try {
+      setSession(await removeSessionDiscount(session.id))
+      toast.success('Discount removed')
+    } catch (error) {
+      toast.error('Could not remove discount', { description: errorMessage(error) })
+    } finally {
+      setRemovingDiscount(false)
+    }
+  }
+
+  async function handleConfirmComp() {
+    if (!session || !compTarget || !compReason.trim()) return
+    setComping(true)
+    try {
+      const updated = await compRoundItem(session.id, compTarget.roundId, compTarget.item.id, compReason.trim())
+      setSession(updated)
+      toast.success(`${compTarget.item.productName} comped`)
+      setCompTarget(null)
+      setCompReason('')
+    } catch (error) {
+      toast.error('Could not comp item', { description: errorMessage(error) })
+    } finally {
+      setComping(false)
+    }
+  }
+
+  async function handleUncomp(roundId: string, itemId: string) {
+    if (!session) return
+    setUncompingItemId(itemId)
+    try {
+      setSession(await uncompRoundItem(session.id, roundId, itemId))
+      toast.success('Comp removed')
+    } catch (error) {
+      toast.error('Could not remove comp', { description: errorMessage(error) })
+    } finally {
+      setUncompingItemId(null)
+    }
+  }
+
   if (loading || !session) {
     return <p className="text-muted-foreground py-12 text-center text-sm">Loading...</p>
   }
@@ -389,11 +464,35 @@ export default function StaffTableSessionPage() {
                   </div>
                   <div className="flex flex-col gap-1 text-base">
                     {round.items.map((item) => (
-                      <div key={item.id} className={cn('flex justify-between', isCancelled && 'line-through')}>
-                        <span>
+                      <div key={item.id} className="flex items-center justify-between gap-2">
+                        <span className={cn((isCancelled || item.isComped) && 'text-muted-foreground line-through')}>
                           {item.productName} ×{item.quantity}
+                          {item.isComped && <span className="ml-1.5 text-xs no-underline">(Comped{item.compReason ? `: ${item.compReason}` : ''})</span>}
                         </span>
-                        <span>{formatCurrency(item.lineTotal)}</span>
+                        <div className="flex items-center gap-1">
+                          <span className={cn((isCancelled || item.isComped) && 'text-muted-foreground line-through')}>
+                            {formatCurrency(item.lineTotal)}
+                          </span>
+                          {!isCancelled && session.status !== 3 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              disabled={uncompingItemId === item.id}
+                              title={item.isComped ? 'Remove comp' : 'Comp this item'}
+                              onClick={() => {
+                                if (item.isComped) {
+                                  handleUncomp(round.id, item.id)
+                                } else {
+                                  setCompTarget({ roundId: round.id, item })
+                                  setCompReason('')
+                                }
+                              }}
+                            >
+                              <Gift className={cn('size-4', item.isComped && 'text-primary')} />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -422,6 +521,28 @@ export default function StaffTableSessionPage() {
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>{formatCurrency(session.subtotal)}</span>
               </div>
+              {session.discountAmount > 0 ? (
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="text-muted-foreground">Discount</span>
+                    {session.discountReason && <p className="text-muted-foreground text-xs">{session.discountReason}</p>}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span>-{formatCurrency(session.discountAmount)}</span>
+                    <Button variant="ghost" size="icon" className="size-7" disabled={removingDiscount} title="Remove discount" onClick={handleRemoveDiscount}>
+                      <X className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="text-primary self-start text-xs font-medium underline underline-offset-2"
+                  onClick={() => setDiscountDialogOpen(true)}
+                >
+                  + Apply discount
+                </button>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax ({session.taxRatePercent}%)</span>
                 <span>{formatCurrency(session.taxAmount)}</span>
@@ -607,6 +728,90 @@ export default function StaffTableSessionPage() {
             </Button>
             <Button variant="destructive" onClick={handleConfirmCancel} disabled={cancelling}>
               {cancelling ? 'Cancelling...' : 'Cancel Round'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={discountDialogOpen}
+        onOpenChange={(open) => {
+          setDiscountDialogOpen(open)
+          if (!open) {
+            setDiscountAmount('')
+            setDiscountReason('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Apply Discount</DialogTitle>
+            <DialogDescription>
+              Knocks a flat amount off this bill's subtotal, before tax. A reason is required and kept on record.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="discount-amount">Amount (Rs.)</Label>
+              <Input
+                id="discount-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={discountAmount}
+                onChange={(e) => setDiscountAmount(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="discount-reason">Reason</Label>
+              <Input
+                id="discount-reason"
+                value={discountReason}
+                onChange={(e) => setDiscountReason(e.target.value)}
+                placeholder="e.g. Regular customer"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDiscountDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="gold"
+              onClick={handleApplyDiscount}
+              disabled={applyingDiscount || !discountAmount || !discountReason.trim()}
+            >
+              {applyingDiscount ? 'Applying...' : 'Apply Discount'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={compTarget !== null} onOpenChange={(open) => !open && setCompTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Comp {compTarget?.item.productName}?</DialogTitle>
+            <DialogDescription>
+              Removes this item's charge from the bill — it still shows on the ticket and stays on record. A reason
+              is required.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="comp-reason">Reason</Label>
+            <Input
+              id="comp-reason"
+              value={compReason}
+              onChange={(e) => setCompReason(e.target.value)}
+              placeholder="e.g. Wrong order"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="gold" onClick={handleConfirmComp} disabled={comping || !compReason.trim()}>
+              {comping ? 'Comping...' : 'Comp Item'}
             </Button>
           </DialogFooter>
         </DialogContent>
