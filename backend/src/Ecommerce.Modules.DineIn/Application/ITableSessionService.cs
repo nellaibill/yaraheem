@@ -17,6 +17,11 @@ public interface ITableSessionService
     Task<TableSessionDto> CancelRoundAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken);
     Task<TableSessionDto> MarkRoundServedAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken);
 
+    Task<TableSessionDto> ApplySessionDiscountAsync(Guid sessionId, decimal amount, string reason, CancellationToken cancellationToken);
+    Task<TableSessionDto> RemoveSessionDiscountAsync(Guid sessionId, CancellationToken cancellationToken);
+    Task<TableSessionDto> CompRoundItemAsync(Guid sessionId, Guid roundId, Guid itemId, string reason, CancellationToken cancellationToken);
+    Task<TableSessionDto> UncompRoundItemAsync(Guid sessionId, Guid roundId, Guid itemId, CancellationToken cancellationToken);
+
     Task<DineInPaymentDto> RecordPaymentAsync(Guid sessionId, string label, decimal amount, string method, string? razorpayOrderId, CancellationToken cancellationToken);
     Task<TableSessionDto> MarkPaymentPaidAsync(Guid sessionId, Guid paymentId, string? razorpayPaymentId, CancellationToken cancellationToken);
     Task<DineInRoundPrintDto> GetRoundForPrintAsync(Guid roundId, CancellationToken cancellationToken);

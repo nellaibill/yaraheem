@@ -4,7 +4,7 @@ import { Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PrintHeader } from '@/features/print/components/PrintHeader'
 import { fetchTableSession } from '@/lib/api/dineInApi'
-import { formatCurrency } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { SITE } from '@/lib/constants'
 import type { TableSessionDto } from '@/lib/api/types'
 
@@ -102,10 +102,13 @@ export default function DineInBillPage() {
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b border-gray-200">
-                <td className="py-2.5">{item.productName}</td>
+                <td className="py-2.5">
+                  {item.productName}
+                  {item.isComped && <span className="ml-1.5 text-xs text-gray-500">(Comped{item.compReason ? `: ${item.compReason}` : ''})</span>}
+                </td>
                 <td className="py-2.5 text-right">{item.quantity}</td>
                 <td className="py-2.5 text-right">{formatCurrency(item.unitPrice)}</td>
-                <td className="py-2.5 text-right">{formatCurrency(item.lineTotal)}</td>
+                <td className={cn('py-2.5 text-right', item.isComped && 'text-gray-400 line-through')}>{formatCurrency(item.lineTotal)}</td>
               </tr>
             ))}
           </tbody>
@@ -116,6 +119,12 @@ export default function DineInBillPage() {
             <span className="text-gray-600">Subtotal</span>
             <span>{formatCurrency(session.subtotal)}</span>
           </div>
+          {session.discountAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Discount{session.discountReason ? ` (${session.discountReason})` : ''}</span>
+              <span>-{formatCurrency(session.discountAmount)}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-600">Tax ({session.taxRatePercent}%)</span>
             <span>{formatCurrency(session.taxAmount)}</span>

@@ -26,6 +26,8 @@ public sealed class TableSessionConfiguration : IEntityTypeConfiguration<TableSe
         builder.Property(e => e.TaxAmount).HasPrecision(10, 2);
         builder.Property(e => e.ServiceChargeAmount).HasPrecision(10, 2);
         builder.Property(e => e.TotalAmount).HasPrecision(10, 2);
+        builder.Property(e => e.DiscountAmount).HasPrecision(10, 2);
+        builder.Property(e => e.DiscountReason).HasMaxLength(200);
 
         builder.HasOne<DiningTable>().WithMany().HasForeignKey(e => e.TableId).OnDelete(DeleteBehavior.Restrict);
         builder.HasMany(e => e.Rounds).WithOne().HasForeignKey(r => r.TableSessionId).OnDelete(DeleteBehavior.Cascade);
@@ -55,6 +57,7 @@ public sealed class DineInRoundItemConfiguration : IEntityTypeConfiguration<Dine
         builder.HasKey(e => e.Id);
         builder.Property(e => e.ProductName).IsRequired().HasMaxLength(200);
         builder.Property(e => e.UnitPrice).HasPrecision(10, 2);
+        builder.Property(e => e.CompReason).HasMaxLength(200);
         builder.HasIndex(e => e.DineInRoundId);
     }
 }

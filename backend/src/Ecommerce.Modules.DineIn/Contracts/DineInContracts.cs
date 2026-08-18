@@ -20,7 +20,19 @@ public sealed record FireRoundItemRequest(Guid ProductId, int Quantity);
 
 public sealed record FireRoundRequest(List<FireRoundItemRequest> Items);
 
-public sealed record DineInRoundItemDto(Guid Id, Guid ProductId, string ProductName, int Quantity, decimal UnitPrice, decimal LineTotal);
+public sealed record DineInRoundItemDto(
+    Guid Id,
+    Guid ProductId,
+    string ProductName,
+    int Quantity,
+    decimal UnitPrice,
+    decimal LineTotal,
+    bool IsComped,
+    string? CompReason);
+
+public sealed record CompRoundItemRequest(string Reason);
+
+public sealed record ApplySessionDiscountRequest(decimal Amount, string Reason);
 
 public sealed record DineInRoundDto(
     Guid Id,
@@ -70,6 +82,8 @@ public sealed record TableSessionDto(
     List<DineInRoundDto> Rounds,
     List<DineInPaymentDto> Payments,
     decimal Subtotal,
+    decimal DiscountAmount,
+    string? DiscountReason,
     decimal TaxRatePercent,
     decimal TaxAmount,
     decimal ServiceChargePercent,

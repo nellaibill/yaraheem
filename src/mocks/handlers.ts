@@ -366,6 +366,46 @@ export const handlers = [
     }
   }),
 
+  http.post(path('/api/staff/dinein/sessions/:id/discount'), async ({ request, params }) => {
+    try {
+      const body = (await request.json()) as { amount: number; reason: string }
+      return ok(dineIn.applySessionDiscount(String(params.id), body.amount, body.reason), 'Discount applied.')
+    } catch (e) {
+      return fail(e)
+    }
+  }),
+
+  http.post(path('/api/staff/dinein/sessions/:id/discount/remove'), ({ params }) => {
+    try {
+      return ok(dineIn.removeSessionDiscount(String(params.id)), 'Discount removed.')
+    } catch (e) {
+      return fail(e)
+    }
+  }),
+
+  http.post(path('/api/staff/dinein/sessions/:sessionId/rounds/:roundId/items/:itemId/comp'), async ({ request, params }) => {
+    try {
+      const body = (await request.json()) as { reason: string }
+      return ok(
+        dineIn.compRoundItem(String(params.sessionId), String(params.roundId), String(params.itemId), body.reason),
+        'Item comped.',
+      )
+    } catch (e) {
+      return fail(e)
+    }
+  }),
+
+  http.post(path('/api/staff/dinein/sessions/:sessionId/rounds/:roundId/items/:itemId/uncomp'), ({ params }) => {
+    try {
+      return ok(
+        dineIn.uncompRoundItem(String(params.sessionId), String(params.roundId), String(params.itemId)),
+        'Comp removed.',
+      )
+    } catch (e) {
+      return fail(e)
+    }
+  }),
+
   http.post(path('/api/staff/dinein/sessions/:sessionId/rounds/:roundId/cancel'), ({ params }) => {
     try {
       return ok(
