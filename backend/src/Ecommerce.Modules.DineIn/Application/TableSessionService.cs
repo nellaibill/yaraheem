@@ -3,11 +3,13 @@ using Ecommerce.Modules.Catalog.Infrastructure;
 using Ecommerce.Modules.DineIn.Contracts;
 using Ecommerce.Modules.DineIn.Domain;
 using Ecommerce.Modules.DineIn.Infrastructure;
+using Ecommerce.Modules.DineIn.Options;
 using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Inventory.Contracts;
 using Ecommerce.Modules.Inventory.Domain;
 using Ecommerce.Shared.Kernel.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Ecommerce.Modules.DineIn.Application;
 
@@ -15,8 +17,11 @@ public sealed class TableSessionService(
     DineInDbContext db,
     CatalogDbContext catalogDb,
     IInventoryService inventoryService,
-    IAuditLogService auditLog) : ITableSessionService
+    IAuditLogService auditLog,
+    IOptions<DineInBillingOptions> billingOptions) : ITableSessionService
 {
+    private sealed record BillBreakdown(decimal Subtotal, decimal TaxAmount, decimal ServiceChargeAmount, decimal Total);
+
     public async Task<List<DiningTableDto>> GetTablesAsync(CancellationToken cancellationToken)
     {
         var tables = await db.DiningTables.AsNoTracking().OrderBy(t => t.Label).ToListAsync(cancellationToken);
@@ -30,7 +35,7 @@ public sealed class TableSessionService(
         return tables.Select(t =>
         {
             activeByTable.TryGetValue(t.Id, out var session);
-            var runningTotal = session is null ? (decimal?)null : ComputeSessionTotal(session);
+            var runningTotal = session is null ? (decimal?)null : ComputeBillBreakdown(session).Total;
             return new DiningTableDto(t.Id, t.Label, t.Capacity, t.Status, session?.Id, runningTotal);
         }).ToList();
     }
@@ -189,11 +194,11 @@ public sealed class TableSessionService(
             throw new ConflictException("This session is already closed.");
         }
 
-        var total = ComputeSessionTotal(session);
+        var breakdown = ComputeBillBreakdown(session);
         var amountPaid = session.Payments.Where(p => p.Status == DineInPaymentStatus.Paid).Sum(p => p.Amount);
-        if (amountPaid < total)
+        if (amountPaid < breakdown.Total)
         {
-            throw new ConflictException($"Only {amountPaid:C} of {total:C} has been collected — record the remaining payment before closing.");
+            throw new ConflictException($"Only {amountPaid:C} of {breakdown.Total:C} has been collected — record the remaining payment before closing.");
         }
 
         var table = await db.DiningTables.FirstAsync(t => t.Id == session.TableId, cancellationToken);
@@ -201,7 +206,10 @@ public sealed class TableSessionService(
 
         session.Status = TableSessionStatus.Closed;
         session.PaymentMethod = paymentMethodSummary;
-        session.TotalAmount = total;
+        session.Subtotal = breakdown.Subtotal;
+        session.TaxAmount = breakdown.TaxAmount;
+        session.ServiceChargeAmount = breakdown.ServiceChargeAmount;
+        session.TotalAmount = breakdown.Total;
         session.ClosedAt = DateTimeOffset.UtcNow;
         table.Status = DiningTableStatus.NeedsCleaning;
 
@@ -297,6 +305,11 @@ public sealed class TableSessionService(
 
         var paymentDtos = session.Payments.OrderBy(p => p.CreatedAt).Select(ToPaymentDto).ToList();
 
+        var breakdown = session.TotalAmount is null
+            ? ComputeBillBreakdown(session)
+            : new BillBreakdown(session.Subtotal ?? 0m, session.TaxAmount ?? 0m, session.ServiceChargeAmount ?? 0m, session.TotalAmount.Value);
+        var rates = billingOptions.Value;
+
         return new TableSessionDto(
             session.Id,
             session.TableId,
@@ -309,7 +322,12 @@ public sealed class TableSessionService(
             session.PaymentMethod,
             roundDtos,
             paymentDtos,
-            session.TotalAmount ?? ComputeSessionTotal(session));
+            breakdown.Subtotal,
+            rates.TaxRatePercent,
+            breakdown.TaxAmount,
+            rates.ServiceChargePercent,
+            breakdown.ServiceChargeAmount,
+            breakdown.Total);
     }
 
     public async Task<TableSessionDto> CancelRoundAsync(Guid sessionId, Guid roundId, CancellationToken cancellationToken)
@@ -363,8 +381,14 @@ public sealed class TableSessionService(
         return result;
     }
 
-    private static decimal ComputeSessionTotal(TableSession session) =>
-        session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled).SelectMany(r => r.Items).Sum(i => i.UnitPrice * i.Quantity);
+    private BillBreakdown ComputeBillBreakdown(TableSession session)
+    {
+        var subtotal = session.Rounds.Where(r => r.Status != DineInRoundStatus.Cancelled).SelectMany(r => r.Items).Sum(i => i.UnitPrice * i.Quantity);
+        var rates = billingOptions.Value;
+        var taxAmount = Math.Round(subtotal * rates.TaxRatePercent / 100m, 2);
+        var serviceChargeAmount = Math.Round(subtotal * rates.ServiceChargePercent / 100m, 2);
+        return new BillBreakdown(subtotal, taxAmount, serviceChargeAmount, subtotal + taxAmount + serviceChargeAmount);
+    }
 
     public async Task<List<KitchenRoundDto>> GetKitchenQueueAsync(CancellationToken cancellationToken)
     {

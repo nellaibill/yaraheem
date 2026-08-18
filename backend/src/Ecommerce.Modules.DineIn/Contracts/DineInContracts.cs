@@ -69,4 +69,9 @@ public sealed record TableSessionDto(
     string? PaymentMethod,
     List<DineInRoundDto> Rounds,
     List<DineInPaymentDto> Payments,
+    decimal Subtotal,
+    decimal TaxRatePercent,
+    decimal TaxAmount,
+    decimal ServiceChargePercent,
+    decimal ServiceChargeAmount,
     decimal Total);

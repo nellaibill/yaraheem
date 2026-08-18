@@ -2,11 +2,13 @@ using Ecommerce.Api.Infrastructure;
 using Ecommerce.Modules.Catalog.Infrastructure;
 using Ecommerce.Modules.Delivery.Infrastructure;
 using Ecommerce.Modules.DineIn.Infrastructure;
+using Ecommerce.Modules.DineIn.Options;
 using Ecommerce.Modules.Identity.Infrastructure;
 using Ecommerce.Modules.Inventory.Application;
 using Ecommerce.Modules.Orders.Infrastructure;
 using Ecommerce.Modules.Payments.Infrastructure;
 using Ecommerce.Shared.Kernel;
+using Microsoft.Extensions.Options;
 
 namespace Ecommerce.Api.Endpoints;
 
@@ -25,9 +27,10 @@ public static class DemoDataEndpoints
             IdentityDbContext identityDb,
             CatalogDbContext catalogDb,
             IInventoryService inventoryService,
+            IOptions<DineInBillingOptions> billingOptions,
             CancellationToken cancellationToken) =>
         {
-            await DemoDataSeeder.ResetAsync(ordersDb, paymentsDb, deliveryDb, dineInDb, identityDb, catalogDb, inventoryService, cancellationToken);
+            await DemoDataSeeder.ResetAsync(ordersDb, paymentsDb, deliveryDb, dineInDb, identityDb, catalogDb, inventoryService, billingOptions, cancellationToken);
             return Results.Ok(ApiResponse<object?>.SuccessResponse(null, "Demo data reset."));
         })
         .WithTags("Demo")
