@@ -378,6 +378,20 @@ export interface TableSessionDto {
   total: number
 }
 
+export interface RestaurantSettingsDto {
+  acceptingOrders: boolean
+  offersEnabled: boolean
+  todaysSpecialKey: string
+  bannerEnabled: boolean
+  bannerTitle: string
+  bannerDescription: string
+  bannerCode: string | null
+  minOrderValue: number
+  deliveryRadiusKm: number
+  openTime: string
+  closeTime: string
+}
+
 export interface AuditLogEntryDto {
   id: string
   actorUserId: string | null

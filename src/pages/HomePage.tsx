@@ -14,11 +14,11 @@ import { testimonials } from '@/features/testimonials/data/testimonialsData'
 import { cateringPackages } from '@/features/catering/data/cateringData'
 import { galleryImages } from '@/features/gallery/data/galleryData'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { useRestaurantSettings } from '@/hooks/useRestaurantSettings'
 import { HERO_BANNER_IMAGE } from '@/lib/foodImages'
-import { DEFAULT_PROMO_BANNER, DEFAULT_RESTAURANT_SETTINGS, SITE, STORAGE_KEYS } from '@/lib/constants'
+import { SITE } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
-import type { MenuCategory, MenuSectionKey, PromoBanner, RestaurantSettings } from '@/types'
+import type { MenuCategory, MenuSectionKey } from '@/types'
 
 const categoryList = Object.keys(MENU_CATEGORY_LABELS) as MenuCategory[]
 const galleryPreview = galleryImages.slice(0, 6)
@@ -57,13 +57,12 @@ export default function HomePage() {
   useDocumentTitle('Premium Biryani & Catering')
   const navigate = useNavigate()
   const { items, sections } = useMenuData()
-  const [settings] = useLocalStorage<RestaurantSettings>(STORAGE_KEYS.restaurantSettings, DEFAULT_RESTAURANT_SETTINGS)
-  const [banner] = useLocalStorage<PromoBanner>(STORAGE_KEYS.promoBanner, DEFAULT_PROMO_BANNER)
+  const { settings } = useRestaurantSettings()
 
   const availableItems = items.filter((item) => item.isAvailable !== false)
   const bySection = (key: MenuSectionKey) => availableItems.filter((item) => item.sections?.includes(key))
   const sectionByKey = (key: MenuSectionKey) => sections.find((s) => s.key === key)
-  const todaysSpecialKey = settings.todaysSpecialKey
+  const todaysSpecialKey = settings.todaysSpecialKey as MenuSectionKey
   const bestSellers = availableItems.filter((item) => item.isBestSeller)
   const combos = availableItems.filter((item) => item.category === 'combos')
 
@@ -159,7 +158,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {settings.offersEnabled && banner.enabled && (
+      {settings.offersEnabled && settings.bannerEnabled && (
         <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Link
             to="/offers"
@@ -171,10 +170,10 @@ export default function HomePage() {
               </span>
               <div>
                 <p className="text-sm font-semibold">
-                  {banner.title}
-                  {banner.code ? ` — Code ${banner.code}` : ''}
+                  {settings.bannerTitle}
+                  {settings.bannerCode ? ` — Code ${settings.bannerCode}` : ''}
                 </p>
-                <p className="text-muted-foreground text-xs">{banner.description}</p>
+                <p className="text-muted-foreground text-xs">{settings.bannerDescription}</p>
               </div>
             </div>
             <ArrowRight className="text-muted-foreground size-4 shrink-0" />

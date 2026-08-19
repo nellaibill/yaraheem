@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { WhatsAppButton } from '@/components/common/WhatsAppButton'
+import { AcceptingOrdersBanner } from '@/components/common/AcceptingOrdersBanner'
 import { StickyCartBar } from '@/features/cart/components/StickyCartBar'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -24,6 +25,7 @@ export function Layout() {
       >
         Skip to content
       </a>
+      <AcceptingOrdersBanner />
       <Header />
       <main id="main-content" className={hideStickyCart ? 'flex-1' : 'flex-1 pb-20 lg:pb-0'}>
         <Outlet />

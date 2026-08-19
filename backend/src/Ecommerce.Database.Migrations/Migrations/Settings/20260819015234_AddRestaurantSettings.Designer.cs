@@ -3,6 +3,7 @@ using System;
 using Ecommerce.Modules.Settings.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Ecommerce.Database.Migrations.Migrations.Settings
 {
     [DbContext(typeof(SettingsDbContext))]
-    partial class SettingsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819015234_AddRestaurantSettings")]
+    partial class AddRestaurantSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

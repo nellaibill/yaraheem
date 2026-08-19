@@ -34,6 +34,7 @@ public static class SettingsModule
         }
         services.AddMemoryCache();
         services.AddScoped<IIntegrationSettingsStore, IntegrationSettingsStore>();
+        services.AddScoped<IRestaurantSettingsService, RestaurantSettingsService>();
 
         return services;
     }

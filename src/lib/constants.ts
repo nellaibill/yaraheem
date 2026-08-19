@@ -1,4 +1,5 @@
 import type { MenuSectionKey } from '@/types'
+import type { RestaurantSettingsDto } from '@/lib/api/types'
 
 export const SITE = {
   name: 'Ya Raheem Catering Services',
@@ -40,23 +41,14 @@ export const STORAGE_KEYS = {
   activePartnerId: 'yaraheem:delivery:active-partner-id',
   adminUsers: 'yaraheem:admin:users',
   adminSession: 'yaraheem:admin:session',
-  restaurantSettings: 'yaraheem:admin:settings',
   adminSeeded: 'yaraheem:admin:seeded',
   menuItemsOverride: 'yaraheem:menu:items',
   menuSectionsOverride: 'yaraheem:menu:sections',
-  promoBanner: 'yaraheem:promo-banner',
   apiSession: 'yaraheem:api:session',
   adminApiSession: 'yaraheem:api:admin-session',
   adminOrderDeliveryAssignments: 'yaraheem:admin:order-delivery-assignments',
   deliveryApiSession: 'yaraheem:api:delivery-session',
   staffApiSession: 'yaraheem:api:staff-session',
-} as const
-
-export const DEFAULT_PROMO_BANNER = {
-  title: 'Weekend Treat',
-  description: '15% off every Saturday and Sunday. Use code WEEKEND15 at checkout.',
-  code: 'WEEKEND15',
-  enabled: true,
 } as const
 
 /**
@@ -93,15 +85,22 @@ export const ORDER_STATUS_SEQUENCE = [
   'delivered',
 ] as const
 
-export const DEFAULT_RESTAURANT_SETTINGS = {
+// Shown while /api/settings/restaurant is still loading — matches the backend's own
+// RestaurantSettingsService.Defaults() fallback, so there's no flash of different content
+// once the real fetch resolves.
+export const DEFAULT_RESTAURANT_SETTINGS: RestaurantSettingsDto = {
   acceptingOrders: true,
+  offersEnabled: true,
+  todaysSpecialKey: 'daily',
+  bannerEnabled: true,
+  bannerTitle: 'Weekend Treat',
+  bannerDescription: '15% off every Saturday and Sunday. Use code WEEKEND15 at checkout.',
+  bannerCode: 'WEEKEND15',
   minOrderValue: 199,
   deliveryRadiusKm: 12,
   openTime: '11:00',
   closeTime: '23:00',
-  offersEnabled: true,
-  todaysSpecialKey: 'daily',
-} as const
+}
 
 export const MENU_SECTION_LABELS: Record<MenuSectionKey, string> = {
   daily: "Today's Special",
