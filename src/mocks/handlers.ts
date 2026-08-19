@@ -7,12 +7,14 @@ import * as cart from '@/mocks/store/cart'
 import * as orders from '@/mocks/store/orders'
 import * as delivery from '@/mocks/store/delivery'
 import * as dineIn from '@/mocks/store/dineIn'
+import { getRestaurantSettings, updateRestaurantSettings } from '@/mocks/store/restaurantSettings'
 import type {
   BackendOrderStatus,
   CheckoutRequest,
   CreateDeliveryPartnerRequest,
   DeliveryAssignmentStatus,
   ProductDetailsResponse,
+  RestaurantSettingsDto,
   UpdateDeliveryPartnerRequest,
   UserDto,
 } from '@/lib/api/types'
@@ -114,6 +116,8 @@ export const handlers = [
       totalPages: 1,
     }),
   ),
+
+  http.get(path('/api/settings/restaurant'), () => ok(getRestaurantSettings())),
 
   http.get(path('/api/products/:id'), ({ params }) => {
     const product = findDemoProduct(String(params.id))
@@ -294,6 +298,16 @@ export const handlers = [
   http.post(path('/api/admin/demo/reset'), () =>
     ok(null, 'Demo data is already fresh on this build — refresh the page for a clean slate.'),
   ),
+
+  http.put(path('/api/admin/settings/restaurant'), async ({ request }) => {
+    try {
+      requireCaller(request)
+      const body = (await request.json()) as RestaurantSettingsDto
+      return ok(updateRestaurantSettings(body), 'Settings saved.')
+    } catch (e) {
+      return fail(e)
+    }
+  }),
 
   // ---------- Delivery portal ----------
   http.get(path('/api/delivery/my-orders'), ({ request }) => {

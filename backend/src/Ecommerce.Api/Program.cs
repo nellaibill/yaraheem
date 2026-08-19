@@ -183,6 +183,7 @@ try
     app.MapCouponEndpoints();
     app.MapAdminCouponEndpoints();
     app.MapAdminIntegrationSettingsEndpoints();
+    app.MapRestaurantSettingsEndpoints();
     app.MapDineInStaffEndpoints();
     app.MapDineInKitchenEndpoints();
     app.MapDineInPaymentEndpoints();

@@ -9,6 +9,7 @@ public class SettingsDbContext(DbContextOptions<SettingsDbContext> options) : Au
     public const string Schema = "settings";
 
     public DbSet<IntegrationSetting> IntegrationSettings => Set<IntegrationSetting>();
+    public DbSet<RestaurantSettings> RestaurantSettings => Set<RestaurantSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

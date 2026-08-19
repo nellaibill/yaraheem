@@ -167,19 +167,6 @@ export interface AdminUser {
   name: string
 }
 
-export interface PromoBanner {
-  title: string
-  description: string
-  code?: string
-  enabled: boolean
-}
-
-export interface RestaurantSettings {
-  acceptingOrders: boolean
-  minOrderValue: number
-  deliveryRadiusKm: number
-  openTime: string
-  closeTime: string
-  offersEnabled: boolean
-  todaysSpecialKey: MenuSectionKey
-}
+// Restaurant-wide operational settings (accepting orders, offers/banner visibility, today's
+// special, hours) live server-side now — see lib/api/types.ts RestaurantSettingsDto and the
+// useRestaurantSettings hook.

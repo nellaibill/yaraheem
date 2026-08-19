@@ -17,15 +17,15 @@ import { useOrders } from '@/features/checkout/hooks/useOrders'
 import { AddressCard } from '@/features/checkout/components/AddressCard'
 import { AddressFormDialog } from '@/features/checkout/components/AddressFormDialog'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { useRestaurantSettings } from '@/hooks/useRestaurantSettings'
 import { formatCurrency } from '@/lib/utils'
 import { ApiError } from '@/lib/api/client'
 import { checkout } from '@/lib/api/ordersApi'
 import { previewCoupon } from '@/lib/api/couponApi'
 import { verifyRazorpayPayment } from '@/lib/api/razorpayApi'
 import { openRazorpayCheckout } from '@/lib/razorpay'
-import { DEFAULT_RESTAURANT_SETTINGS, PAYMENT_METHOD_LABELS, STORAGE_KEYS } from '@/lib/constants'
-import type { Address, Order, PaymentMethod, RestaurantSettings } from '@/types'
+import { PAYMENT_METHOD_LABELS } from '@/lib/constants'
+import type { Address, Order, PaymentMethod } from '@/types'
 
 /** Backend DummyPaymentService: "ONLINE" settles immediately, anything else is treated as COD. */
 const BACKEND_PAYMENT_METHOD: Record<PaymentMethod, string> = {
@@ -46,7 +46,7 @@ export default function CheckoutPage() {
   const { user } = useAuth()
   const { addresses, addAddress } = useAddresses()
   const { placeOrder } = useOrders()
-  const [settings] = useLocalStorage<RestaurantSettings>(STORAGE_KEYS.restaurantSettings, DEFAULT_RESTAURANT_SETTINGS)
+  const { settings } = useRestaurantSettings()
   useDocumentTitle('Checkout')
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
@@ -117,6 +117,10 @@ export default function CheckoutPage() {
   }
 
   async function handlePlaceOrder() {
+    if (!settings.acceptingOrders) {
+      toast.error("We're not accepting orders right now", { description: 'Please check back shortly.' })
+      return
+    }
     const address = addresses.find((a) => a.id === selectedAddressId)
     if (!address) {
       toast.error('Please select a delivery address')
@@ -335,7 +339,18 @@ export default function CheckoutPage() {
               <span>{formatCurrency(finalTotal)}</span>
             </div>
 
-            <Button variant="gold" size="lg" className="mt-2 w-full" onClick={handlePlaceOrder} disabled={placing}>
+            {!settings.acceptingOrders && (
+              <p className="text-destructive text-center text-sm font-medium">
+                We&rsquo;re not accepting orders right now — please check back shortly.
+              </p>
+            )}
+            <Button
+              variant="gold"
+              size="lg"
+              className="mt-2 w-full"
+              onClick={handlePlaceOrder}
+              disabled={placing || !settings.acceptingOrders}
+            >
               {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(finalTotal)}`}
             </Button>
           </CardContent>
@@ -345,8 +360,14 @@ export default function CheckoutPage() {
       <AddressFormDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} onSave={handleSaveAddress} />
 
       <div className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t p-3 backdrop-blur-md lg:hidden">
-        <Button variant="gold" size="lg" className="w-full" onClick={handlePlaceOrder} disabled={placing}>
-          {placing ? 'Placing Order...' : `Place Order — ${formatCurrency(finalTotal)}`}
+        <Button
+          variant="gold"
+          size="lg"
+          className="w-full"
+          onClick={handlePlaceOrder}
+          disabled={placing || !settings.acceptingOrders}
+        >
+          {!settings.acceptingOrders ? 'Not Accepting Orders' : placing ? 'Placing Order...' : `Place Order — ${formatCurrency(finalTotal)}`}
         </Button>
       </div>
     </div>

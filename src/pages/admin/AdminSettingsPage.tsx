@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -7,11 +7,12 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { DEFAULT_PROMO_BANNER, DEFAULT_RESTAURANT_SETTINGS, MENU_SECTION_LABELS, STORAGE_KEYS } from '@/lib/constants'
+import { fetchRestaurantSettings, updateRestaurantSettings } from '@/lib/api/restaurantSettingsApi'
 import { resetDemoData } from '@/lib/api/adminDemoApi'
 import { ApiError } from '@/lib/api/client'
-import type { MenuSectionKey, PromoBanner, RestaurantSettings } from '@/types'
+import { DEFAULT_RESTAURANT_SETTINGS, MENU_SECTION_LABELS } from '@/lib/constants'
+import type { RestaurantSettingsDto } from '@/lib/api/types'
+import type { MenuSectionKey } from '@/types'
 
 const SECTION_OPTIONS = Object.keys(MENU_SECTION_LABELS) as MenuSectionKey[]
 
@@ -20,13 +21,34 @@ function errorMessage(error: unknown): string {
 }
 
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useLocalStorage<RestaurantSettings>(
-    STORAGE_KEYS.restaurantSettings,
-    DEFAULT_RESTAURANT_SETTINGS,
-  )
-  const [banner, setBanner] = useLocalStorage<PromoBanner>(STORAGE_KEYS.promoBanner, DEFAULT_PROMO_BANNER)
+  const [settings, setSettings] = useState<RestaurantSettingsDto>(DEFAULT_RESTAURANT_SETTINGS)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [resetting, setResetting] = useState(false)
+
+  useEffect(() => {
+    fetchRestaurantSettings()
+      .then(setSettings)
+      .catch((error) => toast.error('Could not load settings', { description: errorMessage(error) }))
+      .finally(() => setLoading(false))
+  }, [])
+
+  function update<K extends keyof RestaurantSettingsDto>(key: K, value: RestaurantSettingsDto[K]) {
+    setSettings((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      setSettings(await updateRestaurantSettings(settings))
+      toast.success('Settings saved', { description: 'Takes effect immediately across the storefront.' })
+    } catch (error) {
+      toast.error('Could not save settings', { description: errorMessage(error) })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleResetDemoData() {
     setResetting(true)
@@ -41,12 +63,8 @@ export default function AdminSettingsPage() {
     }
   }
 
-  function update<K extends keyof RestaurantSettings>(key: K, value: RestaurantSettings[K]) {
-    setSettings((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function updateBanner<K extends keyof PromoBanner>(key: K, value: PromoBanner[K]) {
-    setBanner((prev) => ({ ...prev, [key]: value }))
+  if (loading) {
+    return <p className="text-muted-foreground py-12 text-center text-sm">Loading...</p>
   }
 
   return (
@@ -62,10 +80,7 @@ export default function AdminSettingsPage() {
             <p className="text-sm font-medium">Accepting Orders</p>
             <p className="text-muted-foreground text-xs">Turn off to pause new orders site-wide</p>
           </div>
-          <Switch
-            checked={settings.acceptingOrders}
-            onCheckedChange={(v) => update('acceptingOrders', v)}
-          />
+          <Switch checked={settings.acceptingOrders} onCheckedChange={(v) => update('acceptingOrders', v)} />
         </CardContent>
       </Card>
 
@@ -85,10 +100,7 @@ export default function AdminSettingsPage() {
             <p className="text-sm font-medium">Today&rsquo;s Special</p>
             <p className="text-muted-foreground text-xs">Which menu section is featured as today&rsquo;s special on the homepage</p>
           </div>
-          <Select
-            value={settings.todaysSpecialKey}
-            onValueChange={(v) => update('todaysSpecialKey', v as MenuSectionKey)}
-          >
+          <Select value={settings.todaysSpecialKey} onValueChange={(v) => update('todaysSpecialKey', v)}>
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
@@ -110,26 +122,26 @@ export default function AdminSettingsPage() {
               <p className="text-sm font-medium">Promotional Banner</p>
               <p className="text-muted-foreground text-xs">Shown as the highlighted strip on the homepage</p>
             </div>
-            <Switch checked={banner.enabled} onCheckedChange={(v) => updateBanner('enabled', v)} />
+            <Switch checked={settings.bannerEnabled} onCheckedChange={(v) => update('bannerEnabled', v)} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="banner-title">Title</Label>
-            <Input id="banner-title" value={banner.title} onChange={(e) => updateBanner('title', e.target.value)} />
+            <Input id="banner-title" value={settings.bannerTitle} onChange={(e) => update('bannerTitle', e.target.value)} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="banner-description">Description</Label>
             <Input
               id="banner-description"
-              value={banner.description}
-              onChange={(e) => updateBanner('description', e.target.value)}
+              value={settings.bannerDescription}
+              onChange={(e) => update('bannerDescription', e.target.value)}
             />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="banner-code">Coupon Code (optional)</Label>
             <Input
               id="banner-code"
-              value={banner.code ?? ''}
-              onChange={(e) => updateBanner('code', e.target.value.toUpperCase())}
+              value={settings.bannerCode ?? ''}
+              onChange={(e) => update('bannerCode', e.target.value.toUpperCase() || null)}
               placeholder="e.g. WEEKEND15"
             />
           </div>
@@ -159,32 +171,18 @@ export default function AdminSettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-1.5">
               <Label htmlFor="open-time">Opening Time</Label>
-              <Input
-                id="open-time"
-                type="time"
-                value={settings.openTime}
-                onChange={(e) => update('openTime', e.target.value)}
-              />
+              <Input id="open-time" type="time" value={settings.openTime} onChange={(e) => update('openTime', e.target.value)} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="close-time">Closing Time</Label>
-              <Input
-                id="close-time"
-                type="time"
-                value={settings.closeTime}
-                onChange={(e) => update('closeTime', e.target.value)}
-              />
+              <Input id="close-time" type="time" value={settings.closeTime} onChange={(e) => update('closeTime', e.target.value)} />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Button
-        variant="gold"
-        className="w-fit"
-        onClick={() => toast.success('Settings saved')}
-      >
-        Save Changes
+      <Button variant="gold" className="w-fit" disabled={saving} onClick={handleSave}>
+        {saving ? 'Saving...' : 'Save Changes'}
       </Button>
 
       <Card>
